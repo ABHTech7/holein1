@@ -18,6 +18,7 @@ import Section from "@/components/layout/Section";
 import ClubCommissionSection from "@/components/admin/ClubCommissionSection";
 import ClubBankDetailsSection from "@/components/admin/ClubBankDetailsSection";
 import { useAuth } from "@/hooks/useAuth";
+import { trackClubChanges } from "@/lib/auditTracker";
 
 interface Club {
   id: string;
@@ -174,45 +175,18 @@ const ClubDetailPage = () => {
     }
   };
 
-  const addAuditNote = async (changes: string[]) => {
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('first_name, last_name')
-        .eq('id', user?.id)
-        .single();
-      
-      const adminName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'Admin';
-      const timestamp = new Date().toISOString();
-      const changesList = changes.join(', ');
-      
-      const auditNote: Note = {
-        id: Date.now().toString(),
-        content: `Club details updated: ${changesList}`,
-        created_at: timestamp,
-        created_by: `${adminName} (${new Date().toLocaleString()})`
-      };
-      
+  const addAuditNote = async (auditNote: any) => {
+    if (auditNote) {
       setNotes(prev => [auditNote, ...prev]);
-    } catch (error) {
-      console.error('Error adding audit note:', error);
     }
   };
 
   const handleSave = async () => {
     try {
       setSaving(true);
-      
-      // Track changes for audit
-      const changes: string[] = [];
-      if (club) {
-        if (club.name !== formData.name) changes.push(`name changed from "${club.name}" to "${formData.name}"`);
-        if (club.address !== formData.address) changes.push(`address updated`);
-        if (club.email !== formData.email) changes.push(`email updated`);
-        if (club.phone !== formData.phone) changes.push(`phone updated`);
-        if (club.website !== formData.website) changes.push(`website updated`);
-        if (club.active !== formData.active) changes.push(`status changed to ${formData.active ? 'active' : 'inactive'}`);
-      }
+
+      const oldData = club;
+      const newData = formData;
 
       const { error } = await supabase
         .from('clubs')
@@ -228,13 +202,16 @@ const ClubDetailPage = () => {
 
       if (error) throw error;
 
+      // Track changes with audit system
+      if (oldData && clubId) {
+        const auditNote = await trackClubChanges(clubId, oldData, newData, user?.id);
+        if (auditNote) {
+          await addAuditNote(auditNote);
+        }
+      }
+
       setClub(prev => prev ? { ...prev, ...formData } : null);
       setEditMode(false);
-      
-      // Add audit trail if there were changes
-      if (changes.length > 0) {
-        await addAuditNote(changes);
-      }
 
       toast({
         title: "Success",

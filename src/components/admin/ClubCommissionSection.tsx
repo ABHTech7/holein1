@@ -5,10 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { PoundSterling, Plus, Calendar, TrendingUp } from "lucide-react";
+import { PoundSterling, Plus, Calendar, TrendingUp, Edit2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency, formatDate } from "@/lib/formatters";
+import { useAuth } from "@/hooks/useAuth";
+import { trackPaymentAction } from "@/lib/auditTracker";
 
 interface CommissionSectionProps {
   clubId: string;
@@ -34,6 +38,7 @@ interface Payment {
 }
 
 const ClubCommissionSection = ({ clubId }: CommissionSectionProps) => {
+  const { user, profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<CommissionStats>({
     monthToDate: 0,
@@ -43,6 +48,14 @@ const ClubCommissionSection = ({ clubId }: CommissionSectionProps) => {
   });
   const [payments, setPayments] = useState<Payment[]>([]);
   const [newPayment, setNewPayment] = useState({
+    amount: "",
+    reference: "",
+    period_start: "",
+    period_end: "",
+    notes: ""
+  });
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [editPaymentData, setEditPaymentData] = useState({
     amount: "",
     reference: "",
     period_start: "",
@@ -147,23 +160,44 @@ const ClubCommissionSection = ({ clubId }: CommissionSectionProps) => {
       return;
     }
 
+    // Validate payment amount doesn't exceed unpaid commission
+    const paymentAmount = parseFloat(newPayment.amount);
+    if (paymentAmount > stats.unpaidCommission) {
+      toast({
+        title: "Error",
+        description: `Payment amount cannot exceed unpaid commission of ${formatCurrency(stats.unpaidCommission)}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
-      const { error } = await supabase
+      const paymentData = {
+        club_id: clubId,
+        amount: paymentAmount,
+        payment_date: new Date().toISOString().split('T')[0],
+        payment_reference: newPayment.reference || null,
+        period_start: newPayment.period_start,
+        period_end: newPayment.period_end,
+        entries_count: 0, // This would be calculated based on the period
+        commission_rate: 0, // This would be the weighted average
+        notes: newPayment.notes || null,
+        status: 'processed',
+        created_by: user?.id
+      };
+
+      const { data: insertedPayment, error } = await supabase
         .from('club_payments')
-        .insert({
-          club_id: clubId,
-          amount: parseFloat(newPayment.amount),
-          payment_date: new Date().toISOString().split('T')[0],
-          payment_reference: newPayment.reference || null,
-          period_start: newPayment.period_start,
-          period_end: newPayment.period_end,
-          entries_count: 0, // This would be calculated based on the period
-          commission_rate: 0, // This would be the weighted average
-          notes: newPayment.notes || null,
-          status: 'processed'
-        });
+        .insert(paymentData)
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Track payment creation
+      if (insertedPayment) {
+        await trackPaymentAction(insertedPayment.id, 'create', paymentData, user?.id);
+      }
 
       toast({
         title: "Success",
@@ -189,6 +223,96 @@ const ClubCommissionSection = ({ clubId }: CommissionSectionProps) => {
       });
     }
   };
+
+  const handleEditPayment = (payment: Payment) => {
+    setEditingPayment(payment);
+    setEditPaymentData({
+      amount: payment.amount.toString(),
+      reference: payment.payment_reference || "",
+      period_start: payment.period_start,
+      period_end: payment.period_end,
+      notes: payment.notes || ""
+    });
+  };
+
+  const handleUpdatePayment = async () => {
+    if (!editingPayment || !editPaymentData.amount || !editPaymentData.period_start || !editPaymentData.period_end) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const oldData = editingPayment;
+      const newData = {
+        amount: parseFloat(editPaymentData.amount),
+        payment_reference: editPaymentData.reference || null,
+        period_start: editPaymentData.period_start,
+        period_end: editPaymentData.period_end,
+        notes: editPaymentData.notes || null
+      };
+
+      const { error } = await supabase
+        .from('club_payments')
+        .update(newData)
+        .eq('id', editingPayment.id);
+
+      if (error) throw error;
+
+      // Track payment update
+      await trackPaymentAction(editingPayment.id, 'update', newData, user?.id, oldData);
+
+      toast({
+        title: "Success",
+        description: "Payment updated successfully"
+      });
+
+      setEditingPayment(null);
+      fetchCommissionData();
+
+    } catch (error) {
+      console.error('Error updating payment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update payment",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeletePayment = async (payment: Payment) => {
+    try {
+      const { error } = await supabase
+        .from('club_payments')
+        .delete()
+        .eq('id', payment.id);
+
+      if (error) throw error;
+
+      // Track payment deletion
+      await trackPaymentAction(payment.id, 'delete', null, user?.id, payment);
+
+      toast({
+        title: "Success",
+        description: "Payment deleted successfully"
+      });
+
+      fetchCommissionData();
+
+    } catch (error) {
+      console.error('Error deleting payment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete payment",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const isAdmin = profile?.role === 'ADMIN';
 
   if (loading) {
     return (
@@ -338,12 +462,13 @@ const ClubCommissionSection = ({ clubId }: CommissionSectionProps) => {
                 <TableHead>Reference</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Notes</TableHead>
+                {isAdmin && <TableHead>Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {payments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={isAdmin ? 7 : 6} className="text-center py-8 text-muted-foreground">
                     No payments recorded yet
                   </TableCell>
                 </TableRow>
@@ -371,6 +496,109 @@ const ClubCommissionSection = ({ clubId }: CommissionSectionProps) => {
                     <TableCell className="max-w-32 truncate" title={payment.notes || ''}>
                       {payment.notes || '-'}
                     </TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleEditPayment(payment)}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Edit Payment</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label htmlFor="edit_amount">Amount (£)</Label>
+                                  <Input
+                                    id="edit_amount"
+                                    type="number"
+                                    step="0.01"
+                                    value={editPaymentData.amount}
+                                    onChange={(e) => setEditPaymentData(prev => ({ ...prev, amount: e.target.value }))}
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="edit_reference">Reference</Label>
+                                  <Input
+                                    id="edit_reference"
+                                    value={editPaymentData.reference}
+                                    onChange={(e) => setEditPaymentData(prev => ({ ...prev, reference: e.target.value }))}
+                                  />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <Label htmlFor="edit_period_start">Period Start</Label>
+                                    <Input
+                                      id="edit_period_start"
+                                      type="date"
+                                      value={editPaymentData.period_start}
+                                      onChange={(e) => setEditPaymentData(prev => ({ ...prev, period_start: e.target.value }))}
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label htmlFor="edit_period_end">Period End</Label>
+                                    <Input
+                                      id="edit_period_end"
+                                      type="date"
+                                      value={editPaymentData.period_end}
+                                      onChange={(e) => setEditPaymentData(prev => ({ ...prev, period_end: e.target.value }))}
+                                    />
+                                  </div>
+                                </div>
+                                <div>
+                                  <Label htmlFor="edit_notes">Notes</Label>
+                                  <Input
+                                    id="edit_notes"
+                                    value={editPaymentData.notes}
+                                    onChange={(e) => setEditPaymentData(prev => ({ ...prev, notes: e.target.value }))}
+                                  />
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                  <DialogTrigger asChild>
+                                    <Button variant="outline">Cancel</Button>
+                                  </DialogTrigger>
+                                  <Button onClick={handleUpdatePayment}>
+                                    Update Payment
+                                  </Button>
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Payment</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this payment record? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeletePayment(payment)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}

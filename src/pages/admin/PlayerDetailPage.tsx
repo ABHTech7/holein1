@@ -14,6 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatDate, formatCurrency, formatDateTime } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
+import { useAuth } from "@/hooks/useAuth";
+import { trackPlayerChanges } from "@/lib/auditTracker";
 
 interface Player {
   id: string;
@@ -49,6 +51,7 @@ interface Note {
 const PlayerDetailPage = () => {
   const { playerId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [player, setPlayer] = useState<Player | null>(null);
@@ -147,6 +150,9 @@ const PlayerDetailPage = () => {
     try {
       setSaving(true);
 
+      const oldData = player;
+      const newData = formData;
+
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -158,6 +164,14 @@ const PlayerDetailPage = () => {
         .eq('id', playerId);
 
       if (error) throw error;
+
+      // Track changes with audit system
+      if (oldData && playerId) {
+        const auditNote = await trackPlayerChanges(playerId, oldData, newData, user?.id);
+        if (auditNote) {
+          setNotes(prev => [auditNote, ...prev]);
+        }
+      }
 
       setPlayer(prev => prev ? { ...prev, ...formData } : null);
       setEditMode(false);
