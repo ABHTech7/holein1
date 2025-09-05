@@ -227,6 +227,8 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
 
       // Convert entry fee to cents
       const entry_fee_cents = Math.round(data.entry_fee * 100);
+      // Convert commission rate from pounds to pence for storage
+      const commission_rate_pence = Math.round(data.commission_rate * 100);
 
       const { data: competition, error } = await supabase
         .from('competitions')
@@ -238,7 +240,7 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
           start_date: data.start_date.toISOString(),
           end_date: data.end_date.toISOString(),
           entry_fee: entry_fee_cents,
-          commission_rate: data.commission_rate,
+          commission_rate: commission_rate_pence,
           status,
         })
         .select()
@@ -499,7 +501,7 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
                   <div>
                     <p className="text-muted-foreground">Commission Rate</p>
                     <p className="font-medium">
-                      {formatCurrency(watchedValues.commission_rate * 100)} per entry
+                      {formatCurrency(watchedValues.commission_rate)} per entry
                     </p>
                   </div>
                 )}

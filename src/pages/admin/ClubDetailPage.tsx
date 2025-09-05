@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Building, Mail, Phone, MapPin, Trophy, FileText, PoundSterling, Plus, Save, Calendar, ArrowLeft, Edit2, Check, X, Upload, Shield } from "lucide-react";
+import { Building, Mail, Phone, MapPin, Trophy, FileText, PoundSterling, Plus, Save, Calendar, ArrowLeft, Edit2, Check, X, Upload, Shield, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate, formatCurrency } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
@@ -234,13 +234,14 @@ const ClubDetailPage = () => {
 
   const handleCommissionEdit = (competitionId: string, currentRate: number) => {
     setEditingCommission(competitionId);
-    setTempCommissionRate(currentRate.toString());
+    // Convert from pence to pounds for display
+    setTempCommissionRate((currentRate / 100).toFixed(2));
   };
 
   const handleCommissionSave = async (competitionId: string) => {
     try {
-      const newRate = parseFloat(tempCommissionRate);
-      if (isNaN(newRate) || newRate < 0) {
+      const newRateInPounds = parseFloat(tempCommissionRate);
+      if (isNaN(newRateInPounds) || newRateInPounds < 0) {
         toast({
           title: "Error",
           description: "Please enter a valid commission rate",
@@ -249,12 +250,14 @@ const ClubDetailPage = () => {
         return;
       }
 
+      // Convert to pence for storage
+      const newRateInPence = Math.round(newRateInPounds * 100);
       const competition = competitions.find(c => c.id === competitionId);
       if (!competition) return;
 
       const { error } = await supabase
         .from('competitions')
-        .update({ commission_rate: newRate })
+        .update({ commission_rate: newRateInPence })
         .eq('id', competitionId);
 
       if (error) throw error;
@@ -262,10 +265,10 @@ const ClubDetailPage = () => {
       // Update local state
       setCompetitions(prev => prev.map(comp => {
         if (comp.id === competitionId) {
-          const updatedComp = { ...comp, commission_rate: newRate };
-          // Recalculate commission with new rate
+          const updatedComp = { ...comp, commission_rate: newRateInPence };
+          // Recalculate commission with new rate in pence
           const paidEntries = Math.round(comp.total_revenue / comp.entry_fee) || 0;
-          updatedComp.total_commission = paidEntries * newRate;
+          updatedComp.total_commission = paidEntries * newRateInPence;
           return updatedComp;
         }
         return comp;
@@ -275,7 +278,16 @@ const ClubDetailPage = () => {
       setTempCommissionRate("");
 
       // Add audit note for commission change
-      await addAuditNote([`competition "${competition.name}" commission rate changed from £${competition.commission_rate} to £${newRate}`]);
+      const oldRateInPounds = (competition.commission_rate / 100).toFixed(2);
+      const auditNote = await trackClubChanges(
+        clubId!,
+        { ...club, commission_change: `${competition.name}: £${oldRateInPounds}` },
+        { ...club, commission_change: `${competition.name}: £${newRateInPounds.toFixed(2)}` },
+        user?.id
+      );
+      if (auditNote) {
+        await addAuditNote(auditNote);
+      }
 
       toast({
         title: "Success",
@@ -354,6 +366,66 @@ const ClubDetailPage = () => {
       toast({
         title: "Error",
         description: "Failed to upload logo. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleLogoDelete = async () => {
+    if (!clubId || !club?.logo_url) return;
+
+    setUploadingLogo(true);
+
+    try {
+      // Extract filename from URL
+      const url = new URL(club.logo_url);
+      const fileName = url.pathname.split('/').pop();
+
+      if (fileName) {
+        // Delete from storage
+        const { error: deleteError } = await supabase.storage
+          .from('club-logos')
+          .remove([fileName]);
+
+        if (deleteError) {
+          console.warn('Failed to delete file from storage:', deleteError);
+        }
+      }
+
+      // Update the club record to remove logo URL
+      const { error: updateError } = await supabase
+        .from('clubs')
+        .update({ logo_url: null })
+        .eq('id', clubId);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setClub(prev => prev ? { ...prev, logo_url: null } : null);
+
+      // Track logo deletion
+      const auditNote = await trackClubChanges(
+        clubId, 
+        { ...club, logo_url: club.logo_url }, 
+        { ...club, logo_url: null }, 
+        user?.id
+      );
+      if (auditNote) {
+        await addAuditNote(auditNote);
+      }
+
+      toast({
+        title: "Success",
+        description: "Club logo removed successfully.",
+      });
+
+    } catch (error) {
+      console.error('Error deleting logo:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove logo. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -519,23 +591,36 @@ const ClubDetailPage = () => {
                         </div>
                       )}
                       <div className="space-y-2">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleLogoUpload}
-                          className="hidden"
-                          id="logo-upload"
-                          disabled={uploadingLogo}
-                        />
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => document.getElementById('logo-upload')?.click()}
-                          disabled={uploadingLogo}
-                        >
-                          <Upload className="w-4 h-4 mr-2" />
-                          {uploadingLogo ? "Uploading..." : "Upload Logo"}
-                        </Button>
+                        <div className="flex gap-2">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            className="hidden"
+                            id="logo-upload"
+                            disabled={uploadingLogo}
+                          />
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => document.getElementById('logo-upload')?.click()}
+                            disabled={uploadingLogo}
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            {uploadingLogo ? "Uploading..." : club.logo_url ? "Change Logo" : "Upload Logo"}
+                          </Button>
+                          {club.logo_url && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={handleLogoDelete}
+                              disabled={uploadingLogo}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Remove
+                            </Button>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           Recommended: Square image, max 2MB
                         </p>
