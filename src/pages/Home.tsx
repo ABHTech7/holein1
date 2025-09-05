@@ -29,14 +29,6 @@ const Home = () => {
             >
               <Link to="/clubs/signup">Partner with Us</Link>
             </Button>
-            <Button 
-              asChild 
-              size="lg"
-              variant="outline"
-              className="border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10"
-            >
-              <a href="mailto:ops@holein1.test">Book a Demo</a>
-            </Button>
           </HeroActions>
         </Hero>
 
