@@ -196,6 +196,11 @@ export type Database = {
           bank_iban: string | null
           bank_sort_code: string | null
           bank_swift: string | null
+          contract_signed: boolean
+          contract_signed_by_email: string | null
+          contract_signed_by_name: string | null
+          contract_signed_date: string | null
+          contract_url: string | null
           created_at: string
           email: string | null
           id: string
@@ -214,6 +219,11 @@ export type Database = {
           bank_iban?: string | null
           bank_sort_code?: string | null
           bank_swift?: string | null
+          contract_signed?: boolean
+          contract_signed_by_email?: string | null
+          contract_signed_by_name?: string | null
+          contract_signed_date?: string | null
+          contract_url?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -232,6 +242,11 @@ export type Database = {
           bank_iban?: string | null
           bank_sort_code?: string | null
           bank_swift?: string | null
+          contract_signed?: boolean
+          contract_signed_by_email?: string | null
+          contract_signed_by_name?: string | null
+          contract_signed_date?: string | null
+          contract_url?: string | null
           created_at?: string
           email?: string | null
           id?: string
