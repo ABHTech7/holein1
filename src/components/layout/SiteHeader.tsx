@@ -2,15 +2,40 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Container from "./Container";
-import { Trophy, Menu, User, LogOut } from "lucide-react";
-import { useState } from "react";
+import { Trophy, Menu, User, LogOut, Building } from "lucide-react";
+import { useState, useEffect } from "react";
 import useAuth from "@/hooks/useAuth";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { supabase } from "@/integrations/supabase/client";
 
 const SiteHeader = () => {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, profile, signOut } = useAuth();
+  const [clubData, setClubData] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchClubData = async () => {
+      if (!profile?.club_id || profile?.role !== 'CLUB') return;
+      
+      try {
+        const { data: club, error } = await supabase
+          .from('clubs')
+          .select('*')
+          .eq('id', profile.club_id)
+          .single();
+
+        if (error) throw error;
+        setClubData(club);
+      } catch (error) {
+        console.error('Error fetching club data:', error);
+      }
+    };
+
+    if (profile) {
+      fetchClubData();
+    }
+  }, [profile]);
 
   const navigation = [
     // Only show Home on non-admin pages
@@ -33,11 +58,21 @@ const SiteHeader = () => {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-            <div className="flex items-center justify-center w-8 h-8 bg-gradient-primary rounded-lg">
-              <Trophy className="w-5 h-5 text-primary-foreground" />
-            </div>
+            {profile?.role === 'CLUB' && clubData?.logo_url ? (
+              <div className="w-8 h-8 rounded overflow-hidden bg-muted flex items-center justify-center">
+                <img 
+                  src={clubData.logo_url} 
+                  alt={`${clubData.name} logo`} 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center w-8 h-8 bg-gradient-primary rounded-lg">
+                <Trophy className="w-5 h-5 text-primary-foreground" />
+              </div>
+            )}
             <span className="font-display text-xl font-semibold text-foreground">
-              Hole in 1 Challenge
+              {profile?.role === 'CLUB' && clubData?.name ? clubData.name : 'Hole in 1 Challenge'}
             </span>
           </Link>
 

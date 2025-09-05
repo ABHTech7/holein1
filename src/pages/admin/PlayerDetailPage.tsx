@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { User, Mail, Phone, Calendar, Trophy, FileText, PoundSterling, Plus, Save, ArrowLeft } from "lucide-react";
+import { User, Mail, Phone, Calendar, Trophy, FileText, PoundSterling, Plus, Save, ArrowLeft, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate, formatCurrency, formatDateTime } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
@@ -46,6 +46,7 @@ interface Note {
   content: string;
   created_at: string;
   created_by: string;
+  immutable?: boolean;
 }
 
 const PlayerDetailPage = () => {
@@ -130,7 +131,8 @@ const PlayerDetailPage = () => {
           id: '1',
           content: 'Player is very active and competitive',
           created_at: '2024-01-10',
-          created_by: 'Admin'
+          created_by: 'Admin',
+          immutable: false
         }
       ]);
 
@@ -199,7 +201,8 @@ const PlayerDetailPage = () => {
       id: Date.now().toString(),
       content: newNote,
       created_at: new Date().toISOString(),
-      created_by: 'Admin'
+      created_by: 'Admin',
+      immutable: false
     };
 
     setNotes(prev => [note, ...prev]);
@@ -478,14 +481,31 @@ const PlayerDetailPage = () => {
 
                   <div className="space-y-3">
                     {notes.map((note) => (
-                      <div key={note.id} className="p-3 border rounded-lg">
+                      <div key={note.id} className={`p-3 border rounded-lg ${note.immutable ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800' : ''}`}>
                         <div className="flex justify-between items-start mb-2">
-                          <span className="text-sm font-medium">{note.created_by}</span>
+                          <div className="flex items-center gap-2">
+                            {note.immutable && <Shield className="w-4 h-4 text-blue-600" />}
+                            <span className={`text-sm font-medium ${note.immutable ? 'text-blue-700 dark:text-blue-300' : ''}`}>
+                              {note.created_by}
+                            </span>
+                            {note.immutable && (
+                              <Badge variant="secondary" className="text-xs">
+                                System Audit
+                              </Badge>
+                            )}
+                          </div>
                           <span className="text-xs text-muted-foreground">
                             {formatDate(note.created_at, 'short')}
                           </span>
                         </div>
-                        <p className="text-sm">{note.content}</p>
+                        <p className={`text-sm ${note.immutable ? 'text-blue-800 dark:text-blue-200' : ''}`}>
+                          {note.content}
+                        </p>
+                        {note.immutable && (
+                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 italic">
+                            This audit record cannot be modified or deleted
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>

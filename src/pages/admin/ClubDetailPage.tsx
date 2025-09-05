@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Building, Mail, Phone, MapPin, Trophy, FileText, PoundSterling, Plus, Save, Calendar, ArrowLeft, Edit2, Check, X } from "lucide-react";
+import { Building, Mail, Phone, MapPin, Trophy, FileText, PoundSterling, Plus, Save, Calendar, ArrowLeft, Edit2, Check, X, Upload, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate, formatCurrency } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
@@ -59,6 +59,7 @@ interface Note {
   content: string;
   created_at: string;
   created_by: string;
+  immutable?: boolean;
 }
 
 const ClubDetailPage = () => {
@@ -74,6 +75,7 @@ const ClubDetailPage = () => {
   const [newNote, setNewNote] = useState("");
   const [editingCommission, setEditingCommission] = useState<string | null>(null);
   const [tempCommissionRate, setTempCommissionRate] = useState<string>("");
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   // Form data for editing
   const [formData, setFormData] = useState({
@@ -159,7 +161,8 @@ const ClubDetailPage = () => {
           id: '1',
           content: 'Club manager very responsive and helpful',
           created_at: '2024-01-10',
-          created_by: 'Admin'
+          created_by: 'Admin',
+          immutable: false
         }
       ]);
 
@@ -293,6 +296,71 @@ const ClubDetailPage = () => {
     setTempCommissionRate("");
   };
 
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !clubId) return;
+
+    setUploadingLogo(true);
+
+    try {
+      // Create a unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${clubId}-${Date.now()}.${fileExt}`;
+
+      // Upload the file
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('club-logos')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('club-logos')
+        .getPublicUrl(fileName);
+
+      // Update the club record with the logo URL
+      const { error: updateError } = await supabase
+        .from('clubs')
+        .update({ logo_url: publicUrl })
+        .eq('id', clubId);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setClub(prev => prev ? { ...prev, logo_url: publicUrl } : null);
+
+      // Track logo upload
+      const auditNote = await trackClubChanges(
+        clubId, 
+        { ...club, logo_url: club?.logo_url || null }, 
+        { ...club, logo_url: publicUrl }, 
+        user?.id
+      );
+      if (auditNote) {
+        await addAuditNote(auditNote);
+      }
+
+      toast({
+        title: "Success",
+        description: "Club logo uploaded successfully.",
+      });
+
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload logo. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
   const addNote = () => {
     if (!newNote.trim()) return;
 
@@ -300,7 +368,8 @@ const ClubDetailPage = () => {
       id: Date.now().toString(),
       content: newNote,
       created_at: new Date().toISOString(),
-      created_by: 'Admin (Manual Note)'
+      created_by: 'Admin (Manual Note)',
+      immutable: false
     };
 
     setNotes(prev => [note, ...prev]);
@@ -353,9 +422,20 @@ const ClubDetailPage = () => {
                 <ArrowLeft className="w-4 h-4" />
                 Back to Clubs
               </Button>
-              <div>
-                <h1 className="text-2xl font-bold">{club.name}</h1>
-                <p className="text-muted-foreground">Club Details & Management</p>
+              <div className="flex items-center gap-4">
+                {club.logo_url && (
+                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                    <img 
+                      src={club.logo_url} 
+                      alt={`${club.name} logo`} 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <div>
+                  <h1 className="text-2xl font-bold">{club.name}</h1>
+                  <p className="text-muted-foreground">Club Details & Management</p>
+                </div>
               </div>
             </div>
             
@@ -421,6 +501,48 @@ const ClubDetailPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Logo Upload Section */}
+                  <div className="space-y-2">
+                    <Label>Club Logo</Label>
+                    <div className="flex items-center gap-4">
+                      {club.logo_url ? (
+                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                          <img 
+                            src={club.logo_url} 
+                            alt={`${club.name} logo`} 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center">
+                          <Building className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          className="hidden"
+                          id="logo-upload"
+                          disabled={uploadingLogo}
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => document.getElementById('logo-upload')?.click()}
+                          disabled={uploadingLogo}
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          {uploadingLogo ? "Uploading..." : "Upload Logo"}
+                        </Button>
+                        <p className="text-xs text-muted-foreground">
+                          Recommended: Square image, max 2MB
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Club Name</Label>
@@ -620,14 +742,31 @@ const ClubDetailPage = () => {
 
                   <div className="space-y-3">
                     {notes.map((note) => (
-                      <div key={note.id} className="p-3 border rounded-lg">
+                      <div key={note.id} className={`p-3 border rounded-lg ${note.immutable ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800' : ''}`}>
                         <div className="flex justify-between items-start mb-2">
-                          <span className="text-sm font-medium">{note.created_by}</span>
+                          <div className="flex items-center gap-2">
+                            {note.immutable && <Shield className="w-4 h-4 text-blue-600" />}
+                            <span className={`text-sm font-medium ${note.immutable ? 'text-blue-700 dark:text-blue-300' : ''}`}>
+                              {note.created_by}
+                            </span>
+                            {note.immutable && (
+                              <Badge variant="secondary" className="text-xs">
+                                System Audit
+                              </Badge>
+                            )}
+                          </div>
                           <span className="text-xs text-muted-foreground">
                             {formatDate(note.created_at, 'short')}
                           </span>
                         </div>
-                        <p className="text-sm">{note.content}</p>
+                        <p className={`text-sm ${note.immutable ? 'text-blue-800 dark:text-blue-200' : ''}`}>
+                          {note.content}
+                        </p>
+                        {note.immutable && (
+                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 italic">
+                            This audit record cannot be modified or deleted
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>

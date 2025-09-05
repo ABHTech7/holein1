@@ -1,16 +1,53 @@
+import { useState, useEffect } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 import StatsCard from "@/components/ui/stats-card";
 import ChartWrapper from "@/components/ui/chart-wrapper";
-import { Calendar, Users, Clock, MessageSquare, Bell } from "lucide-react";
+import { Calendar, Users, Clock, MessageSquare, Bell, Building } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const ClubDashboard = () => {
+  const { user, profile, loading: authLoading } = useAuth();
+  const [clubData, setClubData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchClubData = async () => {
+      if (!profile?.club_id) return;
+      
+      try {
+        const { data: club, error } = await supabase
+          .from('clubs')
+          .select('*')
+          .eq('id', profile.club_id)
+          .single();
+
+        if (error) throw error;
+        setClubData(club);
+      } catch (error) {
+        console.error('Error fetching club data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!authLoading && profile) {
+      fetchClubData();
+    } else if (!authLoading) {
+      setLoading(false);
+    }
+  }, [profile, authLoading]);
+
+  const userName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'User';
+  const clubName = clubData?.name || 'Your Club';
   // Mock data for attendance chart
   const attendanceData = [
     { week: "Week 1", attendance: 85 },
@@ -49,9 +86,40 @@ const ClubDashboard = () => {
           <div className="max-w-7xl mx-auto space-y-8">
             {/* Header */}
             <div className="flex justify-between items-center">
-              <div>
-                <h1 className="font-display text-3xl font-bold text-foreground">Club Dashboard</h1>
-                <p className="text-muted-foreground mt-1">Welcome back to Central Tennis Club</p>
+              <div className="flex items-center gap-4">
+                {loading ? (
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="w-16 h-16 rounded-lg" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-8 w-64" />
+                      <Skeleton className="h-4 w-48" />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {clubData?.logo_url ? (
+                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                        <img 
+                          src={clubData.logo_url} 
+                          alt={`${clubName} logo`} 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-16 h-16 rounded-lg bg-gradient-primary flex items-center justify-center">
+                        <Building className="w-8 h-8 text-primary-foreground" />
+                      </div>
+                    )}
+                    <div>
+                      <h1 className="font-display text-3xl font-bold text-foreground">
+                        Welcome back, {userName}!
+                      </h1>
+                      <p className="text-muted-foreground mt-1">
+                        {clubName} Dashboard
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
               <div className="flex gap-3">
                 <Button variant="outline" className="gap-2">
