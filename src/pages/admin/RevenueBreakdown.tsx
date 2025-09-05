@@ -50,7 +50,7 @@ const RevenueBreakdown = () => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [timeFrame, setTimeFrame] = useState<"all" | "today" | "week" | "month" | "custom">("all");
-  const [clubFilter, setClubFilter] = useState("");
+  const [clubFilter, setClubFilter] = useState("all");
   const [paymentStatus, setPaymentStatus] = useState<"all" | "paid" | "unpaid">("all");
   const [clubs, setClubs] = useState<Array<{id: string, name: string}>>([]);
 
@@ -346,7 +346,7 @@ const RevenueBreakdown = () => {
                         <SelectValue placeholder="All Clubs" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All Clubs</SelectItem>
+                        <SelectItem value="all">All Clubs</SelectItem>
                         {clubs.map((club) => (
                           <SelectItem key={club.id} value={club.name}>
                             {club.name}
