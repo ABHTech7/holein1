@@ -208,15 +208,16 @@ const CompetitionEditPage = () => {
       <main className="flex-1 bg-muted/30">
         <Section spacing="lg">
           <div className="max-w-4xl mx-auto space-y-6">
-            {/* Back Button */}
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate(`/dashboard/admin/competitions/${competition.id}`)}
-              className="flex items-center gap-2 hover:bg-background mb-6"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Competition Details
-            </Button>
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate(`/dashboard/admin/competitions/${competition.id}`)}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Competition Details
+              </Button>
+            </div>
 
             {/* Header */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
