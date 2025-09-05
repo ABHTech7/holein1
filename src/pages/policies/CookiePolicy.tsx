@@ -73,7 +73,7 @@ const CookiePolicy = () => {
                   <h2 className="font-display text-2xl font-semibold text-foreground mb-4">Contact Us</h2>
                   <p className="text-foreground">
                     If you have questions about our use of cookies, please contact us at 
-                    cookies@sportsync.com.
+                    cookies@holein1.test.
                   </p>
                 </section>
               </div>

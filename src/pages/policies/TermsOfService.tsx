@@ -19,7 +19,7 @@ const TermsOfService = () => {
                 <section>
                   <h2 className="font-display text-2xl font-semibold text-foreground mb-4">1. Acceptance of Terms</h2>
                   <p className="text-foreground mb-4">
-                    By accessing and using SportSync, you accept and agree to be bound by the terms 
+                    By accessing and using Hole in 1 Challenge, you accept and agree to be bound by the terms 
                     and provision of this agreement.
                   </p>
                 </section>
@@ -27,7 +27,7 @@ const TermsOfService = () => {
                 <section>
                   <h2 className="font-display text-2xl font-semibold text-foreground mb-4">2. Use License</h2>
                   <p className="text-foreground mb-4">
-                    Permission is granted to temporarily use SportSync for personal, non-commercial 
+                    Permission is granted to temporarily use Hole in 1 Challenge for personal, non-commercial 
                     transitory viewing only. This is the grant of a license, not a transfer of title.
                   </p>
                   <ul className="list-disc pl-6 space-y-2 text-foreground">
@@ -49,7 +49,7 @@ const TermsOfService = () => {
                 <section>
                   <h2 className="font-display text-2xl font-semibold text-foreground mb-4">4. Prohibited Uses</h2>
                   <p className="text-foreground mb-4">
-                    You may not use SportSync for any unlawful purpose or to solicit others to 
+                    You may not use Hole in 1 Challenge for any unlawful purpose or to solicit others to 
                     perform unlawful acts.
                   </p>
                 </section>
@@ -57,7 +57,7 @@ const TermsOfService = () => {
                 <section>
                   <h2 className="font-display text-2xl font-semibold text-foreground mb-4">5. Limitation of Liability</h2>
                   <p className="text-foreground mb-4">
-                    SportSync shall not be liable for any damages arising from the use or inability 
+                    Hole in 1 Challenge shall not be liable for any damages arising from the use or inability 
                     to use the platform.
                   </p>
                 </section>
@@ -66,7 +66,7 @@ const TermsOfService = () => {
                   <h2 className="font-display text-2xl font-semibold text-foreground mb-4">6. Contact Information</h2>
                   <p className="text-foreground">
                     If you have any questions about these Terms, please contact us at 
-                    legal@sportsync.com.
+                    legal@holein1.test.
                   </p>
                 </section>
               </div>

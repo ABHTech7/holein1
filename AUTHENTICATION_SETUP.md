@@ -1,6 +1,6 @@
 # Authentication Setup
 
-Your SportSync app now has complete authentication setup with Supabase! Here's what has been implemented:
+Your Hole in 1 Challenge app now has complete authentication setup with Supabase! Here's what has been implemented:
 
 ## 🔐 Features Implemented
 

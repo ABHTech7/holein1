@@ -36,7 +36,7 @@ const PrivacyPolicy = () => {
                     We use the information we collect to provide, maintain, and improve our services:
                   </p>
                   <ul className="list-disc pl-6 space-y-2 text-foreground">
-                    <li>To provide and operate SportSync services</li>
+                    <li>To provide and operate Hole in 1 Challenge services</li>
                     <li>To send you service-related communications</li>
                     <li>To improve our platform and develop new features</li>
                     <li>To ensure platform security and prevent fraud</li>
@@ -63,7 +63,7 @@ const PrivacyPolicy = () => {
                   <h2 className="font-display text-2xl font-semibold text-foreground mb-4">5. Contact Us</h2>
                   <p className="text-foreground">
                     If you have any questions about this Privacy Policy, please contact us at 
-                    privacy@sportsync.com or through our support system.
+                    privacy@holein1.test or through our support system.
                   </p>
                 </section>
               </div>

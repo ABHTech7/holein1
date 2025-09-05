@@ -19,7 +19,7 @@ const Insurance = () => {
                 <section>
                   <h2 className="font-display text-2xl font-semibold text-foreground mb-4">Coverage Overview</h2>
                   <p className="text-foreground mb-4">
-                    SportSync maintains comprehensive insurance coverage to protect our platform, 
+                    Hole in 1 Challenge maintains comprehensive insurance coverage to protect our platform, 
                     users, and club data. This policy outlines our insurance commitments and coverage areas.
                   </p>
                 </section>
@@ -71,7 +71,7 @@ const Insurance = () => {
                 <section>
                   <h2 className="font-display text-2xl font-semibold text-foreground mb-4">Contact</h2>
                   <p className="text-foreground">
-                    For insurance-related questions, contact us at insurance@sportsync.com 
+                    For insurance-related questions, contact us at insurance@holein1.test 
                     or through our support channels.
                   </p>
                 </section>

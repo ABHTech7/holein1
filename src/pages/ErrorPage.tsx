@@ -65,10 +65,10 @@ const ErrorPage = () => {
                   <p className="text-sm text-muted-foreground">
                     Need help? Contact support at{" "}
                     <a 
-                      href="mailto:support@sportsync.com" 
+                      href="mailto:support@holein1.test" 
                       className="text-primary hover:underline"
                     >
-                      support@sportsync.com
+                      support@holein1.test
                     </a>
                   </p>
                 </div>

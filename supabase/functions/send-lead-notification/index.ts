@@ -30,8 +30,8 @@ const handler = async (req: Request): Promise<Response> => {
     const { lead }: LeadNotificationRequest = await req.json();
 
     const emailResponse = await resend.emails.send({
-      from: "SportSync <noreply@yourdomain.com>",
-      to: ["partnerships@yourdomain.com"], // Replace with your internal email
+      from: "Hole in 1 Challenge <noreply@holein1.test>",
+      to: ["ops@holein1.test"], // Replace with your internal email
       subject: `New Club Partnership Application - ${lead.clubName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -62,7 +62,7 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
           
           <p style="color: #666; font-size: 12px; text-align: center; margin-top: 30px;">
-            This email was generated automatically from the SportSync club signup form.
+            This email was generated automatically from the Hole in 1 Challenge club signup form.
           </p>
         </div>
       `,
