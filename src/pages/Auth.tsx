@@ -200,25 +200,6 @@ const Auth = () => {
                       </div>
 
                       <div>
-                        <Label htmlFor="role">Role</Label>
-                        <Select
-                          value={signUpData.role}
-                          onValueChange={(value: "ADMIN" | "CLUB" | "PLAYER") => 
-                            setSignUpData({...signUpData, role: value})
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select your role" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="PLAYER">Player</SelectItem>
-                            <SelectItem value="CLUB">Club Manager</SelectItem>
-                            <SelectItem value="ADMIN">Administrator</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
                         <Label htmlFor="signup-password">Password</Label>
                         <Input
                           id="signup-password"
@@ -247,7 +228,7 @@ const Auth = () => {
                         className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground font-semibold"
                         size="lg"
                       >
-                        Sign Up
+                        Sign Up as Player
                       </Button>
                     </form>
                   </TabsContent>
