@@ -250,22 +250,21 @@ const RevenuePage = () => {
                   ))}
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Club Name</TableHead>
-                      <TableHead>Total Revenue</TableHead>
-                      <TableHead>Competitions</TableHead>
-                      <TableHead>Total Entries</TableHead>
-                      <TableHead>Paid Entries</TableHead>
-                      <TableHead>Avg Entry Fee</TableHead>
-                      <TableHead>Conversion Rate</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Club Name</TableHead>
+                        <TableHead>Total Revenue</TableHead>
+                        <TableHead>Competitions</TableHead>
+                        <TableHead>Total Entries</TableHead>
+                        <TableHead>Paid Entries</TableHead>
+                        <TableHead>Avg Entry Fee</TableHead>
+                      </TableRow>
+                    </TableHeader>
                   <TableBody>
                     {filteredClubRevenues.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                           {searchTerm ? 'No clubs found matching your search.' : 'No revenue data found.'}
                         </TableCell>
                       </TableRow>
@@ -290,20 +289,6 @@ const RevenuePage = () => {
                           <TableCell>{club.total_entries}</TableCell>
                           <TableCell>{club.paid_entries}</TableCell>
                           <TableCell>{formatCurrency(club.average_entry_fee)}</TableCell>
-                          <TableCell>
-                            <span className={`font-medium ${
-                              club.total_entries > 0 && (club.paid_entries / club.total_entries) > 0.7 
-                                ? 'text-green-600' 
-                                : club.total_entries > 0 && (club.paid_entries / club.total_entries) > 0.4
-                                ? 'text-yellow-600'
-                                : 'text-red-600'
-                            }`}>
-                              {club.total_entries > 0 
-                                ? `${((club.paid_entries / club.total_entries) * 100).toFixed(1)}%`
-                                : '0%'
-                              }
-                            </span>
-                          </TableCell>
                         </TableRow>
                       ))
                     )}
