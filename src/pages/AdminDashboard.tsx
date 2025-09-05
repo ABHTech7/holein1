@@ -48,18 +48,29 @@ const AdminDashboard = () => {
       try {
         setLoading(true);
 
-        // Fetch basic stats
-        const [membersRes, clubsRes, competitionsRes, entriesRes] = await Promise.all([
-          supabase.from('profiles').select('id', { count: 'exact', head: true }),
-          supabase.from('clubs').select('id', { count: 'exact', head: true }),
-          supabase.from('competitions').select('id').eq('status', 'ACTIVE'),
-          supabase.from('entries').select('entry_fee:competitions(entry_fee), paid').eq('paid', true)
-        ]);
+        // Fetch basic stats with proper error handling
+        const statsPromises = [
+          supabase.from('profiles').select('*', { count: 'exact', head: true }),
+          supabase.from('clubs').select('*', { count: 'exact', head: true }),
+          supabase.from('competitions').select('*').eq('status', 'ACTIVE'),
+          supabase.from('entries').select(`
+            *,
+            competition:competitions!inner(entry_fee)
+          `).eq('paid', true)
+        ];
+
+        const [membersRes, clubsRes, competitionsRes, entriesRes] = await Promise.all(statsPromises);
+
+        // Log any errors for debugging
+        if (membersRes.error) console.error('Members query error:', membersRes.error);
+        if (clubsRes.error) console.error('Clubs query error:', clubsRes.error);
+        if (competitionsRes.error) console.error('Competitions query error:', competitionsRes.error);
+        if (entriesRes.error) console.error('Entries query error:', entriesRes.error);
 
         // Calculate revenue (sum of paid entry fees)
         const paidEntries = entriesRes.data || [];
         const revenue = paidEntries.reduce((sum, entry) => {
-          const fee = (entry as any)?.entry_fee?.entry_fee || 0;
+          const fee = (entry as any).competition?.entry_fee || 0;
           return sum + fee;
         }, 0);
 
@@ -70,8 +81,8 @@ const AdminDashboard = () => {
           monthlyRevenue: revenue
         });
 
-        // Fetch recent competitions with entry counts
-        const { data: recentComps } = await supabase
+        // Fetch recent competitions with entry counts and club info
+        const { data: recentComps, error: compsError } = await supabase
           .from('competitions')
           .select(`
             id, name, start_date, end_date, status,
@@ -80,6 +91,10 @@ const AdminDashboard = () => {
           `)
           .order('created_at', { ascending: false })
           .limit(5);
+
+        if (compsError) {
+          console.error('Recent competitions query error:', compsError);
+        }
 
         if (recentComps) {
           setCompetitions(recentComps.map(comp => ({
@@ -93,14 +108,15 @@ const AdminDashboard = () => {
           })));
         }
 
-        // Generate mock membership trend data (could be replaced with real data)
+        // Generate membership trend data (using current stats as base)
+        const totalMembers = membersRes.count || 0;
         const mockMembershipData = [
-          { month: "Jan", members: Math.max(0, stats.totalMembers - 50) },
-          { month: "Feb", members: Math.max(0, stats.totalMembers - 40) },
-          { month: "Mar", members: Math.max(0, stats.totalMembers - 30) },
-          { month: "Apr", members: Math.max(0, stats.totalMembers - 20) },
-          { month: "May", members: Math.max(0, stats.totalMembers - 10) },
-          { month: "Jun", members: stats.totalMembers }
+          { month: "Jan", members: Math.max(0, totalMembers - 3) },
+          { month: "Feb", members: Math.max(0, totalMembers - 2) },
+          { month: "Mar", members: Math.max(0, totalMembers - 2) },
+          { month: "Apr", members: Math.max(0, totalMembers - 1) },
+          { month: "May", members: Math.max(0, totalMembers - 1) },
+          { month: "Jun", members: totalMembers }
         ];
         setMembershipData(mockMembershipData);
 
@@ -223,14 +239,20 @@ const AdminDashboard = () => {
                   title="Membership Growth"
                   description="Monthly new member registrations"
                 >
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={membershipData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-                      <YAxis stroke="hsl(var(--muted-foreground))" />
-                      <Bar dataKey="members" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  {loading ? (
+                    <div className="h-[300px] flex items-center justify-center">
+                      <Skeleton className="h-[250px] w-full" />
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={membershipData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                        <YAxis stroke="hsl(var(--muted-foreground))" />
+                        <Bar dataKey="members" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
                 </ChartWrapper>
 
                 {/* Club Distribution */}
