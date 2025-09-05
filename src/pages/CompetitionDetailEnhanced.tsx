@@ -467,10 +467,7 @@ const CompetitionDetailEnhanced = () => {
                 <Button 
                   variant="default" 
                   size="sm" 
-                  onClick={() => {
-                    setActiveTab('settings');
-                    setIsEditing(true);
-                  }} 
+                  onClick={() => navigate(`/dashboard/admin/competitions/${competition.id}/edit`)}
                   className="gap-2"
                 >
                   <Edit className="w-4 h-4" />

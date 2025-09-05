@@ -25,6 +25,7 @@ import UserManagement from "./pages/admin/UserManagement";
 import RevenueBreakdown from "./pages/admin/RevenueBreakdown";
 import CompetitionDetail from "./pages/CompetitionDetail";
 import CompetitionDetailEnhanced from "./pages/CompetitionDetailEnhanced";
+import CompetitionEditPage from "./pages/admin/CompetitionEditPage";
 import CompetitionWizardPage from "./pages/CompetitionWizardPage";
 import Styleguide from "./pages/Styleguide";
 import ErrorPage from "./pages/ErrorPage";
@@ -115,6 +116,14 @@ const App = () => (
             element={
               <RoleGuard allowedRoles={['ADMIN']}>
                 <CompetitionDetailEnhanced />
+              </RoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/admin/competitions/:id/edit" 
+            element={
+              <RoleGuard allowedRoles={['ADMIN']}>
+                <CompetitionEditPage />
               </RoleGuard>
             } 
           />
