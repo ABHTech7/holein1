@@ -467,7 +467,10 @@ const CompetitionDetailEnhanced = () => {
                 <Button 
                   variant="default" 
                   size="sm" 
-                  onClick={() => setActiveTab('settings')} 
+                  onClick={() => {
+                    setActiveTab('settings');
+                    setIsEditing(true);
+                  }} 
                   className="gap-2"
                 >
                   <Edit className="w-4 h-4" />
