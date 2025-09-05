@@ -9,7 +9,7 @@ import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 import Container from "@/components/layout/Container";
-import { Hero } from "@/components/ui/hero";
+import { Hero, HeroTitle, HeroSubtitle, HeroActions } from "@/components/ui/hero";
 import { Eye, EyeOff } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 
@@ -45,19 +45,21 @@ const PlayerLogin = () => {
       
       <main className="flex-1">
         {/* Hero Section */}
-        <Hero
-          title="Welcome Back, Challenger."
-          subtitle="Ready to make golf history? Sign in to track your entries, view your achievements, and see where you stand among the legends."
-          primaryAction={{
-            text: "Sign In Below",
-            href: "#login-form"
-          }}
-          backgroundImage="/placeholder.svg"
-        />
+        <Hero variant="image" backgroundImage="/placeholder.svg">
+          <HeroTitle>Welcome Back, Challenger.</HeroTitle>
+          <HeroSubtitle>
+            Ready to make golf history? Sign in to track your entries, view your achievements, and see where you stand among the legends.
+          </HeroSubtitle>
+          <HeroActions>
+            <Button asChild variant="outline" className="border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10">
+              <a href="#login-form">Sign In Below</a>
+            </Button>
+          </HeroActions>
+        </Hero>
 
         <Section spacing="xl">
-          <Container id="login-form">
-            <div className="max-w-md mx-auto">
+          <Container>
+            <div className="max-w-md mx-auto" id="login-form">
               <div className="text-center mb-8">
                 <h2 className="font-display text-2xl font-bold text-foreground mb-2">
                   Player Login
@@ -171,6 +173,7 @@ const PlayerLogin = () => {
                   </CardContent>
                 </Card>
               </div>
+            </div>
           </Container>
         </Section>
       </main>
