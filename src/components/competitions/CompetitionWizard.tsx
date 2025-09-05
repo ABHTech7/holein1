@@ -558,56 +558,60 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
   const displayStep = isAdmin && !clubId ? currentStep + 1 : currentStep;
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Create New Challenge</CardTitle>
-          <span className="text-sm text-muted-foreground">
-            Step {displayStep} of {totalSteps}
-          </span>
-        </div>
-        <Progress value={(displayStep / totalSteps) * 100} className="mt-2" />
-        <p className="text-muted-foreground">{stepTitles[currentStep]}</p>
-      </CardHeader>
+    <div className="max-w-4xl mx-auto">
+      <Card>
+        <CardHeader className="pb-6">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-2xl">Create New Challenge</CardTitle>
+            <span className="text-sm text-muted-foreground">
+              Step {displayStep} of {totalSteps}
+            </span>
+          </div>
+          <Progress value={(displayStep / totalSteps) * 100} className="mt-4" />
+          <p className="text-muted-foreground text-lg">{stepTitles[currentStep]}</p>
+        </CardHeader>
 
-      <CardContent>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          {renderStep()}
+        <CardContent className="pt-6">
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <div className="min-h-[400px]">
+              {renderStep()}
+            </div>
 
-          <div className="flex justify-between mt-8">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={prevStep}
-              disabled={currentStep === (isAdmin && !clubId ? 0 : 1)}
-              className="gap-2"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Previous
-            </Button>
-
-            {currentStep < totalSteps ? (
+            <div className="flex justify-between mt-8 pt-6 border-t">
               <Button
                 type="button"
-                onClick={nextStep}
+                variant="outline"
+                onClick={prevStep}
+                disabled={currentStep === (isAdmin && !clubId ? 0 : 1)}
                 className="gap-2"
               >
-                Next
-                <ChevronRight className="w-4 h-4" />
+                <ChevronLeft className="w-4 h-4" />
+                Previous
               </Button>
-            ) : (
-              <Button
-                type="submit"
-                disabled={loading}
-                className="bg-gradient-primary hover:opacity-90 text-primary-foreground"
-              >
-                {loading ? 'Publishing...' : 'Publish Challenge'}
-              </Button>
-            )}
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+
+              {currentStep < totalSteps ? (
+                <Button
+                  type="button"
+                  onClick={nextStep}
+                  className="gap-2"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-gradient-primary hover:opacity-90 text-primary-foreground"
+                >
+                  {loading ? 'Publishing...' : 'Publish Challenge'}
+                </Button>
+              )}
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

@@ -115,15 +115,15 @@ const CompetitionWizardPage = () => {
     <div className="min-h-screen flex flex-col">
       <SiteHeader />
       
-      <main className="flex-1">
+      <main className="flex-1 bg-muted/30">
         <Section spacing="lg">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             {/* Back Button */}
-            <div className="mb-6">
+            <div className="mb-8">
               <Button 
                 variant="ghost" 
                 onClick={() => navigate('/dashboard/admin/competitions')}
-                className="gap-2"
+                className="gap-2 hover:bg-background"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Back to Competitions
