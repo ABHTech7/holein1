@@ -19,6 +19,8 @@ import PlayersPage from "./pages/admin/PlayersPage";
 import ClubsPage from "./pages/admin/ClubsPage";
 import CompetitionsPage from "./pages/admin/CompetitionsPage";
 import RevenuePage from "./pages/admin/RevenuePage";
+import ClubDetailPage from "./pages/admin/ClubDetailPage";
+import PlayerDetailPage from "./pages/admin/PlayerDetailPage";
 import CompetitionDetail from "./pages/CompetitionDetail";
 import CompetitionDetailEnhanced from "./pages/CompetitionDetailEnhanced";
 import CompetitionWizardPage from "./pages/CompetitionWizardPage";
@@ -102,6 +104,22 @@ const App = () => (
             element={
               <RoleGuard allowedRoles={['ADMIN']}>
                 <RevenuePage />
+              </RoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/admin/clubs/:clubId" 
+            element={
+              <RoleGuard allowedRoles={['ADMIN']}>
+                <ClubDetailPage />
+              </RoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/admin/players/:playerId" 
+            element={
+              <RoleGuard allowedRoles={['ADMIN']}>
+                <PlayerDetailPage />
               </RoleGuard>
             } 
           />

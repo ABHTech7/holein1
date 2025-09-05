@@ -1,0 +1,609 @@
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "@/hooks/use-toast";
+import { Building, Mail, Phone, MapPin, Trophy, FileText, PoundSterling, Plus, Save, Calendar, ArrowLeft } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { formatDate, formatCurrency } from "@/lib/formatters";
+import SiteHeader from "@/components/layout/SiteHeader";
+import SiteFooter from "@/components/layout/SiteFooter";
+import Section from "@/components/layout/Section";
+
+interface Club {
+  id: string;
+  name: string;
+  address: string | null;
+  email: string | null;
+  phone: string | null;
+  website: string | null;
+  active: boolean;
+  created_at: string;
+  logo_url: string | null;
+}
+
+interface Competition {
+  id: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+  entry_fee: number;
+  max_participants: number | null;
+  status: string;
+  total_entries: number;
+  total_revenue: number;
+}
+
+interface Payment {
+  id: string;
+  amount: number;
+  date: string;
+  description: string;
+  type: string;
+}
+
+interface Note {
+  id: string;
+  content: string;
+  created_at: string;
+  created_by: string;
+}
+
+const ClubDetailPage = () => {
+  const { clubId } = useParams();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [club, setClub] = useState<Club | null>(null);
+  const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [editMode, setEditMode] = useState(false);
+  const [newNote, setNewNote] = useState("");
+  const [newPayment, setNewPayment] = useState({
+    amount: "",
+    description: "",
+    type: "revenue"
+  });
+
+  // Form data for editing
+  const [formData, setFormData] = useState({
+    name: "",
+    address: "",
+    email: "",
+    phone: "",
+    website: "",
+    active: true
+  });
+
+  useEffect(() => {
+    if (clubId) {
+      fetchClubDetails();
+    }
+  }, [clubId]);
+
+  const fetchClubDetails = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch club details
+      const { data: clubData, error: clubError } = await supabase
+        .from('clubs')
+        .select('*')
+        .eq('id', clubId)
+        .single();
+
+      if (clubError) throw clubError;
+
+      setClub(clubData);
+      setFormData({
+        name: clubData.name || "",
+        address: clubData.address || "",
+        email: clubData.email || "",
+        phone: clubData.phone || "",
+        website: clubData.website || "",
+        active: clubData.active
+      });
+
+      // Fetch competitions
+      const { data: competitionsData, error: competitionsError } = await supabase
+        .from('competitions')
+        .select('*')
+        .eq('club_id', clubId)
+        .order('created_at', { ascending: false });
+
+      if (competitionsError) throw competitionsError;
+
+      // Get entries for each competition
+      const competitionsWithStats = await Promise.all(
+        (competitionsData || []).map(async (competition) => {
+          const { data: entries, error: entriesError } = await supabase
+            .from('entries')
+            .select('id, paid')
+            .eq('competition_id', competition.id);
+
+          if (entriesError) {
+            console.error('Error fetching entries:', entriesError);
+          }
+
+          const totalEntries = entries?.length || 0;
+          const paidEntries = entries?.filter(entry => entry.paid).length || 0;
+          const totalRevenue = paidEntries * (parseFloat(competition.entry_fee?.toString() || '0'));
+
+          return {
+            ...competition,
+            total_entries: totalEntries,
+            total_revenue: totalRevenue
+          };
+        })
+      );
+
+      setCompetitions(competitionsWithStats);
+
+      // Mock data for payments and notes
+      setPayments([
+        {
+          id: '1',
+          amount: 15000,
+          date: '2024-01-15',
+          description: 'Competition revenue payment',
+          type: 'revenue'
+        },
+        {
+          id: '2',
+          amount: 5000,
+          date: '2024-01-01',
+          description: 'Setup fee payment',
+          type: 'setup'
+        }
+      ]);
+
+      setNotes([
+        {
+          id: '1',
+          content: 'Club manager very responsive and helpful',
+          created_at: '2024-01-10',
+          created_by: 'Admin'
+        }
+      ]);
+
+    } catch (error) {
+      console.error('Error fetching club details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load club details.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+
+      const { error } = await supabase
+        .from('clubs')
+        .update({
+          name: formData.name,
+          address: formData.address,
+          email: formData.email,
+          phone: formData.phone,
+          website: formData.website,
+          active: formData.active
+        })
+        .eq('id', clubId);
+
+      if (error) throw error;
+
+      setClub(prev => prev ? { ...prev, ...formData } : null);
+      setEditMode(false);
+
+      toast({
+        title: "Success",
+        description: "Club details updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error saving club:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save club details.",
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addNote = () => {
+    if (!newNote.trim()) return;
+
+    const note: Note = {
+      id: Date.now().toString(),
+      content: newNote,
+      created_at: new Date().toISOString(),
+      created_by: 'Admin'
+    };
+
+    setNotes(prev => [note, ...prev]);
+    setNewNote("");
+    
+    toast({
+      title: "Note Added",
+      description: "Note has been added successfully.",
+    });
+  };
+
+  const addPayment = () => {
+    if (!newPayment.amount || !newPayment.description) return;
+
+    const payment: Payment = {
+      id: Date.now().toString(),
+      amount: parseFloat(newPayment.amount) * 100, // Convert to pence
+      date: new Date().toISOString(),
+      description: newPayment.description,
+      type: newPayment.type
+    };
+
+    setPayments(prev => [payment, ...prev]);
+    setNewPayment({ amount: "", description: "", type: "revenue" });
+    
+    toast({
+      title: "Payment Added",
+      description: "Payment record has been added successfully.",
+    });
+  };
+
+  if (loading || !club) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SiteHeader />
+        <Section className="py-8">
+          <div className="space-y-6">
+            <Skeleton className="h-8 w-64" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="p-6">
+                    <Skeleton className="h-16 w-full" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </Section>
+        <SiteFooter />
+      </div>
+    );
+  }
+
+  const totalRevenue = competitions.reduce((sum, comp) => sum + comp.total_revenue, 0);
+  const totalPayments = payments.reduce((sum, payment) => sum + payment.amount, 0);
+
+  return (
+    <div className="min-h-screen bg-background">
+      <SiteHeader />
+      
+      <Section className="py-8">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/dashboard/admin/clubs')}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Clubs
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold">{club.name}</h1>
+                <p className="text-muted-foreground">Club Details & Management</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Badge variant={club.active ? "default" : "outline"}>
+                {club.active ? "Active" : "Inactive"}
+              </Badge>
+              {editMode ? (
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setEditMode(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSave} disabled={saving}>
+                    <Save className="w-4 h-4 mr-2" />
+                    {saving ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              ) : (
+                <Button onClick={() => setEditMode(true)}>
+                  Edit Club
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
+                <div className="text-sm text-muted-foreground">Total Revenue</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold">{formatCurrency(totalPayments)}</div>
+                <div className="text-sm text-muted-foreground">Payments Made</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold">{competitions.length}</div>
+                <div className="text-sm text-muted-foreground">Total Competitions</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Tabs defaultValue="details" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="details">Club Details</TabsTrigger>
+              <TabsTrigger value="competitions">Competitions</TabsTrigger>
+              <TabsTrigger value="payments">Payments</TabsTrigger>
+              <TabsTrigger value="notes">Notes</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="details">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building className="w-5 h-5" />
+                    Club Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Club Name</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                        disabled={!editMode}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                        disabled={!editMode}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address</Label>
+                    <Input
+                      id="address"
+                      value={formData.address}
+                      onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                      disabled={!editMode}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone</Label>
+                      <Input
+                        id="phone"
+                        value={formData.phone}
+                        onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                        disabled={!editMode}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="website">Website</Label>
+                      <Input
+                        id="website"
+                        value={formData.website}
+                        onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
+                        disabled={!editMode}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="active"
+                      checked={formData.active}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, active: checked }))}
+                      disabled={!editMode}
+                    />
+                    <Label htmlFor="active">Active Club</Label>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="competitions">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Trophy className="w-5 h-5" />
+                    Competitions ({competitions.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Competition</TableHead>
+                        <TableHead>Dates</TableHead>
+                        <TableHead>Entry Fee</TableHead>
+                        <TableHead>Entries</TableHead>
+                        <TableHead>Revenue</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {competitions.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                            No competitions found
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        competitions.map((competition) => (
+                          <TableRow key={competition.id}>
+                            <TableCell className="font-medium">{competition.name}</TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                <div>{formatDate(competition.start_date, 'short')}</div>
+                                <div className="text-muted-foreground">to {formatDate(competition.end_date, 'short')}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell>{formatCurrency(competition.entry_fee)}</TableCell>
+                            <TableCell>
+                              {competition.total_entries}
+                              {competition.max_participants && ` / ${competition.max_participants}`}
+                            </TableCell>
+                            <TableCell className="font-medium">{formatCurrency(competition.total_revenue)}</TableCell>
+                            <TableCell>
+                              <Badge variant={competition.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                                {competition.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="payments">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <PoundSterling className="w-5 h-5" />
+                    Payment History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
+                    <div className="space-y-2">
+                      <Label htmlFor="paymentAmount">Amount (£)</Label>
+                      <Input
+                        id="paymentAmount"
+                        type="number"
+                        value={newPayment.amount}
+                        onChange={(e) => setNewPayment(prev => ({ ...prev, amount: e.target.value }))}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="paymentDescription">Description</Label>
+                      <Input
+                        id="paymentDescription"
+                        value={newPayment.description}
+                        onChange={(e) => setNewPayment(prev => ({ ...prev, description: e.target.value }))}
+                        placeholder="Payment description"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Action</Label>
+                      <Button onClick={addPayment} className="w-full">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Payment
+                      </Button>
+                    </div>
+                  </div>
+
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {payments.map((payment) => (
+                        <TableRow key={payment.id}>
+                          <TableCell>{formatDate(payment.date, 'short')}</TableCell>
+                          <TableCell>{payment.description}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{payment.type}</Badge>
+                          </TableCell>
+                          <TableCell className="font-medium text-green-600">
+                            {formatCurrency(payment.amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="notes">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Notes & Comments
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add a note..."
+                      value={newNote}
+                      onChange={(e) => setNewNote(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && addNote()}
+                    />
+                    <Button onClick={addNote}>
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {notes.map((note) => (
+                      <div key={note.id} className="p-3 border rounded-lg">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="text-sm font-medium">{note.created_by}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDate(note.created_at, 'short')}
+                          </span>
+                        </div>
+                        <p className="text-sm">{note.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </Section>
+
+      <SiteFooter />
+    </div>
+  );
+};
+
+export default ClubDetailPage;

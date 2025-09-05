@@ -10,7 +10,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/formatters";
-import ClubDetailModal from "@/components/admin/ClubDetailModal";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
@@ -36,8 +35,6 @@ const ClubsPage = () => {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredClubs, setFilteredClubs] = useState<Club[]>([]);
-  const [selectedClubId, setSelectedClubId] = useState<string | null>(null);
-  const [showClubDetail, setShowClubDetail] = useState(false);
 
   useEffect(() => {
     fetchClubs();
@@ -120,8 +117,7 @@ const ClubsPage = () => {
   };
 
   const handleClubClick = (clubId: string) => {
-    setSelectedClubId(clubId);
-    setShowClubDetail(true);
+    navigate(`/dashboard/admin/clubs/${clubId}`);
   };
 
   return (
@@ -255,12 +251,6 @@ const ClubsPage = () => {
       </Section>
 
       <SiteFooter />
-
-      <ClubDetailModal 
-        isOpen={showClubDetail}
-        onClose={() => setShowClubDetail(false)}
-        clubId={selectedClubId}
-      />
     </div>
   );
 };

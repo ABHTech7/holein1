@@ -10,7 +10,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/formatters";
-import PlayerDetailModal from "@/components/admin/PlayerDetailModal";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
@@ -31,8 +30,6 @@ const PlayersPage = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredPlayers, setFilteredPlayers] = useState<Player[]>([]);
-  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
-  const [showPlayerDetail, setShowPlayerDetail] = useState(false);
 
   useEffect(() => {
     fetchPlayers();
@@ -102,8 +99,7 @@ const PlayersPage = () => {
   };
 
   const handlePlayerClick = (playerId: string) => {
-    setSelectedPlayerId(playerId);
-    setShowPlayerDetail(true);
+    navigate(`/dashboard/admin/players/${playerId}`);
   };
 
   const getPlayerName = (player: Player) => {
@@ -233,12 +229,6 @@ const PlayersPage = () => {
       </Section>
 
       <SiteFooter />
-
-      <PlayerDetailModal 
-        isOpen={showPlayerDetail}
-        onClose={() => setShowPlayerDetail(false)}
-        playerId={selectedPlayerId}
-      />
     </div>
   );
 };
