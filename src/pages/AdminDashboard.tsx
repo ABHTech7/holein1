@@ -129,19 +129,31 @@ const AdminDashboard = () => {
           })));
         }
 
-        // Generate last 6 months membership growth data
+        // Generate last 4 months new player registrations data
         const membershipTrendData = [];
-        for (let i = 5; i >= 0; i--) {
+        for (let i = 3; i >= 0; i--) {
           const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
           const monthName = monthDate.toLocaleDateString('en-GB', { month: 'short' });
           const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1).toISOString();
           const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59).toISOString();
           
-          // For now, use estimated data - could be replaced with real query
-          const estimatedMembers = Math.max(1, (playersRes.count || 0) - (5 - i));
+          // Get actual new players for this specific month
+          const { count: monthlyCount, error: monthlyPlayersError } = await supabase
+            .from('profiles')
+            .select('*', { count: 'exact', head: true })
+            .eq('role', 'PLAYER')
+            .gte('created_at', monthStart)
+            .lte('created_at', monthEnd);
+
+          if (monthlyPlayersError) {
+            console.error('Error fetching monthly players:', monthlyPlayersError);
+          }
+
+          const newPlayersThisMonth = monthlyCount || 0;
+          
           membershipTrendData.push({
             month: monthName,
-            members: estimatedMembers
+            members: newPlayersThisMonth
           });
         }
         setMembershipData(membershipTrendData);
@@ -285,8 +297,8 @@ const AdminDashboard = () => {
               <div className="space-y-8">
                 {/* Membership Growth Chart */}
                 <ChartWrapper
-                  title="Membership Growth"
-                  description="Monthly new member registrations"
+                  title="New Player Registrations"
+                  description="Monthly new player sign-ups over the last 4 months"
                 >
                   {loading ? (
                     <div className="h-[300px] flex items-center justify-center">
