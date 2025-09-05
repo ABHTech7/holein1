@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import ClubSignup from "./pages/ClubSignup";
 import PlayerLogin from "./pages/PlayerLogin";
+import PlayerEntries from "./pages/PlayerEntries";
 import Auth from "./pages/Auth";
 import CompetitionEntry from "./pages/CompetitionEntry";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -42,6 +43,14 @@ const App = () => (
           <Route path="/" element={<Home />} />
           <Route path="/clubs/signup" element={<ClubSignup />} />
           <Route path="/players/login" element={<PlayerLogin />} />
+          <Route 
+            path="/players/entries" 
+            element={
+              <RoleGuard allowedRoles={['PLAYER']}>
+                <PlayerEntries />
+              </RoleGuard>
+            } 
+          />
           <Route path="/auth" element={<Auth />} />
           <Route path="/enter/:competitionId" element={<CompetitionEntry />} />
           

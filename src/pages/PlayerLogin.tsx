@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,9 +8,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
+import Container from "@/components/layout/Container";
+import { Hero } from "@/components/ui/hero";
 import { Eye, EyeOff } from "lucide-react";
+import useAuth from "@/hooks/useAuth";
 
 const PlayerLogin = () => {
+  const { user, profile, signIn } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -18,37 +22,58 @@ const PlayerLogin = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect if user is already logged in and is a player
+  useEffect(() => {
+    if (user && profile?.role === 'PLAYER') {
+      // Redirect will happen via Navigate component below
+    }
+  }, [user, profile]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Player login form submitted:", formData);
-    // Handle form submission
+    await signIn(formData.email, formData.password);
   };
+
+  // Redirect authenticated players to their entries page
+  if (user && profile?.role === 'PLAYER') {
+    return <Navigate to="/players/entries" replace />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
       <SiteHeader />
       
       <main className="flex-1">
-        <Section spacing="xl" className="flex items-center justify-center min-h-[calc(100vh-200px)]">
-          <div className="w-full max-w-md">
-            {/* Header */}
-            <div className="text-center mb-8">
-              <h1 className="font-display text-3xl font-bold text-foreground mb-2">
-                Welcome Back
-              </h1>
-              <p className="text-muted-foreground">
-                Sign in to access your club dashboard and manage your activities
-              </p>
-            </div>
+        {/* Hero Section */}
+        <Hero
+          title="Welcome Back, Challenger."
+          subtitle="Ready to make golf history? Sign in to track your entries, view your achievements, and see where you stand among the legends."
+          primaryAction={{
+            text: "Sign In Below",
+            href: "#login-form"
+          }}
+          backgroundImage="/placeholder.svg"
+        />
 
-            {/* Login Form */}
-            <Card className="shadow-medium">
-              <CardHeader className="text-center">
-                <CardTitle>Player Login</CardTitle>
-                <CardDescription>
-                  Enter your credentials to access your account
-                </CardDescription>
-              </CardHeader>
+        <Section spacing="xl">
+          <Container id="login-form">
+            <div className="max-w-md mx-auto">
+              <div className="text-center mb-8">
+                <h2 className="font-display text-2xl font-bold text-foreground mb-2">
+                  Player Login
+                </h2>
+                <p className="text-muted-foreground">
+                  Access your competition history and current challenges
+                </p>
+              </div>
+
+              <Card className="shadow-medium">
+                <CardHeader className="text-center">
+                  <CardTitle>Sign In</CardTitle>
+                  <CardDescription>
+                    Enter your credentials to access your player dashboard
+                  </CardDescription>
+                </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div>
@@ -121,34 +146,32 @@ const PlayerLogin = () => {
                 <div className="mt-6 text-center">
                   <p className="text-sm text-muted-foreground">
                     Don't have an account?{" "}
-                    <Link to="/clubs/signup" className="text-primary hover:underline">
-                      Register your club
+                    <Link to="/auth" className="text-primary hover:underline">
+                      Create one here
                     </Link>
                   </p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Additional Info */}
-            <div className="mt-8 text-center">
-              <Card className="bg-muted/50">
-                <CardContent className="p-6">
-                  <h4 className="font-semibold text-foreground mb-2">New to SportSync?</h4>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    If you're a club administrator looking to register your organization, 
-                    use our club signup process instead.
-                  </p>
-                  <Button 
-                    asChild 
-                    variant="outline"
-                    className="border-primary/20 hover:bg-primary/5"
-                  >
-                    <Link to="/clubs/signup">Register Club</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+              <div className="mt-8 text-center">
+                <Card className="bg-muted/50">
+                  <CardContent className="p-6">
+                    <h4 className="font-semibold text-foreground mb-2">New to Golf Challenges?</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Join thousands of golfers competing in hole-in-one challenges at premium courses worldwide.
+                    </p>
+                    <Button 
+                      asChild 
+                      variant="outline"
+                      className="border-primary/20 hover:bg-primary/5"
+                    >
+                      <Link to="/auth">Join as Player</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+          </Container>
         </Section>
       </main>
 
