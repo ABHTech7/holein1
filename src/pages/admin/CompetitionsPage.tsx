@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Trophy, Calendar, DollarSign, Users, ArrowLeft, Plus } from "lucide-react";
+import { Search, Trophy, Calendar, PoundSterling, Users, ArrowLeft, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -227,7 +227,7 @@ const CompetitionsPage = () => {
                           </TableCell>
                            <TableCell>
                              <div className="flex items-center gap-1">
-                               <DollarSign className="w-4 h-4 text-green-600" />
+                               <PoundSterling className="w-4 h-4 text-green-600" />
                                <span>{formatCurrency(competition.entry_fee)}</span>
                              </div>
                            </TableCell>
@@ -242,7 +242,7 @@ const CompetitionsPage = () => {
                           </TableCell>
                            <TableCell>
                              <div className="flex items-center gap-1">
-                               <DollarSign className="w-4 h-4 text-green-600" />
+                               <PoundSterling className="w-4 h-4 text-green-600" />
                                <span className="font-medium">
                                  {formatCurrency(competition.total_revenue)}
                                </span>

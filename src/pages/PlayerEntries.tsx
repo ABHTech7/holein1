@@ -8,7 +8,7 @@ import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 import Container from "@/components/layout/Container";
-import { Trophy, Target, Calendar, Clock, DollarSign } from "lucide-react";
+import { Trophy, Target, Calendar, Clock, PoundSterling } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import useAuth from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
@@ -202,7 +202,7 @@ const PlayerEntries = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <DollarSign className="w-5 h-5 text-primary" />
+                      <PoundSterling className="w-5 h-5 text-primary" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Total Invested</p>

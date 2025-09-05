@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, DollarSign, Building, Users, TrendingUp, ArrowLeft } from "lucide-react";
+import { Search, PoundSterling, Building, Users, TrendingUp, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/formatters";
@@ -174,7 +174,7 @@ const RevenuePage = () => {
                     <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
                     <p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
                   </div>
-                  <DollarSign className="h-8 w-8 text-green-600" />
+                  <PoundSterling className="h-8 w-8 text-green-600" />
                 </div>
               </CardContent>
             </Card>
@@ -223,7 +223,7 @@ const RevenuePage = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5" />
+                <PoundSterling className="w-5 h-5" />
                 Revenue by Club
               </CardTitle>
             </CardHeader>
@@ -282,7 +282,7 @@ const RevenuePage = () => {
                           </TableCell>
                           <TableCell>
                              <div className="flex items-center gap-1 font-semibold text-green-600">
-                               <DollarSign className="w-4 h-4" />
+                               <PoundSterling className="w-4 h-4" />
                                {formatCurrency(club.total_revenue)}
                              </div>
                           </TableCell>
