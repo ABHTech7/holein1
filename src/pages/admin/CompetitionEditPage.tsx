@@ -23,6 +23,7 @@ import {
   X,
   Calendar as CalendarIcon
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 
 interface Competition {
@@ -32,11 +33,12 @@ interface Competition {
   hole_number: number;
   status: 'SCHEDULED' | 'ACTIVE' | 'ENDED';
   start_date: string;
-  end_date: string;
+  end_date: string | null;
   entry_fee: number;
   prize_pool: number;
   max_participants: number;
-  commission_rate: number;
+  commission_amount: number;
+  is_year_round: boolean;
   club_id: string;
   clubs: {
     name: string;
@@ -50,16 +52,21 @@ const editFormSchema = z.object({
   start_date: z.date({
     required_error: 'Start date is required',
   }),
-  end_date: z.date({
-    required_error: 'End date is required',
-  }),
+  end_date: z.date().optional(),
+  is_year_round: z.boolean(),
   entry_fee: z.number().min(0, 'Entry fee must be at least 0'),
   max_participants: z.number().min(1, 'Max participants must be at least 1').optional(),
-  commission_rate: z.number().min(0, 'Commission rate must be at least 0').max(100, 'Commission rate must be at most 100'),
+  commission_amount: z.number().min(0, 'Commission amount must be at least 0'),
 }).refine((data) => {
-  return data.end_date > data.start_date;
+  if (!data.is_year_round && !data.end_date) {
+    return false;
+  }
+  if (data.end_date && data.end_date <= data.start_date) {
+    return false;
+  }
+  return true;
 }, {
-  message: "End date must be after start date",
+  message: "End date is required for non-year-round competitions and must be after start date",
   path: ["end_date"],
 });
 
@@ -103,10 +110,11 @@ const CompetitionEditPage = () => {
           description: data.description || '',
           hole_number: data.hole_number,
           start_date: new Date(data.start_date),
-          end_date: new Date(data.end_date),
+          end_date: data.end_date ? new Date(data.end_date) : undefined,
+          is_year_round: data.is_year_round || false,
           entry_fee: data.entry_fee / 100, // Convert from cents
           max_participants: data.max_participants || undefined,
-          commission_rate: data.commission_rate || 0,
+          commission_amount: data.commission_amount ? data.commission_amount / 100 : 0, // Convert from pence
         });
       } catch (error) {
         console.error('Error fetching competition:', error);
@@ -129,12 +137,25 @@ const CompetitionEditPage = () => {
 
     setSaving(true);
     try {
-      // Convert entry fee back to cents
+      // Convert entry fee back to cents and commission to pence
       const entry_fee_cents = Math.round(data.entry_fee * 100);
+      const commission_amount_pence = Math.round(data.commission_amount * 100);
       
-      // Determine new status based on dates
+      // Determine new status based on dates and year-round flag
       const now = new Date();
-      const newStatus = (now >= data.start_date && now <= data.end_date) ? 'ACTIVE' : 'SCHEDULED';
+      let newStatus: 'SCHEDULED' | 'ACTIVE' | 'ENDED' = 'SCHEDULED';
+      
+      if (data.is_year_round) {
+        newStatus = now >= data.start_date ? 'ACTIVE' : 'SCHEDULED';
+      } else if (data.end_date) {
+        if (now < data.start_date) {
+          newStatus = 'SCHEDULED';
+        } else if (now >= data.start_date && now <= data.end_date) {
+          newStatus = 'ACTIVE';
+        } else {
+          newStatus = 'ENDED';
+        }
+      }
 
       const { error } = await supabase
         .from('competitions')
@@ -143,10 +164,11 @@ const CompetitionEditPage = () => {
           description: data.description || null,
           hole_number: data.hole_number,
           start_date: data.start_date.toISOString(),
-          end_date: data.end_date.toISOString(),
+          end_date: data.is_year_round ? null : data.end_date?.toISOString() || null,
+          is_year_round: data.is_year_round,
           entry_fee: entry_fee_cents,
           max_participants: data.max_participants || null,
-          commission_rate: data.commission_rate,
+          commission_amount: commission_amount_pence,
           status: newStatus,
           updated_at: new Date().toISOString(),
         })
@@ -282,6 +304,21 @@ const CompetitionEditPage = () => {
                     />
                   </div>
 
+                  {/* Year-round competition toggle */}
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="is_year_round"
+                      checked={form.watch('is_year_round')}
+                      onCheckedChange={(checked) => {
+                        form.setValue('is_year_round', !!checked);
+                        if (checked) {
+                          form.setValue('end_date', undefined);
+                        }
+                      }}
+                    />
+                    <Label htmlFor="is_year_round">This is a year-round competition</Label>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Start Date */}
                     <div className="space-y-2">
@@ -305,6 +342,7 @@ const CompetitionEditPage = () => {
                             selected={form.watch('start_date')}
                             onSelect={(date) => date && form.setValue('start_date', date)}
                             initialFocus
+                            className={cn("p-3 pointer-events-auto")}
                           />
                         </PopoverContent>
                       </Popover>
@@ -315,37 +353,40 @@ const CompetitionEditPage = () => {
                       )}
                     </div>
 
-                    {/* End Date */}
-                    <div className="space-y-2">
-                      <Label>End Date *</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !form.watch('end_date') && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {form.watch('end_date') ? format(form.watch('end_date'), "PPP") : "Pick a date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={form.watch('end_date')}
-                            onSelect={(date) => date && form.setValue('end_date', date)}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      {form.formState.errors.end_date && (
-                        <p className="text-sm text-destructive">
-                          {form.formState.errors.end_date.message}
-                        </p>
-                      )}
-                    </div>
+                    {/* End Date - only show if not year-round */}
+                    {!form.watch('is_year_round') && (
+                      <div className="space-y-2">
+                        <Label>End Date *</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !form.watch('end_date') && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {form.watch('end_date') ? format(form.watch('end_date'), "PPP") : "Pick a date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={form.watch('end_date')}
+                              onSelect={(date) => form.setValue('end_date', date)}
+                              initialFocus
+                              className={cn("p-3 pointer-events-auto")}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        {form.formState.errors.end_date && (
+                          <p className="text-sm text-destructive">
+                            {form.formState.errors.end_date.message}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -384,21 +425,20 @@ const CompetitionEditPage = () => {
                       )}
                     </div>
 
-                    {/* Commission Rate */}
+                    {/* Commission Amount */}
                     <div className="space-y-2">
-                      <Label htmlFor="commission_rate">Commission Rate (%)</Label>
+                      <Label htmlFor="commission_amount">Commission Amount (£)</Label>
                       <Input
-                        id="commission_rate"
+                        id="commission_amount"
                         type="number"
                         step="0.01"
                         min="0"
-                        max="100"
-                        {...form.register('commission_rate', { valueAsNumber: true })}
+                        {...form.register('commission_amount', { valueAsNumber: true })}
                         placeholder="0.00"
                       />
-                      {form.formState.errors.commission_rate && (
+                      {form.formState.errors.commission_amount && (
                         <p className="text-sm text-destructive">
-                          {form.formState.errors.commission_rate.message}
+                          {form.formState.errors.commission_amount.message}
                         </p>
                       )}
                     </div>

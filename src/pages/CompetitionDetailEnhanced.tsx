@@ -62,7 +62,7 @@ interface Competition {
   start_date: string;
   end_date: string;
   entry_fee: number;
-  commission_rate?: number;
+  commission_amount?: number;
   prize_pool: number;
   max_participants: number;
   clubs: {
@@ -89,7 +89,7 @@ const editSchema = z.object({
   start_date: z.date({ required_error: 'Start date is required' }),
   end_date: z.date({ required_error: 'End date is required' }),
   entry_fee: z.number().min(0, 'Entry fee cannot be negative'),
-  commission_rate: z.number().min(0, 'Commission rate cannot be negative'),
+  commission_amount: z.number().min(0, 'Commission amount cannot be negative'),
 }).refine((data) => data.start_date < data.end_date, {
   message: 'End date must be after start date',
   path: ['end_date'],
@@ -185,7 +185,7 @@ const CompetitionDetailEnhanced = () => {
           start_date: new Date(competitionData.start_date),
           end_date: new Date(competitionData.end_date),
           entry_fee: competitionData.entry_fee / 100, // Convert from cents to pounds
-          commission_rate: competitionData.commission_rate || 0,
+          commission_amount: competitionData.commission_amount ? competitionData.commission_amount / 100 : 0, // Convert from pence to pounds
         });
 
         // Fetch entries for this competition
@@ -283,7 +283,7 @@ const CompetitionDetailEnhanced = () => {
           start_date: data.start_date.toISOString(),
           end_date: data.end_date.toISOString(),
           entry_fee: entry_fee_cents,
-          commission_rate: data.commission_rate,
+                  commission_amount: Math.round(data.commission_amount * 100), // Convert to pence
           status: newStatus,
         })
         .eq('id', competition.id);
@@ -298,7 +298,7 @@ const CompetitionDetailEnhanced = () => {
         start_date: data.start_date.toISOString(),
         end_date: data.end_date.toISOString(),
         entry_fee: entry_fee_cents,
-        commission_rate: data.commission_rate,
+        commission_amount: data.commission_amount,
       } : null);
 
       setIsEditing(false);
@@ -555,10 +555,10 @@ const CompetitionDetailEnhanced = () => {
                     <div className="flex items-center gap-3">
                       <PoundSterling className="w-5 h-5 text-muted-foreground" />
                       <div>
-                         <p className="text-sm text-muted-foreground">Commission Rate</p>
-                         <p className="font-semibold">
-                           {formatCurrency(competition.commission_rate || 0)} per entry
-                         </p>
+                        <p className="text-sm text-muted-foreground">Commission Amount</p>
+                        <p className="font-semibold">
+                          {formatCurrency(competition.commission_amount || 0)} per entry
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -835,19 +835,19 @@ const CompetitionDetailEnhanced = () => {
 
                         {profile?.role === 'ADMIN' && (
                           <div>
-                            <Label htmlFor="edit-commission-rate">Commission Rate (£ per entry)</Label>
+                            <Label htmlFor="edit-commission-amount">Commission Amount (£ per entry)</Label>
                             <Input
-                              id="edit-commission-rate"
+                              id="edit-commission-amount"
                               type="number"
                               min="0"
                               step="0.01"
-                              {...editForm.register('commission_rate', { valueAsNumber: true })}
+                              {...editForm.register('commission_amount', { valueAsNumber: true })}
                             />
                             <p className="text-sm text-muted-foreground mt-1">
                               Fixed commission amount paid to the club per paid entry
                             </p>
-                            {editForm.formState.errors.commission_rate && (
-                              <p className="text-sm text-destructive mt-1">{editForm.formState.errors.commission_rate.message}</p>
+                            {editForm.formState.errors.commission_amount && (
+                              <p className="text-sm text-destructive mt-1">{editForm.formState.errors.commission_amount.message}</p>
                             )}
                           </div>
                         )}
@@ -897,9 +897,9 @@ const CompetitionDetailEnhanced = () => {
                         {profile?.role === 'ADMIN' && (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                              <p className="text-sm text-muted-foreground">Commission Rate</p>
+                              <p className="text-sm text-muted-foreground">Commission Amount</p>
                               <p className="font-medium">
-                                {formatCurrency((competition.commission_rate || 0) * 100)} per entry
+                                {formatCurrency(competition.commission_amount || 0)} per entry
                               </p>
                             </div>
                           </div>

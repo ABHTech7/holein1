@@ -38,7 +38,7 @@ interface Competition {
   start_date: string;
   end_date: string;
   entry_fee: number;
-  commission_rate: number;
+  commission_amount: number;
   max_participants: number | null;
   status: string;
   total_entries: number;
@@ -140,8 +140,8 @@ const ClubDetailPage = () => {
           const totalEntries = entries?.length || 0;
           const paidEntries = entries?.filter(entry => entry.paid).length || 0;
           const totalRevenue = paidEntries * (parseFloat(competition.entry_fee?.toString() || '0'));
-          const commissionRate = parseFloat(competition.commission_rate?.toString() || '0');
-          const totalCommission = paidEntries * commissionRate;
+          const commissionAmount = parseFloat(competition.commission_amount?.toString() || '0');
+          const totalCommission = paidEntries * commissionAmount;
 
           return {
             ...competition,
@@ -267,7 +267,7 @@ const ClubDetailPage = () => {
 
       const { error } = await supabase
         .from('competitions')
-        .update({ commission_rate: newRateInPence })
+        .update({ commission_amount: newRateInPence })
         .eq('id', competitionId);
 
       if (error) throw error;
@@ -275,8 +275,8 @@ const ClubDetailPage = () => {
       // Update local state
       setCompetitions(prev => prev.map(comp => {
         if (comp.id === competitionId) {
-          const updatedComp = { ...comp, commission_rate: newRateInPence };
-          // Recalculate commission with new rate in pence
+          const updatedComp = { ...comp, commission_amount: newRateInPence };
+          // Recalculate commission with new amount in pence
           const paidEntries = Math.round(comp.total_revenue / comp.entry_fee) || 0;
           updatedComp.total_commission = paidEntries * newRateInPence;
           return updatedComp;
@@ -288,7 +288,7 @@ const ClubDetailPage = () => {
       setTempCommissionRate("");
 
       // Add audit note for commission change
-      const oldRateInPounds = (competition.commission_rate / 100).toFixed(2);
+      const oldRateInPounds = (competition.commission_amount / 100).toFixed(2);
       const auditNote = await trackClubChanges(
         clubId!,
         { ...club, commission_change: `${competition.name}: £${oldRateInPounds}` },
@@ -802,11 +802,11 @@ const ClubDetailPage = () => {
                                   </div>
                                 ) : (
                                   <div className="flex items-center gap-2">
-                                    <span>{formatCurrency(competition.commission_rate)}</span>
+                                    <span>{formatCurrency(competition.commission_amount)}</span>
                                     <Button
                                       size="sm"
                                       variant="ghost"
-                                      onClick={() => handleCommissionEdit(competition.id, competition.commission_rate)}
+                                      onClick={() => handleCommissionEdit(competition.id, competition.commission_amount)}
                                       className="h-8 w-8 p-0"
                                     >
                                       <Edit2 className="w-3 h-3" />

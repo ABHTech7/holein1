@@ -77,7 +77,7 @@ const ClubCommissionSection = ({ clubId }: CommissionSectionProps) => {
         .select(`
           id,
           name,
-          commission_rate,
+          commission_amount,
           entries!inner(
             id,
             entry_date,
@@ -98,12 +98,12 @@ const ClubCommissionSection = ({ clubId }: CommissionSectionProps) => {
       let yearToDate = 0;
 
       competitions?.forEach(comp => {
-        const commissionRate = parseFloat(comp.commission_rate?.toString() || '0');
-        const paidEntries = comp.entries.filter((entry: any) => entry.paid);
+        const commissionAmount = parseFloat(comp.commission_amount?.toString() || '0');
+        const paidEntries = comp.entries?.filter((entry: any) => entry.paid) || [];
         
         paidEntries.forEach((entry: any) => {
           const entryDate = new Date(entry.entry_date);
-          const commission = commissionRate;
+          const commission = commissionAmount;
           
           totalCommission += commission;
           
@@ -180,7 +180,7 @@ const ClubCommissionSection = ({ clubId }: CommissionSectionProps) => {
         period_start: newPayment.period_start,
         period_end: newPayment.period_end,
         entries_count: 0, // This would be calculated based on the period
-        commission_rate: 0, // This would be the weighted average
+        commission_amount: 0, // This would be the weighted average
         notes: newPayment.notes || null,
         status: 'processed',
         created_by: user?.id

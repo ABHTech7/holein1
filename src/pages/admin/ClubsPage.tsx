@@ -63,10 +63,10 @@ const ClubsPage = () => {
 
       const clubsWithStats = await Promise.all(
         (clubsData || []).map(async (club) => {
-          // Get competitions with their commission rates
+          // Get competitions with their commission amounts
           const { data: competitions, error: competitionsError } = await supabase
             .from('competitions')
-            .select('id, entry_fee, commission_rate')
+            .select('id, entry_fee, commission_amount')
             .eq('club_id', club.id);
 
           if (competitionsError) {
@@ -103,10 +103,10 @@ const ClubsPage = () => {
 
               const paidEntries = entries?.filter(entry => entry.paid).length || 0;
               const entryFee = parseFloat(competition.entry_fee?.toString() || '0');
-              const commissionRate = parseFloat(competition.commission_rate?.toString() || '0');
+              const commissionAmount = parseFloat(competition.commission_amount?.toString() || '0');
 
               const competitionRevenue = paidEntries * entryFee;
-              const competitionCommission = paidEntries * commissionRate;
+              const competitionCommission = paidEntries * commissionAmount;
 
               return {
                 revenue: competitionRevenue,
