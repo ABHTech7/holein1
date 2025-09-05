@@ -111,6 +111,14 @@ const App = () => (
             } 
           />
           <Route 
+            path="/dashboard/admin/competitions/:id" 
+            element={
+              <RoleGuard allowedRoles={['ADMIN']}>
+                <CompetitionDetailEnhanced />
+              </RoleGuard>
+            } 
+          />
+          <Route 
             path="/dashboard/admin/revenue" 
             element={
               <RoleGuard allowedRoles={['ADMIN']}>

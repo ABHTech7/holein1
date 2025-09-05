@@ -103,7 +103,7 @@ const CompetitionsPage = () => {
   };
 
   const handleCompetitionClick = (competitionId: string) => {
-    navigate(`/competitions/${competitionId}`);
+    navigate(`/dashboard/admin/competitions/${competitionId}`);
   };
 
   const getStatusBadgeVariant = (status: string) => {

@@ -62,6 +62,7 @@ interface Competition {
   start_date: string;
   end_date: string;
   entry_fee: number;
+  commission_rate?: number;
   prize_pool: number;
   max_participants: number;
   clubs: {
@@ -88,6 +89,7 @@ const editSchema = z.object({
   start_date: z.date({ required_error: 'Start date is required' }),
   end_date: z.date({ required_error: 'End date is required' }),
   entry_fee: z.number().min(0, 'Entry fee cannot be negative'),
+  commission_rate: z.number().min(0, 'Commission rate cannot be negative'),
 }).refine((data) => data.start_date < data.end_date, {
   message: 'End date must be after start date',
   path: ['end_date'],
@@ -164,6 +166,7 @@ const CompetitionDetailEnhanced = () => {
         if (competitionError) throw competitionError;
 
         // Check if user has access to this competition
+        // ADMIN users can access any competition, CLUB users only their own
         if (profile.role === 'CLUB' && competitionData.club_id !== profile.club_id) {
           toast({
             title: 'Access Denied',
@@ -182,6 +185,7 @@ const CompetitionDetailEnhanced = () => {
           start_date: new Date(competitionData.start_date),
           end_date: new Date(competitionData.end_date),
           entry_fee: competitionData.entry_fee / 100, // Convert from cents to pounds
+          commission_rate: competitionData.commission_rate || 0,
         });
 
         // Fetch entries for this competition
@@ -279,10 +283,10 @@ const CompetitionDetailEnhanced = () => {
           start_date: data.start_date.toISOString(),
           end_date: data.end_date.toISOString(),
           entry_fee: entry_fee_cents,
+          commission_rate: data.commission_rate,
           status: newStatus,
         })
-        .eq('id', competition.id)
-        .eq('club_id', profile?.club_id); // Ensure club scoping
+        .eq('id', competition.id);
 
       if (error) throw error;
 
@@ -294,7 +298,7 @@ const CompetitionDetailEnhanced = () => {
         start_date: data.start_date.toISOString(),
         end_date: data.end_date.toISOString(),
         entry_fee: entry_fee_cents,
-        status: newStatus as 'SCHEDULED' | 'ACTIVE' | 'ENDED',
+        commission_rate: data.commission_rate,
       } : null);
 
       setIsEditing(false);
@@ -396,8 +400,8 @@ const CompetitionDetailEnhanced = () => {
     return <Navigate to="/players/login" replace />;
   }
 
-  // Club users no longer have access to competition editing
-  if (!profile || profile.role !== 'ADMIN') {
+  // ADMIN users can access this page for any competition
+  if (!profile || (profile.role !== 'CLUB' && profile.role !== 'ADMIN')) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="max-w-md mx-auto">
@@ -406,7 +410,7 @@ const CompetitionDetailEnhanced = () => {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">
-              This page is only accessible to system administrators.
+              This page is only accessible to club administrators and system administrators.
             </p>
           </CardContent>
         </Card>
@@ -536,6 +540,22 @@ const CompetitionDetailEnhanced = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {profile?.role === 'ADMIN' && (
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3">
+                      <PoundSterling className="w-5 h-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Commission Rate</p>
+                        <p className="font-semibold">
+                          {formatCurrency((competition.commission_rate || 0) * 100)} per entry
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* KPIs Row */}
@@ -790,6 +810,25 @@ const CompetitionDetailEnhanced = () => {
                           )}
                         </div>
 
+                        {profile?.role === 'ADMIN' && (
+                          <div>
+                            <Label htmlFor="edit-commission-rate">Commission Rate (£ per entry)</Label>
+                            <Input
+                              id="edit-commission-rate"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              {...editForm.register('commission_rate', { valueAsNumber: true })}
+                            />
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Fixed commission amount paid to the club per paid entry
+                            </p>
+                            {editForm.formState.errors.commission_rate && (
+                              <p className="text-sm text-destructive mt-1">{editForm.formState.errors.commission_rate.message}</p>
+                            )}
+                          </div>
+                        )}
+
                         <div className="flex gap-3">
                           <Button type="submit" disabled={saving} className="gap-2">
                             <Save className="w-4 h-4" />
@@ -831,6 +870,18 @@ const CompetitionDetailEnhanced = () => {
                             </p>
                           </div>
                         </div>
+                        
+                        {profile?.role === 'ADMIN' && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm text-muted-foreground">Commission Rate</p>
+                              <p className="font-medium">
+                                {formatCurrency((competition.commission_rate || 0) * 100)} per entry
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <p className="text-sm text-muted-foreground">Start Date</p>
