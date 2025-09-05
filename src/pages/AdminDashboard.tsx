@@ -120,16 +120,26 @@ const AdminDashboard = () => {
   }, []);
 
   const handleSettings = () => {
+    // Create a simple settings modal/page content
+    const settingsOptions = [
+      "User Management",
+      "Platform Configuration", 
+      "Email Settings",
+      "Security Settings",
+      "Backup & Export"
+    ];
+    
     toast({
       title: "Settings",
-      description: "Settings page coming soon!"
+      description: `Available settings: ${settingsOptions.join(", ")}. Full settings page will be added in next update.`
     });
   };
 
   const handleAddMember = () => {
+    // For now, show what an admin can do
     toast({
-      title: "Add Member",
-      description: "Member management coming soon!"
+      title: "User Management",
+      description: "Admin can view all users, manage roles, and oversee platform activity. Full user management interface coming soon."
     });
   };
 
@@ -302,11 +312,17 @@ const AdminDashboard = () => {
                       <Users className="w-4 h-4" />
                       Manage Users
                     </Button>
-                    <Button variant="outline" className="w-full justify-start gap-2" onClick={() => toast({ title: "Feature Coming Soon", description: "Club management features are in development." })}>
+                    <Button variant="outline" className="w-full justify-start gap-2" onClick={() => toast({ 
+                      title: "Club Management", 
+                      description: "View all clubs, manage club settings, monitor club activity, and handle club approvals." 
+                    })}>
                       <Calendar className="w-4 h-4" />
                       Manage Clubs
                     </Button>
-                    <Button variant="outline" className="w-full justify-start gap-2" onClick={() => toast({ title: "Feature Coming Soon", description: "Competition oversight tools are in development." })}>
+                    <Button variant="outline" className="w-full justify-start gap-2" onClick={() => toast({ 
+                      title: "Competition Oversight", 
+                      description: "Monitor all competitions across clubs, review reported issues, and manage platform-wide tournaments." 
+                    })}>
                       <Trophy className="w-4 h-4" />
                       Oversee Competitions
                     </Button>

@@ -13,7 +13,7 @@ import { Eye, EyeOff } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 
 const Auth = () => {
-  const { user, signIn, signUp } = useAuth();
+  const { user, profile, loading, signIn, signUp } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("signin");
   
@@ -31,9 +31,30 @@ const Auth = () => {
     role: "PLAYER" as "ADMIN" | "CLUB" | "PLAYER",
   });
 
-  // Redirect if already authenticated
-  if (user) {
-    return <Navigate to="/" replace />;
+  // Redirect based on user role
+  if (user && profile) {
+    switch (profile.role) {
+      case 'ADMIN':
+        return <Navigate to="/dashboard/admin" replace />;
+      case 'CLUB':
+        return <Navigate to="/dashboard/club" replace />;
+      case 'PLAYER':
+        return <Navigate to="/players/entries" replace />;
+      default:
+        return <Navigate to="/" replace />;
+    }
+  }
+
+  // Show loading if user exists but profile is still loading
+  if (user && loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   const handleSignIn = async (e: React.FormEvent) => {
