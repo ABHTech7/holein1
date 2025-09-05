@@ -10,6 +10,7 @@ import Section from "@/components/layout/Section";
 import StatsCard from "@/components/ui/stats-card";
 import ChartWrapper from "@/components/ui/chart-wrapper";
 import UserManagementModal from "@/components/admin/UserManagementModal";
+import SiteSettingsModal from "@/components/admin/SiteSettingsModal";
 import { Users, Calendar, Trophy, TrendingUp, Plus, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -36,6 +37,7 @@ interface Competition {
 const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showUserManagement, setShowUserManagement] = useState(false);
+  const [showSiteSettings, setShowSiteSettings] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     totalPlayers: 0,
     newPlayersThisMonth: 0,
@@ -165,13 +167,7 @@ const AdminDashboard = () => {
   }, []);
 
   const handleSettings = () => {
-    // Open settings modal or navigation
-    setShowUserManagement(true);
-    toast({
-      title: "Admin Settings",
-      description: "Opening user management panel. Additional settings coming soon.",
-      duration: 3000
-    });
+    setShowSiteSettings(true);
   };
 
   const handleAddMember = () => {
@@ -429,6 +425,12 @@ const AdminDashboard = () => {
       <UserManagementModal 
         isOpen={showUserManagement}
         onClose={() => setShowUserManagement(false)}
+      />
+
+      {/* Site Settings Modal */}
+      <SiteSettingsModal 
+        isOpen={showSiteSettings}
+        onClose={() => setShowSiteSettings(false)}
       />
     </div>
   );
