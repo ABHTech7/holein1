@@ -256,18 +256,18 @@ const CompetitionDetail = () => {
     <div className="min-h-screen flex flex-col">
       <SiteHeader />
       
-      <main className="flex-1">
+      <main className="flex-1 bg-muted/30">
         <Section spacing="lg">
           <div className="max-w-6xl mx-auto space-y-8">
             {/* Header */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 mb-6">
               <Button 
-                variant="outline" 
-                onClick={() => navigate('/dashboard/admin')}
-                className="flex items-center gap-2"
+                variant="ghost" 
+                onClick={() => navigate('/dashboard/admin/competitions')}
+                className="flex items-center gap-2 hover:bg-background"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Back to Dashboard
+                Back to Competitions
               </Button>
             </div>
 

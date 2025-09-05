@@ -120,29 +120,30 @@ const CompetitionsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen flex flex-col">
       <SiteHeader />
       
-      <Section className="py-8">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/dashboard/admin')}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
-            </Button>
-            
-            <Button 
-              onClick={() => navigate('/dashboard/admin/competitions/new')}
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Create Competition
-            </Button>
-          </div>
+      <main className="flex-1 bg-muted/30">
+        <Section spacing="lg">
+          <div className="max-w-6xl mx-auto space-y-6">
+            <div className="flex items-center justify-between">
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate('/dashboard/admin')}
+                className="flex items-center gap-2 hover:bg-background"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Dashboard
+              </Button>
+              
+              <Button 
+                onClick={() => navigate('/dashboard/admin/competitions/new')}
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Create Competition
+              </Button>
+            </div>
 
           <Card>
             <CardHeader>
@@ -262,6 +263,7 @@ const CompetitionsPage = () => {
           </Card>
         </div>
       </Section>
+    </main>
     </div>
   );
 };
