@@ -414,14 +414,14 @@ const CompetitionEntry = () => {
                     {competition.entry_fee && (
                       <div className="flex items-center gap-3">
                         <Clock className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">Entry Fee: ${(competition.entry_fee / 100).toFixed(2)}</span>
+                        <span className="text-sm">Entry Fee: £{(competition.entry_fee / 100).toFixed(2)}</span>
                       </div>
                     )}
                     
                     {competition.prize_pool && (
                       <div className="flex items-center gap-3">
                         <Trophy className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm">Prize Pool: ${(competition.prize_pool / 100).toFixed(2)}</span>
+                        <span className="text-sm">Prize Pool: £{(competition.prize_pool / 100).toFixed(2)}</span>
                       </div>
                     )}
                   </CardContent>
@@ -536,7 +536,7 @@ const CompetitionEntry = () => {
                           <h4 className="font-semibold text-foreground mb-2">Entry Fee</h4>
                           <div className="flex justify-between items-center text-sm">
                             <span>Competition Entry:</span>
-                            <span className="font-semibold">${(competition.entry_fee / 100).toFixed(2)}</span>
+                            <span className="font-semibold">£{(competition.entry_fee / 100).toFixed(2)}</span>
                           </div>
                         </div>
                       )}
@@ -549,7 +549,7 @@ const CompetitionEntry = () => {
                       >
                         {submitting ? "Submitting..." : 
                          competition.entry_fee && competition.entry_fee > 0 ? 
-                         `Enter & Pay $${(competition.entry_fee / 100).toFixed(2)}` : 
+                         `Enter & Pay £${(competition.entry_fee / 100).toFixed(2)}` : 
                          "Enter Competition"}
                       </Button>
 
