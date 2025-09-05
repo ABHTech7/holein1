@@ -6,11 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import SiteHeader from "@/components/layout/SiteHeader";
-import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 import StatsCard from "@/components/ui/stats-card";
 import ChartWrapper from "@/components/ui/chart-wrapper";
-import UserManagementModal from "@/components/admin/UserManagementModal";
 import SiteSettingsModal from "@/components/admin/SiteSettingsModal";
 import NewUserModal from "@/components/admin/NewUserModal";
 import { Users, Calendar, Trophy, TrendingUp, Plus, Settings } from "lucide-react";
@@ -23,7 +21,9 @@ interface DashboardStats {
   newPlayersThisMonth: number;
   totalClubs: number;
   activeCompetitions: number;
+  todayRevenue: number;
   monthlyRevenue: number;
+  yearlyRevenue: number;
 }
 
 interface Competition {
@@ -39,7 +39,6 @@ interface Competition {
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [showUserManagement, setShowUserManagement] = useState(false);
   const [showSiteSettings, setShowSiteSettings] = useState(false);
   const [showNewUser, setShowNewUser] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
@@ -47,7 +46,9 @@ const AdminDashboard = () => {
     newPlayersThisMonth: 0,
     totalClubs: 0,
     activeCompetitions: 0,
-    monthlyRevenue: 0
+    todayRevenue: 0,
+    monthlyRevenue: 0,
+    yearlyRevenue: 0
   });
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [membershipData, setMembershipData] = useState<Array<{month: string, members: number}>>([]);
@@ -58,9 +59,12 @@ const AdminDashboard = () => {
       try {
         setLoading(true);
 
-        // Get current month start date for revenue calculation
+        // Get current dates for revenue calculations
         const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+        const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const yearStart = new Date(now.getFullYear(), 0, 1).toISOString();
 
         // Fetch basic stats with proper error handling
         const [playersRes, newPlayersRes, clubsRes, activeCompsRes] = await Promise.all([
@@ -70,26 +74,64 @@ const AdminDashboard = () => {
           supabase.from('competitions').select('*').eq('status', 'ACTIVE')
         ]);
 
-        // Fetch month-to-date revenue from paid entries
-        const { data: monthlyEntries, error: entriesError } = await supabase
-          .from('entries')
-          .select(`
-            entry_date,
-            paid,
-            competitions!inner(entry_fee)
-          `)
-          .eq('paid', true)
-          .gte('entry_date', monthStart);
+        // Fetch revenue data for different periods
+        const [todayEntriesRes, monthlyEntriesRes, yearlyEntriesRes] = await Promise.all([
+          // Today's revenue
+          supabase
+            .from('entries')
+            .select(`
+              entry_date,
+              paid,
+              competitions!inner(entry_fee)
+            `)
+            .eq('paid', true)
+            .gte('entry_date', today)
+            .lt('entry_date', tomorrow),
+          
+          // Month-to-date revenue
+          supabase
+            .from('entries')
+            .select(`
+              entry_date,
+              paid,
+              competitions!inner(entry_fee)
+            `)
+            .eq('paid', true)
+            .gte('entry_date', monthStart),
+          
+          // Year-to-date revenue
+          supabase
+            .from('entries')
+            .select(`
+              entry_date,
+              paid,
+              competitions!inner(entry_fee)
+            `)
+            .eq('paid', true)
+            .gte('entry_date', yearStart)
+        ]);
 
         // Log any errors for debugging
         if (playersRes.error) console.error('Players query error:', playersRes.error);
         if (newPlayersRes.error) console.error('New players query error:', newPlayersRes.error);
         if (clubsRes.error) console.error('Clubs query error:', clubsRes.error);
         if (activeCompsRes.error) console.error('Active competitions error:', activeCompsRes.error);
-        if (entriesError) console.error('Entries query error:', entriesError);
+        if (todayEntriesRes.error) console.error('Today entries query error:', todayEntriesRes.error);
+        if (monthlyEntriesRes.error) console.error('Monthly entries query error:', monthlyEntriesRes.error);
+        if (yearlyEntriesRes.error) console.error('Yearly entries query error:', yearlyEntriesRes.error);
 
-        // Calculate month-to-date revenue
-        const monthlyRevenue = (monthlyEntries || []).reduce((sum, entry) => {
+        // Calculate revenue for different periods
+        const todayRevenue = (todayEntriesRes.data || []).reduce((sum, entry) => {
+          const fee = (entry as any).competitions?.entry_fee || 0;
+          return sum + fee;
+        }, 0);
+
+        const monthlyRevenue = (monthlyEntriesRes.data || []).reduce((sum, entry) => {
+          const fee = (entry as any).competitions?.entry_fee || 0;
+          return sum + fee;
+        }, 0);
+
+        const yearlyRevenue = (yearlyEntriesRes.data || []).reduce((sum, entry) => {
           const fee = (entry as any).competitions?.entry_fee || 0;
           return sum + fee;
         }, 0);
@@ -99,7 +141,9 @@ const AdminDashboard = () => {
           newPlayersThisMonth: newPlayersRes.count || 0,
           totalClubs: clubsRes.count || 0,
           activeCompetitions: activeCompsRes.data?.length || 0,
-          monthlyRevenue: monthlyRevenue
+          todayRevenue: todayRevenue,
+          monthlyRevenue: monthlyRevenue,
+          yearlyRevenue: yearlyRevenue
         });
 
         // Fetch recent competitions with entry counts and club info
@@ -158,12 +202,14 @@ const AdminDashboard = () => {
         }
         setMembershipData(membershipTrendData);
 
-        console.log('Dashboard data loaded successfully:', {
+                        console.log('Dashboard data loaded successfully:', {
           totalPlayers: playersRes.count,
           newPlayersThisMonth: newPlayersRes.count,
           clubs: clubsRes.count,
           activeCompetitions: activeCompsRes.data?.length,
+          todayRevenue: todayRevenue,
           monthlyRevenue: monthlyRevenue,
+          yearlyRevenue: yearlyRevenue,
           competitions: recentComps?.length
         });
 
@@ -184,6 +230,10 @@ const AdminDashboard = () => {
 
   const handleSettings = () => {
     setShowSiteSettings(true);
+  };
+
+  const handleUserManagement = () => {
+    navigate('/dashboard/admin/users');
   };
 
   const handleAddUser = () => {
@@ -229,7 +279,7 @@ const AdminDashboard = () => {
                   <Settings className="w-4 h-4" />
                   Settings
                 </Button>
-                <Button variant="outline" className="gap-2" onClick={() => setShowUserManagement(true)}>
+                <Button variant="outline" className="gap-2" onClick={handleUserManagement}>
                   <Plus className="w-4 h-4" />
                   Manage Users
                 </Button>
@@ -240,11 +290,54 @@ const AdminDashboard = () => {
               </div>
             </div>
 
+            {/* Revenue Overview - Top Priority */}
+            <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                  Revenue Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="text-center">
+                        <Skeleton className="h-8 w-24 mx-auto mb-2" />
+                        <Skeleton className="h-4 w-20 mx-auto" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary mb-1">
+                        {formatCurrency(stats.todayRevenue)}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Today's Revenue</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary mb-1">
+                        {formatCurrency(stats.monthlyRevenue)}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Month to Date</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary mb-1">
+                        {formatCurrency(stats.yearlyRevenue)}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Year to Date</div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {loading ? (
                 <>
-                  {[...Array(5)].map((_, i) => (
+                  {[...Array(4)].map((_, i) => (
                     <Card key={i} className="p-6">
                       <Skeleton className="h-4 w-20 mb-2" />
                       <Skeleton className="h-8 w-16 mb-2" />
@@ -281,13 +374,6 @@ const AdminDashboard = () => {
                     icon={Trophy}
                     onClick={handleCompetitionsClick}
                   />
-                  <StatsCard
-                    title="Month-to-Date Revenue"
-                    value={formatCurrency(stats.monthlyRevenue)}
-                    description={`Revenue since ${new Date().toLocaleDateString('en-GB', { month: 'long' })} 1st`}
-                    icon={TrendingUp}
-                    onClick={handleRevenueClick}
-                  />
                 </>
               )}
             </div>
@@ -320,14 +406,6 @@ const AdminDashboard = () => {
           </div>
         </Section>
       </main>
-
-      <SiteFooter />
-
-      {/* User Management Modal */}
-      <UserManagementModal 
-        isOpen={showUserManagement}
-        onClose={() => setShowUserManagement(false)}
-      />
 
       {/* Site Settings Modal */}
         <SiteSettingsModal 

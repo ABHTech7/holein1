@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Mail, Calendar, Trophy, ArrowLeft, Phone } from "lucide-react";
+import { Search, Mail, Calendar, Trophy, ArrowLeft, Phone, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -13,6 +13,7 @@ import { formatDate } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
+import NewUserModal from "@/components/admin/NewUserModal";
 
 interface Player {
   id: string;
@@ -31,6 +32,7 @@ const PlayersPage = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredPlayers, setFilteredPlayers] = useState<Player[]>([]);
+  const [showNewUser, setShowNewUser] = useState(false);
 
   useEffect(() => {
     fetchPlayers();
@@ -117,7 +119,7 @@ const PlayersPage = () => {
       
       <Section className="py-8">
         <div className="space-y-6">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between gap-4">
             <Button 
               variant="outline" 
               onClick={() => navigate('/dashboard/admin')}
@@ -125,6 +127,13 @@ const PlayersPage = () => {
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Dashboard
+            </Button>
+            <Button 
+              className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2"
+              onClick={() => setShowNewUser(true)}
+            >
+              <Plus className="w-4 h-4" />
+              Add New Player
             </Button>
           </div>
 
@@ -238,6 +247,11 @@ const PlayersPage = () => {
       </Section>
 
       <SiteFooter />
+
+      <NewUserModal 
+        isOpen={showNewUser}
+        onClose={() => setShowNewUser(false)}
+      />
     </div>
   );
 };
