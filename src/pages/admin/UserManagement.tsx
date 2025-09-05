@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
 import { ArrowLeft, Plus, Search, Edit, MoreHorizontal, Shield, Building } from "lucide-react";
@@ -40,6 +41,7 @@ const UserManagement = () => {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddUser, setShowAddUser] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [newUser, setNewUser] = useState({
     email: "",
     firstName: "",
@@ -48,6 +50,13 @@ const UserManagement = () => {
     role: "CLUB" as "ADMIN" | "CLUB",
     clubId: "",
     password: ""
+  });
+  const [editUser, setEditUser] = useState({
+    firstName: "",
+    lastName: "",
+    phone: "",
+    role: "CLUB" as "ADMIN" | "CLUB",
+    clubId: ""
   });
 
   // Fetch users and clubs
@@ -152,6 +161,79 @@ const UserManagement = () => {
 
     } catch (error) {
       console.error('Error creating user:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEditUser = (user: UserProfile) => {
+    setEditingUser(user);
+    setEditUser({
+      firstName: user.first_name || "",
+      lastName: user.last_name || "",
+      phone: user.phone || "",
+      role: user.role,
+      clubId: user.club_id || ""
+    });
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingUser) return;
+
+    try {
+      // Update profile in the profiles table
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: editUser.firstName,
+          last_name: editUser.lastName,
+          phone: editUser.phone,
+          role: editUser.role,
+          club_id: editUser.role === 'CLUB' ? editUser.clubId : null
+        })
+        .eq('id', editingUser.id);
+
+      if (error) {
+        console.error('Error updating user:', error);
+        toast({
+          title: "Error",
+          description: `Failed to update user: ${error.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "User updated successfully"
+      });
+
+      // Update local state
+      setUsers(prevUsers =>
+        prevUsers.map(user =>
+          user.id === editingUser.id
+            ? {
+                ...user,
+                first_name: editUser.firstName,
+                last_name: editUser.lastName,
+                phone: editUser.phone,
+                role: editUser.role,
+                club_id: editUser.role === 'CLUB' ? editUser.clubId : null
+              }
+            : user
+        )
+      );
+
+      // Close edit modal
+      setEditingUser(null);
+
+    } catch (error) {
+      console.error('Error updating user:', error);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -283,8 +365,14 @@ const UserManagement = () => {
                               <p>Created {formatDate(user.created_at)}</p>
                             </div>
                           </div>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="w-4 h-4" />
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleEditUser(user)}
+                            className="gap-2"
+                          >
+                            <Edit className="w-4 h-4" />
+                            Edit
                           </Button>
                         </div>
                       ))
@@ -351,8 +439,14 @@ const UserManagement = () => {
                               <p>Created {formatDate(user.created_at)}</p>
                             </div>
                           </div>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="w-4 h-4" />
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleEditUser(user)}
+                            className="gap-2"
+                          >
+                            <Edit className="w-4 h-4" />
+                            Edit
                           </Button>
                         </div>
                       ))
@@ -367,125 +461,234 @@ const UserManagement = () => {
 
       {/* Add User Modal */}
       {showAddUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md mx-4">
-            <CardHeader>
-              <CardTitle>Add New User</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleAddUser} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input
-                      id="firstName"
-                      value={newUser.firstName}
-                      onChange={(e) => setNewUser({...newUser, firstName: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input
-                      id="lastName"
-                      value={newUser.lastName}
-                      onChange={(e) => setNewUser({...newUser, lastName: e.target.value})}
-                      required
-                    />
-                  </div>
-                </div>
-
+        <Dialog open={showAddUser} onOpenChange={setShowAddUser}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add New User</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleAddUser} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="firstName">First Name</Label>
                   <Input
-                    id="email"
-                    type="email"
-                    value={newUser.email}
-                    onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                    id="firstName"
+                    value={newUser.firstName}
+                    onChange={(e) => setNewUser({...newUser, firstName: e.target.value})}
                     required
                   />
                 </div>
-
                 <div>
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="lastName">Last Name</Label>
                   <Input
-                    id="phone"
-                    type="tel"
-                    value={newUser.phone}
-                    onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="password">Temporary Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={newUser.password}
-                    onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                    id="lastName"
+                    value={newUser.lastName}
+                    onChange={(e) => setNewUser({...newUser, lastName: e.target.value})}
                     required
-                    placeholder="User will need to change this"
-                    autoComplete="new-password"
                   />
                 </div>
+              </div>
 
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={newUser.phone}
+                  onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="password">Temporary Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                  required
+                  placeholder="User will need to change this"
+                  autoComplete="new-password"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="role">Role</Label>
+                <Select
+                  value={newUser.role}
+                  onValueChange={(value: "ADMIN" | "CLUB") => setNewUser({...newUser, role: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CLUB">Club Manager</SelectItem>
+                    <SelectItem value="ADMIN">Administrator</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {newUser.role === 'CLUB' && (
                 <div>
-                  <Label htmlFor="role">Role</Label>
+                  <Label htmlFor="club">Assign to Club</Label>
                   <Select
-                    value={newUser.role}
-                    onValueChange={(value: "ADMIN" | "CLUB") => setNewUser({...newUser, role: value})}
+                    value={newUser.clubId}
+                    onValueChange={(value) => setNewUser({...newUser, clubId: value})}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select a club" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="CLUB">Club Manager</SelectItem>
-                      <SelectItem value="ADMIN">Administrator</SelectItem>
+                      {clubs.map((club) => (
+                        <SelectItem key={club.id} value={club.id}>
+                          {club.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
+              )}
 
-                {newUser.role === 'CLUB' && (
-                  <div>
-                    <Label htmlFor="club">Assign to Club</Label>
-                    <Select
-                      value={newUser.clubId}
-                      onValueChange={(value) => setNewUser({...newUser, clubId: value})}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a club" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {clubs.map((club) => (
-                          <SelectItem key={club.id} value={club.id}>
-                            {club.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+              <div className="flex gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowAddUser(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 bg-gradient-primary hover:opacity-90 text-primary-foreground"
+                >
+                  Create User
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
 
-                <div className="flex gap-2 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => setShowAddUser(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="flex-1 bg-gradient-primary hover:opacity-90 text-primary-foreground"
-                  >
-                    Create User
-                  </Button>
+      {/* Edit User Modal */}
+      {editingUser && (
+        <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit User</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleUpdateUser} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="editFirstName">First Name</Label>
+                  <Input
+                    id="editFirstName"
+                    value={editUser.firstName}
+                    onChange={(e) => setEditUser({...editUser, firstName: e.target.value})}
+                    required
+                  />
                 </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
+                <div>
+                  <Label htmlFor="editLastName">Last Name</Label>
+                  <Input
+                    id="editLastName"
+                    value={editUser.lastName}
+                    onChange={(e) => setEditUser({...editUser, lastName: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="editEmail">Email</Label>
+                <Input
+                  id="editEmail"
+                  type="email"
+                  value={editingUser.email}
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Email cannot be changed after account creation
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="editPhone">Phone</Label>
+                <Input
+                  id="editPhone"
+                  type="tel"
+                  value={editUser.phone}
+                  onChange={(e) => setEditUser({...editUser, phone: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="editRole">Role</Label>
+                <Select
+                  value={editUser.role}
+                  onValueChange={(value: "ADMIN" | "CLUB") => setEditUser({...editUser, role: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CLUB">Club Manager</SelectItem>
+                    <SelectItem value="ADMIN">Administrator</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {editUser.role === 'CLUB' && (
+                <div>
+                  <Label htmlFor="editClub">Assign to Club</Label>
+                  <Select
+                    value={editUser.clubId}
+                    onValueChange={(value) => setEditUser({...editUser, clubId: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a club" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clubs.map((club) => (
+                        <SelectItem key={club.id} value={club.id}>
+                          {club.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setEditingUser(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 bg-gradient-primary hover:opacity-90 text-primary-foreground"
+                >
+                  Update User
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
