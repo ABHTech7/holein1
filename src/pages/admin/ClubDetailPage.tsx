@@ -31,6 +31,11 @@ interface Club {
   archived: boolean;
   created_at: string;
   logo_url: string | null;
+  contract_signed: boolean;
+  contract_url: string | null;
+  contract_signed_date: string | null;
+  contract_signed_by_name: string | null;
+  contract_signed_by_email: string | null;
 }
 
 interface Competition {
@@ -77,6 +82,7 @@ const ClubDetailPage = () => {
   const [editingCommission, setEditingCommission] = useState<string | null>(null);
   const [tempCommissionRate, setTempCommissionRate] = useState<string>("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingContract, setUploadingContract] = useState(false);
 
   // Form data for editing
   const [formData, setFormData] = useState({
@@ -444,6 +450,221 @@ const ClubDetailPage = () => {
     }
   };
 
+  const handleContractUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !clubId) return;
+
+    setUploadingContract(true);
+
+    try {
+      // Create a unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${clubId}-contract-${Date.now()}.${fileExt}`;
+
+      // Upload the file
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('club-contracts')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get the public URL (even though bucket is private, we still get the URL for authorized access)
+      const { data: { publicUrl } } = supabase.storage
+        .from('club-contracts')
+        .getPublicUrl(fileName);
+
+      // Update the club record with the contract URL and mark as signed
+      const { error: updateError } = await supabase
+        .from('clubs')
+        .update({ 
+          contract_url: publicUrl,
+          contract_signed: true,
+          contract_signed_date: new Date().toISOString(),
+          contract_signed_by_name: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || user?.email || 'Unknown',
+          contract_signed_by_email: user?.email || null
+        })
+        .eq('id', clubId);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setClub(prev => prev ? { 
+        ...prev, 
+        contract_url: publicUrl,
+        contract_signed: true,
+        contract_signed_date: new Date().toISOString(),
+        contract_signed_by_name: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || user?.email || 'Unknown',
+        contract_signed_by_email: user?.email || null
+      } : null);
+
+      // Track contract upload
+      const auditNote = await trackClubChanges(
+        clubId, 
+        { ...club, contract_signed: club?.contract_signed || false }, 
+        { ...club, contract_signed: true }, 
+        user?.id
+      );
+      if (auditNote) {
+        await addAuditNote(auditNote);
+      }
+
+      toast({
+        title: "Success",
+        description: "Contract uploaded and marked as signed successfully.",
+      });
+
+    } catch (error) {
+      console.error('Error uploading contract:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload contract. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingContract(false);
+    }
+  };
+
+  const handleContractDelete = async () => {
+    if (!clubId || !club?.contract_url) return;
+
+    setUploadingContract(true);
+
+    try {
+      // Extract filename from URL
+      const url = new URL(club.contract_url);
+      const fileName = url.pathname.split('/').pop();
+
+      if (fileName) {
+        // Delete from storage
+        const { error: deleteError } = await supabase.storage
+          .from('club-contracts')
+          .remove([fileName]);
+
+        if (deleteError) {
+          console.warn('Failed to delete file from storage:', deleteError);
+        }
+      }
+
+      // Update the club record to remove contract URL and reset signed status
+      const { error: updateError } = await supabase
+        .from('clubs')
+        .update({ 
+          contract_url: null,
+          contract_signed: false,
+          contract_signed_date: null,
+          contract_signed_by_name: null,
+          contract_signed_by_email: null
+        })
+        .eq('id', clubId);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setClub(prev => prev ? { 
+        ...prev, 
+        contract_url: null,
+        contract_signed: false,
+        contract_signed_date: null,
+        contract_signed_by_name: null,
+        contract_signed_by_email: null
+      } : null);
+
+      // Track contract deletion
+      const auditNote = await trackClubChanges(
+        clubId, 
+        { ...club, contract_signed: true }, 
+        { ...club, contract_signed: false }, 
+        user?.id
+      );
+      if (auditNote) {
+        await addAuditNote(auditNote);
+      }
+
+      toast({
+        title: "Success",
+        description: "Contract removed successfully.",
+      });
+
+    } catch (error) {
+      console.error('Error deleting contract:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove contract. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingContract(false);
+    }
+  };
+
+  const handleContractSignedToggle = async (checked: boolean) => {
+    if (!clubId) return;
+
+    setUploadingContract(true);
+
+    try {
+      const updateData: any = {
+        contract_signed: checked
+      };
+
+      if (checked) {
+        updateData.contract_signed_date = new Date().toISOString();
+        updateData.contract_signed_by_name = `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || user?.email || 'Unknown';
+        updateData.contract_signed_by_email = user?.email || null;
+      } else {
+        updateData.contract_signed_date = null;
+        updateData.contract_signed_by_name = null;
+        updateData.contract_signed_by_email = null;
+      }
+
+      const { error: updateError } = await supabase
+        .from('clubs')
+        .update(updateData)
+        .eq('id', clubId);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setClub(prev => prev ? { 
+        ...prev, 
+        contract_signed: checked,
+        contract_signed_date: checked ? new Date().toISOString() : null,
+        contract_signed_by_name: checked ? (`${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || user?.email || 'Unknown') : null,
+        contract_signed_by_email: checked ? (user?.email || null) : null
+      } : null);
+
+      // Track contract status change
+      const auditNote = await trackClubChanges(
+        clubId, 
+        { ...club, contract_signed: !checked }, 
+        { ...club, contract_signed: checked }, 
+        user?.id
+      );
+      if (auditNote) {
+        await addAuditNote(auditNote);
+      }
+
+      toast({
+        title: "Success",
+        description: `Contract marked as ${checked ? 'signed' : 'not signed'} successfully.`,
+      });
+
+    } catch (error) {
+      console.error('Error updating contract status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update contract status. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingContract(false);
+    }
+  };
+
   const addNote = async () => {
     if (!newNote.trim() || !user || !clubId) return;
 
@@ -639,6 +860,7 @@ const ClubDetailPage = () => {
           <Tabs defaultValue="details" className="space-y-6">
             <TabsList>
               <TabsTrigger value="details">Club Details</TabsTrigger>
+              <TabsTrigger value="contract">Contract & Activation</TabsTrigger>
               <TabsTrigger value="competitions">Competitions</TabsTrigger>
               <TabsTrigger value="commission">Commission & Payments</TabsTrigger>
               <TabsTrigger value="banking">Bank Details</TabsTrigger>
@@ -766,10 +988,157 @@ const ClubDetailPage = () => {
                     <Switch
                       id="active"
                       checked={formData.active}
-                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, active: checked }))}
+                      onCheckedChange={(checked) => {
+                        if (checked && !club.contract_signed) {
+                          toast({
+                            title: "Contract Required",
+                            description: "Club must have a signed contract before it can be activated.",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        setFormData(prev => ({ ...prev, active: checked }));
+                      }}
                       disabled={!editMode}
                     />
                     <Label htmlFor="active">Active Club</Label>
+                    {!club.contract_signed && (
+                      <span className="text-sm text-muted-foreground">
+                        (Requires signed contract)
+                      </span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="contract">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="w-5 h-5" />
+                    Contract & Activation Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Contract Status Overview */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-base font-semibold">Contract Status:</Label>
+                        <Badge variant={club.contract_signed ? "default" : "outline"}>
+                          {club.contract_signed ? "Signed" : "Not Signed"}
+                        </Badge>
+                      </div>
+                      
+                      {club.contract_signed && club.contract_signed_date && (
+                        <div className="text-sm text-muted-foreground">
+                          <div>Signed on: {formatDate(club.contract_signed_date, 'long')}</div>
+                          {club.contract_signed_by_name && (
+                            <div>Signed by: {club.contract_signed_by_name}</div>
+                          )}
+                          {club.contract_signed_by_email && (
+                            <div>Email: {club.contract_signed_by_email}</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-base font-semibold">Activation Status:</Label>
+                        <Badge variant={club.active ? "default" : "outline"}>
+                          {club.active ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                      
+                      {!club.contract_signed && (
+                        <div className="text-sm text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800">
+                          <strong>Activation Blocked:</strong> Club requires a signed contract before it can be activated.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Contract Upload Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">Contract Document</h3>
+                      {club.contract_url && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => window.open(club.contract_url!, '_blank')}
+                        >
+                          View Contract
+                        </Button>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          onChange={handleContractUpload}
+                          className="hidden"
+                          id="contract-upload"
+                          disabled={uploadingContract}
+                        />
+                        <Button 
+                          variant="outline"
+                          onClick={() => document.getElementById('contract-upload')?.click()}
+                          disabled={uploadingContract}
+                          className="flex items-center gap-2"
+                        >
+                          <Upload className="w-4 h-4" />
+                          {uploadingContract ? "Uploading..." : club.contract_url ? "Replace Contract" : "Upload Contract"}
+                        </Button>
+                        
+                        {club.contract_url && (
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={handleContractDelete}
+                            disabled={uploadingContract}
+                            className="flex items-center gap-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete Contract
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <p className="text-xs text-muted-foreground">
+                        Accepted formats: PDF, DOC, DOCX. Max file size: 10MB
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Manual Contract Confirmation */}
+                  <div className="space-y-4 border-t pt-4">
+                    <h3 className="text-lg font-semibold">Manual Contract Confirmation</h3>
+                    <p className="text-sm text-muted-foreground">
+                      If you have received a signed contract but prefer not to upload it digitally, you can manually mark it as signed.
+                    </p>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="contract-signed"
+                        checked={club.contract_signed}
+                        onCheckedChange={handleContractSignedToggle}
+                        disabled={uploadingContract}
+                      />
+                      <Label htmlFor="contract-signed">
+                        Mark contract as signed (without uploading document)
+                      </Label>
+                    </div>
+                    
+                    {club.contract_signed && !club.contract_url && (
+                      <div className="text-sm text-blue-600 bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <strong>Note:</strong> Contract marked as signed without uploaded document. Consider uploading the signed contract for record keeping.
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

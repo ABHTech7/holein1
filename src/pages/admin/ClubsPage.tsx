@@ -5,13 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Building, Mail, Phone, PoundSterling, ArrowLeft, Archive } from "lucide-react";
+import { Search, Building, Mail, Phone, PoundSterling, ArrowLeft, Archive, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
+import NewClubModal from "@/components/admin/NewClubModal";
 
 interface Club {
   id: string;
@@ -36,6 +37,7 @@ const ClubsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredClubs, setFilteredClubs] = useState<Club[]>([]);
   const [showArchived, setShowArchived] = useState(false);
+  const [showNewClubModal, setShowNewClubModal] = useState(false);
 
   useEffect(() => {
     fetchClubs();
@@ -168,15 +170,25 @@ const ClubsPage = () => {
                 Back to Dashboard
               </Button>
               
-              <Button 
-                variant={showArchived ? "default" : "outline"}
-                size="sm"
-                onClick={() => setShowArchived(!showArchived)}
-                className="flex items-center gap-2"
-              >
-                <Archive className="w-4 h-4" />
-                {showArchived ? "Hide Archived" : "Show Archived"}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button 
+                  onClick={() => setShowNewClubModal(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add New Club
+                </Button>
+                
+                <Button 
+                  variant={showArchived ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowArchived(!showArchived)}
+                  className="flex items-center gap-2"
+                >
+                  <Archive className="w-4 h-4" />
+                  {showArchived ? "Hide Archived" : "Show Archived"}
+                </Button>
+              </div>
             </div>
 
             <Card>
@@ -300,6 +312,12 @@ const ClubsPage = () => {
           </Card>
         </div>
       </Section>
+
+      <NewClubModal 
+        isOpen={showNewClubModal}
+        onClose={() => setShowNewClubModal(false)}
+        onSuccess={() => fetchClubs()}
+      />
     </div>
   );
 };
