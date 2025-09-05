@@ -36,7 +36,7 @@ const SiteHeader = () => {
               <Trophy className="w-5 h-5 text-primary-foreground" />
             </div>
             <span className="font-display text-xl font-semibold text-foreground">
-              SportSync
+              Hole in 1 Challenge
             </span>
           </Link>
 

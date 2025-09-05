@@ -31,12 +31,12 @@ const SiteFooter = () => {
                   <Trophy className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <span className="font-display text-xl font-semibold text-foreground">
-                  SportSync
+                  Hole in 1 Challenge
                 </span>
               </Link>
               <p className="text-muted-foreground max-w-md">
-                Professional sports club management platform designed to streamline 
-                operations, enhance member engagement, and grow your sporting community.
+                Founded by two lifelong golf enthusiasts, we help clubs create unforgettable 
+                hole-in-one experiences that drive prestige, engagement, and new revenue.
               </p>
             </div>
 
@@ -78,7 +78,7 @@ const SiteFooter = () => {
           {/* Bottom Bar */}
           <div className="mt-8 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center">
             <p className="text-sm text-muted-foreground">
-              © {currentYear} SportSync. All rights reserved.
+              © {currentYear} Hole in 1 Challenge. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <Link 
