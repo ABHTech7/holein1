@@ -439,32 +439,20 @@ const CompetitionDetailEnhanced = () => {
     <div className="min-h-screen flex flex-col">
       <SiteHeader />
       
-      <main className="flex-1">
+      <main className="flex-1 bg-muted/30">
         <Section spacing="lg">
-          <div className="max-w-6xl mx-auto space-y-8">
+          <div className="max-w-6xl mx-auto space-y-6">
             {/* Back Button */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 mb-6">
               <Button 
-                variant="outline" 
+                variant="ghost" 
                 onClick={() => navigate('/dashboard/admin/competitions')}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 hover:bg-background"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back to Competitions
               </Button>
             </div>
-
-            {/* Breadcrumbs */}
-            <nav className="mb-8">
-              <ol className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <li><a href="/dashboard/admin" className="hover:text-foreground">Admin Dashboard</a></li>
-                <li>/</li>
-                <li><a href="/dashboard/admin/competitions" className="hover:text-foreground">Competitions</a></li>
-                <li>/</li>
-                <li className="text-foreground">{competition.name}</li>
-              </ol>
-            </nav>
-
             {/* Header with Actions */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
               <div>
@@ -559,10 +547,10 @@ const CompetitionDetailEnhanced = () => {
                     <div className="flex items-center gap-3">
                       <PoundSterling className="w-5 h-5 text-muted-foreground" />
                       <div>
-                        <p className="text-sm text-muted-foreground">Commission Rate</p>
-                        <p className="font-semibold">
-                          {formatCurrency((competition.commission_rate || 0) * 100)} per entry
-                        </p>
+                         <p className="text-sm text-muted-foreground">Commission Rate</p>
+                         <p className="font-semibold">
+                           {formatCurrency(competition.commission_rate || 0)} per entry
+                         </p>
                       </div>
                     </div>
                   </CardContent>
@@ -601,6 +589,21 @@ const CompetitionDetailEnhanced = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Prize Description */}
+            {competition.description && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Trophy className="w-5 h-5" />
+                    Prize Description
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">{competition.description}</p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Share Link Section */}
             <Card>
