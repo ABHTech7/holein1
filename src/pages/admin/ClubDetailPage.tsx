@@ -65,7 +65,7 @@ interface Note {
 const ClubDetailPage = () => {
   const { clubId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [club, setClub] = useState<Club | null>(null);
@@ -825,8 +825,15 @@ const ClubDetailPage = () => {
                     </Button>
                   </div>
 
+                  {profile?.role === 'ADMIN' && (
+                    <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded border">
+                      <Shield className="w-3 h-3 inline mr-1" />
+                      <strong>Admin View:</strong> Blue highlighted notes are immutable system audit records tracking all changes made to this club.
+                    </div>
+                  )}
+
                   <div className="space-y-3">
-                    {notes.map((note) => (
+                    {notes.filter(note => !note.immutable || profile?.role === 'ADMIN').map((note) => (
                       <div key={note.id} className={`p-3 border rounded-lg ${note.immutable ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800' : ''}`}>
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex items-center gap-2">
@@ -847,7 +854,7 @@ const ClubDetailPage = () => {
                         <p className={`text-sm ${note.immutable ? 'text-blue-800 dark:text-blue-200' : ''}`}>
                           {note.content}
                         </p>
-                        {note.immutable && (
+                        {note.immutable && profile?.role === 'ADMIN' && (
                           <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 italic">
                             This audit record cannot be modified or deleted
                           </p>

@@ -71,6 +71,7 @@ export const trackPlayerChanges = async (
   }
 
   if (changes.length > 0) {
+    const description = `Player details updated: ${changes.join(', ')}`;
     return await logAuditEvent({
       entityType: 'player',
       entityId: playerId,
@@ -78,7 +79,7 @@ export const trackPlayerChanges = async (
       oldValues: oldData,
       newValues: newData,
       userId,
-      description: `Player details updated: ${changes.join(', ')}`
+      description
     });
   }
 
@@ -111,8 +112,22 @@ export const trackClubChanges = async (
   if (oldData.active !== newData.active) {
     changes.push(`status changed to ${newData.active ? 'active' : 'inactive'}`);
   }
+  if (oldData.logo_url !== newData.logo_url) {
+    if (!oldData.logo_url && newData.logo_url) {
+      changes.push(`logo uploaded`);
+    } else if (oldData.logo_url && !newData.logo_url) {
+      changes.push(`logo removed`);
+    } else if (oldData.logo_url !== newData.logo_url) {
+      changes.push(`logo updated`);
+    }
+  }
+  // Handle special commission change tracking
+  if (oldData.commission_change && newData.commission_change) {
+    changes.push(`commission rate changed: ${newData.commission_change}`);
+  }
 
   if (changes.length > 0) {
+    const description = `Club details updated: ${changes.join(', ')}`;
     return await logAuditEvent({
       entityType: 'club',
       entityId: clubId,
@@ -120,7 +135,7 @@ export const trackClubChanges = async (
       oldValues: oldData,
       newValues: newData,
       userId,
-      description: `Club details updated: ${changes.join(', ')}`
+      description
     });
   }
 
