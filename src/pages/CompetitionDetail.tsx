@@ -260,16 +260,14 @@ const CompetitionDetail = () => {
         <Section spacing="lg">
           <div className="max-w-6xl mx-auto space-y-8">
             {/* Header */}
-            <div className="flex items-center gap-4 mb-6">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/dashboard/admin/competitions')}
-                className="flex items-center gap-2 hover:bg-background"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Competitions
-              </Button>
-            </div>
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/dashboard/admin/competitions')}
+              className="flex items-center gap-2 hover:bg-background mb-6"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Competitions
+            </Button>
 
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>

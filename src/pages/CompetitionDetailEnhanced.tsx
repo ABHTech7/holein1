@@ -20,7 +20,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import SiteHeader from '@/components/layout/SiteHeader';
-import SiteFooter from '@/components/layout/SiteFooter';
+
 import Section from '@/components/layout/Section';
 import { 
   Copy, 
@@ -390,7 +390,6 @@ const CompetitionDetailEnhanced = () => {
             </div>
           </Section>
         </main>
-        <SiteFooter />
       </div>
     );
   }
@@ -443,16 +442,14 @@ const CompetitionDetailEnhanced = () => {
         <Section spacing="lg">
           <div className="max-w-6xl mx-auto space-y-6">
             {/* Back Button */}
-            <div className="flex items-center gap-4 mb-6">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/dashboard/admin/competitions')}
-                className="flex items-center gap-2 hover:bg-background"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Competitions
-              </Button>
-            </div>
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/dashboard/admin/competitions')}
+              className="flex items-center gap-2 hover:bg-background mb-6"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Competitions
+            </Button>
             {/* Header with Actions */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
               <div>
@@ -466,6 +463,16 @@ const CompetitionDetailEnhanced = () => {
                 <Badge className={getCompetitionStatusColor(competition.status)}>
                   {competition.status}
                 </Badge>
+                
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={() => setActiveTab('settings')} 
+                  className="gap-2"
+                >
+                  <Edit className="w-4 h-4" />
+                  Edit Competition
+                </Button>
                 
                 {competition.status !== 'ENDED' && (
                   <AlertDialog>
@@ -916,8 +923,6 @@ const CompetitionDetailEnhanced = () => {
           </div>
         </Section>
       </main>
-
-      <SiteFooter />
     </div>
   );
 };

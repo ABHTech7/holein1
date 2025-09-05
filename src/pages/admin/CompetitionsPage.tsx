@@ -126,15 +126,17 @@ const CompetitionsPage = () => {
       <main className="flex-1 bg-muted/30">
         <Section spacing="lg">
           <div className="max-w-6xl mx-auto space-y-6">
-            <div className="flex items-center justify-between mb-6">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/dashboard/admin')}
-                className="flex items-center gap-2 hover:bg-background"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Dashboard
-              </Button>
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/dashboard/admin')}
+              className="flex items-center gap-2 hover:bg-background mb-6"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Dashboard
+            </Button>
+            
+            <div className="flex items-center justify-between">
+              <h1 className="font-display text-3xl font-bold text-foreground">All Competitions</h1>
               
               <Button 
                 onClick={() => navigate('/dashboard/admin/competitions/new')}
