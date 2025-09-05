@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import SiteHeader from "@/components/layout/SiteHeader";
@@ -30,8 +29,8 @@ interface EntryDetail {
 interface RevenueStats {
   totalRevenue: number;
   totalEntries: number;
-  paidEntries: number;
-  pendingRevenue: number;
+  monthToDateRevenue: number;
+  yearToDateRevenue: number;
 }
 
 const RevenueBreakdown = () => {
@@ -42,8 +41,8 @@ const RevenueBreakdown = () => {
   const [stats, setStats] = useState<RevenueStats>({
     totalRevenue: 0,
     totalEntries: 0,
-    paidEntries: 0,
-    pendingRevenue: 0
+    monthToDateRevenue: 0,
+    yearToDateRevenue: 0
   });
 
   // Filters
@@ -51,7 +50,6 @@ const RevenueBreakdown = () => {
   const [dateTo, setDateTo] = useState("");
   const [timeFrame, setTimeFrame] = useState<"all" | "today" | "week" | "month" | "custom">("all");
   const [clubFilter, setClubFilter] = useState("all");
-  const [paymentStatus, setPaymentStatus] = useState<"all" | "paid" | "unpaid">("all");
   const [clubs, setClubs] = useState<Array<{id: string, name: string}>>([]);
 
   useEffect(() => {
@@ -60,7 +58,7 @@ const RevenueBreakdown = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [entries, timeFrame, dateFrom, dateTo, clubFilter, paymentStatus]);
+  }, [entries, timeFrame, dateFrom, dateTo, clubFilter]);
 
   const fetchData = async () => {
     try {
@@ -130,20 +128,28 @@ const RevenueBreakdown = () => {
       setEntries(transformedEntries);
 
       // Calculate stats
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      
       const totalEntries = transformedEntries.length;
-      const paidEntries = transformedEntries.filter(e => e.paid).length;
       const totalRevenue = transformedEntries
         .filter(e => e.paid)
         .reduce((sum, e) => sum + e.entry_fee, 0);
-      const pendingRevenue = transformedEntries
-        .filter(e => !e.paid)
+      
+      const monthToDateRevenue = transformedEntries
+        .filter(e => e.paid && new Date(e.entry_date) >= startOfMonth)
+        .reduce((sum, e) => sum + e.entry_fee, 0);
+        
+      const yearToDateRevenue = transformedEntries
+        .filter(e => e.paid && new Date(e.entry_date) >= startOfYear)
         .reduce((sum, e) => sum + e.entry_fee, 0);
 
       setStats({
         totalRevenue,
         totalEntries,
-        paidEntries,
-        pendingRevenue
+        monthToDateRevenue,
+        yearToDateRevenue
       });
 
       // Get unique clubs for filter
@@ -193,13 +199,6 @@ const RevenueBreakdown = () => {
     // Club filter
     if (clubFilter && clubFilter !== 'all') {
       filtered = filtered.filter(entry => entry.club_name === clubFilter);
-    }
-
-    // Payment status filter
-    if (paymentStatus !== 'all') {
-      filtered = filtered.filter(entry => 
-        paymentStatus === 'paid' ? entry.paid : !entry.paid
-      );
     }
 
     setFilteredEntries(filtered);
@@ -274,17 +273,17 @@ const RevenueBreakdown = () => {
                   <Card>
                     <CardContent className="p-6">
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground">Paid Entries</p>
-                        <p className="text-2xl font-bold text-green-600">{stats.paidEntries}</p>
+                        <p className="text-sm font-medium text-muted-foreground">Month to Date</p>
+                        <p className="text-2xl font-bold text-blue-600">{formatCurrency(stats.monthToDateRevenue)}</p>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-orange-50 border-orange-200">
+                  <Card>
                     <CardContent className="p-6">
                       <div>
-                        <p className="text-sm font-medium text-orange-800">Pending Revenue</p>
-                        <p className="text-2xl font-bold text-orange-900">{formatCurrency(stats.pendingRevenue)}</p>
+                        <p className="text-sm font-medium text-muted-foreground">Year to Date</p>
+                        <p className="text-2xl font-bold text-purple-600">{formatCurrency(stats.yearToDateRevenue)}</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -301,7 +300,7 @@ const RevenueBreakdown = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
                     <Label htmlFor="timeframe">Time Frame</Label>
                     <Select value={timeFrame} onValueChange={handleTimeFrameChange}>
@@ -357,20 +356,6 @@ const RevenueBreakdown = () => {
                       </SelectContent>
                     </Select>
                   </div>
-
-                  <div>
-                    <Label htmlFor="payment">Payment Status</Label>
-                    <Select value={paymentStatus} onValueChange={(v: any) => setPaymentStatus(v)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="paid">Paid</SelectItem>
-                        <SelectItem value="unpaid">Unpaid</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -400,59 +385,46 @@ const RevenueBreakdown = () => {
                     ))}
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Entry Date</TableHead>
-                        <TableHead>Player</TableHead>
-                        <TableHead>Club</TableHead>
-                        <TableHead>Competition</TableHead>
-                        <TableHead>Entry Fee</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Payment Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredEntries.length === 0 ? (
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                            No entries found matching your filters
-                          </TableCell>
+                          <TableHead>Entry Date</TableHead>
+                          <TableHead>Player</TableHead>
+                          <TableHead>Club</TableHead>
+                          <TableHead>Competition</TableHead>
+                          <TableHead>Entry Fee</TableHead>
                         </TableRow>
-                      ) : (
-                        filteredEntries.map((entry) => (
-                          <TableRow key={entry.id}>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4 text-muted-foreground" />
-                                {formatDate(entry.entry_date)}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div>
-                                <div className="font-medium">{entry.player_name}</div>
-                                <div className="text-sm text-muted-foreground">{entry.player_email}</div>
-                              </div>
-                            </TableCell>
-                            <TableCell>{entry.club_name}</TableCell>
-                            <TableCell>{entry.competition_name}</TableCell>
-                            <TableCell className="font-medium">{formatCurrency(entry.entry_fee)}</TableCell>
-                            <TableCell>
-                              <Badge className={entry.paid 
-                                ? 'bg-green-100 text-green-800 border-green-200' 
-                                : 'bg-orange-100 text-orange-800 border-orange-200'
-                              }>
-                                {entry.paid ? 'Paid' : 'Unpaid'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {entry.payment_date ? formatDate(entry.payment_date) : '-'}
+                      </TableHeader>
+                      <TableBody>
+                        {filteredEntries.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                              No entries found matching your filters
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                        ) : (
+                          filteredEntries.map((entry) => (
+                            <TableRow key={entry.id}>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                                  {formatDate(entry.entry_date)}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <div className="font-medium">{entry.player_name}</div>
+                                  <div className="text-sm text-muted-foreground">{entry.player_email}</div>
+                                </div>
+                              </TableCell>
+                              <TableCell>{entry.club_name}</TableCell>
+                              <TableCell>{entry.competition_name}</TableCell>
+                              <TableCell className="font-medium">{formatCurrency(entry.entry_fee)}</TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
                 )}
               </CardContent>
             </Card>
