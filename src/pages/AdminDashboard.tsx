@@ -11,6 +11,8 @@ import StatsCard from "@/components/ui/stats-card";
 import ChartWrapper from "@/components/ui/chart-wrapper";
 import UserManagementModal from "@/components/admin/UserManagementModal";
 import SiteSettingsModal from "@/components/admin/SiteSettingsModal";
+import PlayersListModal from "@/components/admin/PlayersListModal";
+import ClubsListModal from "@/components/admin/ClubsListModal";
 import { Users, Calendar, Trophy, TrendingUp, Plus, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -38,6 +40,8 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showUserManagement, setShowUserManagement] = useState(false);
   const [showSiteSettings, setShowSiteSettings] = useState(false);
+  const [showPlayersList, setShowPlayersList] = useState(false);
+  const [showClubsList, setShowClubsList] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     totalPlayers: 0,
     newPlayersThisMonth: 0,
@@ -174,6 +178,14 @@ const AdminDashboard = () => {
     setShowUserManagement(true);
   };
 
+  const handlePlayersClick = () => {
+    setShowPlayersList(true);
+  };
+
+  const handleClubsClick = () => {
+    setShowClubsList(true);
+  };
+
   const clubDistribution = [
     { name: "Active Clubs", value: stats.totalClubs, color: "hsl(var(--primary))" },
     { name: "Inactive", value: Math.max(0, 10 - stats.totalClubs), color: "hsl(var(--muted))" }
@@ -223,6 +235,7 @@ const AdminDashboard = () => {
                     value={stats.totalPlayers.toString()}
                     description="Registered players"
                     icon={Users}
+                    onClick={handlePlayersClick}
                   />
                   <StatsCard
                     title="New Players This Month"
@@ -235,6 +248,7 @@ const AdminDashboard = () => {
                     value={stats.totalClubs.toString()}
                     description="Golf clubs using platform"
                     icon={Calendar}
+                    onClick={handleClubsClick}
                   />
                   <StatsCard
                     title="Active Competitions"
@@ -252,9 +266,9 @@ const AdminDashboard = () => {
               )}
             </div>
 
-            <div className="grid lg:grid-cols-3 gap-8">
+            <div className="grid lg:grid-cols-1 gap-8">
               {/* Main Content Area */}
-              <div className="lg:col-span-2 space-y-8">
+              <div className="space-y-8">
                 {/* Membership Growth Chart */}
                 <ChartWrapper
                   title="Membership Growth"
@@ -275,144 +289,6 @@ const AdminDashboard = () => {
                     </ResponsiveContainer>
                   )}
                 </ChartWrapper>
-
-                {/* Club Distribution */}
-                <ChartWrapper
-                  title="Platform Usage"
-                  description="Active vs inactive clubs"
-                >
-                  {loading ? (
-                    <div className="h-[300px] flex items-center justify-center">
-                      <Skeleton className="h-[200px] w-[200px] rounded-full" />
-                    </div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie
-                          data={clubDistribution}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={100}
-                          dataKey="value"
-                          label={({ name, value }) => `${name}: ${value}`}
-                        >
-                          {clubDistribution.map((entry, index) => (
-                            <Cell key={index} fill={entry.color} />
-                          ))}
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                  )}
-                </ChartWrapper>
-
-                {/* Recent Competitions */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Competitions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {loading ? (
-                      <div className="space-y-4">
-                        {[...Array(3)].map((_, i) => (
-                          <div key={i} className="p-3 border border-border rounded-lg">
-                            <Skeleton className="h-4 w-40 mb-2" />
-                            <Skeleton className="h-3 w-60" />
-                          </div>
-                        ))}
-                      </div>
-                    ) : competitions.length === 0 ? (
-                      <p className="text-muted-foreground text-center py-4">No competitions found</p>
-                    ) : (
-                      <div className="space-y-4">
-                        {competitions.map((competition) => (
-                          <div key={competition.id} className="flex items-center justify-between p-3 border border-border rounded-lg">
-                            <div>
-                              <h4 className="font-medium text-foreground">{competition.name}</h4>
-                              <p className="text-sm text-muted-foreground">
-                                {competition.club_name} • {competition.entry_count} entries • {formatDate(competition.start_date, 'short')}
-                              </p>
-                            </div>
-                            <Badge variant={competition.status === "ACTIVE" ? "default" : "secondary"}>
-                              {competition.status}
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Sidebar */}
-              <div className="space-y-6">
-                {/* Quick Actions */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Quick Actions</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Button variant="outline" className="w-full justify-start gap-2" onClick={handleAddMember}>
-                      <Users className="w-4 h-4" />
-                      Manage Users
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start gap-2" onClick={() => toast({ 
-                      title: "Club Management", 
-                      description: "View all clubs, manage club settings, monitor club activity, and handle club approvals." 
-                    })}>
-                      <Calendar className="w-4 h-4" />
-                      Manage Clubs
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start gap-2" onClick={() => toast({ 
-                      title: "Competition Oversight", 
-                      description: "Monitor all competitions across clubs, review reported issues, and manage platform-wide tournaments." 
-                    })}>
-                      <Trophy className="w-4 h-4" />
-                      Oversee Competitions
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                {/* Platform Stats */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Platform Overview</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {loading ? (
-                      <div className="space-y-4">
-                        {[...Array(4)].map((_, i) => (
-                          <div key={i} className="text-sm">
-                            <Skeleton className="h-4 w-32 mb-1" />
-                            <Skeleton className="h-3 w-24" />
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="space-y-4 text-sm">
-                        <div>
-                          <p className="font-medium text-foreground">Total Players</p>
-                          <p className="text-muted-foreground">{stats.totalPlayers} registered players</p>
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">New Players This Month</p>
-                          <p className="text-muted-foreground">{stats.newPlayersThisMonth} new registrations</p>
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">Active Golf Clubs</p>
-                          <p className="text-muted-foreground">{stats.totalClubs} clubs using platform</p>
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">Live Competitions</p>
-                          <p className="text-muted-foreground">{stats.activeCompetitions} competitions running</p>
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">Month-to-Date Revenue</p>
-                          <p className="text-muted-foreground">{formatCurrency(stats.monthlyRevenue)} since {new Date().toLocaleDateString('en-GB', { month: 'long' })} 1st</p>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
               </div>
             </div>
           </div>
@@ -431,6 +307,18 @@ const AdminDashboard = () => {
       <SiteSettingsModal 
         isOpen={showSiteSettings}
         onClose={() => setShowSiteSettings(false)}
+      />
+
+      {/* Players List Modal */}
+      <PlayersListModal 
+        isOpen={showPlayersList}
+        onClose={() => setShowPlayersList(false)}
+      />
+
+      {/* Clubs List Modal */}
+      <ClubsListModal 
+        isOpen={showClubsList}
+        onClose={() => setShowClubsList(false)}
       />
     </div>
   );
