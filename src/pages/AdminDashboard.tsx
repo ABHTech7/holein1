@@ -12,6 +12,7 @@ import StatsCard from "@/components/ui/stats-card";
 import ChartWrapper from "@/components/ui/chart-wrapper";
 import UserManagementModal from "@/components/admin/UserManagementModal";
 import SiteSettingsModal from "@/components/admin/SiteSettingsModal";
+import NewUserModal from "@/components/admin/NewUserModal";
 import { Users, Calendar, Trophy, TrendingUp, Plus, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -40,6 +41,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showUserManagement, setShowUserManagement] = useState(false);
   const [showSiteSettings, setShowSiteSettings] = useState(false);
+  const [showNewUser, setShowNewUser] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     totalPlayers: 0,
     newPlayersThisMonth: 0,
@@ -172,8 +174,8 @@ const AdminDashboard = () => {
     setShowSiteSettings(true);
   };
 
-  const handleAddMember = () => {
-    setShowUserManagement(true);
+  const handleAddUser = () => {
+    setShowNewUser(true);
   };
 
   const handlePlayersClick = () => {
@@ -215,7 +217,11 @@ const AdminDashboard = () => {
                   <Settings className="w-4 h-4" />
                   Settings
                 </Button>
-                <Button className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2" onClick={handleAddMember}>
+                <Button variant="outline" className="gap-2" onClick={() => setShowUserManagement(true)}>
+                  <Plus className="w-4 h-4" />
+                  Manage Users
+                </Button>
+                <Button className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2" onClick={handleAddUser}>
                   <Plus className="w-4 h-4" />
                   Add New User
                 </Button>
@@ -312,12 +318,17 @@ const AdminDashboard = () => {
       />
 
       {/* Site Settings Modal */}
-      <SiteSettingsModal 
-        isOpen={showSiteSettings}
-        onClose={() => setShowSiteSettings(false)}
-      />
-    </div>
-  );
-};
+        <SiteSettingsModal 
+          isOpen={showSiteSettings}
+          onClose={() => setShowSiteSettings(false)}
+        />
+
+        <NewUserModal 
+          isOpen={showNewUser}
+          onClose={() => setShowNewUser(false)}
+        />
+      </div>
+    );
+  };
 
 export default AdminDashboard;
