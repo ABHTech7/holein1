@@ -31,6 +31,10 @@ interface Entry {
       name: string;
     };
   };
+  claims: Array<{
+    id: string;
+    status: string;
+  }>;
 }
 
 const PlayerEntries = () => {
@@ -58,6 +62,10 @@ const PlayerEntries = () => {
             start_date,
             end_date,
             club:clubs(name)
+          ),
+          claims(
+            id,
+            status
           )
         `)
         .eq('player_id', user?.id)
@@ -75,6 +83,21 @@ const PlayerEntries = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getResultBadge = (entry: Entry) => {
+    if (!entry.completed_at) {
+      return <Badge variant="outline" className="text-muted-foreground">In Progress</Badge>;
+    }
+    
+    // If there are approved claims, they won
+    const hasWinningClaim = entry.claims?.some(claim => claim.status === 'APPROVED');
+    if (hasWinningClaim) {
+      return <Badge variant="default" className="bg-accent text-accent-foreground">Won! 🏆</Badge>;
+    }
+    
+    // If completed but no winning claims, they missed
+    return <Badge variant="secondary">Missed</Badge>;
   };
 
   const getStatusBadge = (status: string) => {
@@ -253,7 +276,7 @@ const PlayerEntries = () => {
                           <TableHead>Status</TableHead>
                           <TableHead>Entry Date & Time</TableHead>
                           <TableHead>Entry Fee</TableHead>
-                          <TableHead>Payment</TableHead>
+                          <TableHead>Result</TableHead>
                           <TableHead>Completed</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -279,11 +302,7 @@ const PlayerEntries = () => {
                               </div>
                             </TableCell>
                             <TableCell>{formatCurrency(entry.competition.entry_fee)}</TableCell>
-                            <TableCell>
-                              <Badge variant={entry.paid ? "default" : "outline"} className={entry.paid ? "bg-accent" : ""}>
-                                {entry.paid ? "Paid" : "Pending"}
-                              </Badge>
-                            </TableCell>
+                            <TableCell>{getResultBadge(entry)}</TableCell>
                             <TableCell>
                               {entry.completed_at ? (
                                 <div className="flex items-center space-x-2">
