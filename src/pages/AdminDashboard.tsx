@@ -16,7 +16,8 @@ import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate, formatRelativeTime } from "@/lib/formatters";
 
 interface DashboardStats {
-  totalMembers: number;
+  totalPlayers: number;
+  newPlayersThisMonth: number;
   totalClubs: number;
   activeCompetitions: number;
   monthlyRevenue: number;
@@ -36,7 +37,8 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showUserManagement, setShowUserManagement] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
-    totalMembers: 0,
+    totalPlayers: 0,
+    newPlayersThisMonth: 0,
     totalClubs: 0,
     activeCompetitions: 0,
     monthlyRevenue: 0
@@ -55,8 +57,9 @@ const AdminDashboard = () => {
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
         // Fetch basic stats with proper error handling
-        const [membersRes, clubsRes, activeCompsRes] = await Promise.all([
-          supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        const [playersRes, newPlayersRes, clubsRes, activeCompsRes] = await Promise.all([
+          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'PLAYER'),
+          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'PLAYER').gte('created_at', monthStart),
           supabase.from('clubs').select('*', { count: 'exact', head: true }),
           supabase.from('competitions').select('*').eq('status', 'ACTIVE')
         ]);
@@ -73,7 +76,8 @@ const AdminDashboard = () => {
           .gte('entry_date', monthStart);
 
         // Log any errors for debugging
-        if (membersRes.error) console.error('Members query error:', membersRes.error);
+        if (playersRes.error) console.error('Players query error:', playersRes.error);
+        if (newPlayersRes.error) console.error('New players query error:', newPlayersRes.error);
         if (clubsRes.error) console.error('Clubs query error:', clubsRes.error);
         if (activeCompsRes.error) console.error('Active competitions error:', activeCompsRes.error);
         if (entriesError) console.error('Entries query error:', entriesError);
@@ -85,7 +89,8 @@ const AdminDashboard = () => {
         }, 0);
 
         setStats({
-          totalMembers: membersRes.count || 0,
+          totalPlayers: playersRes.count || 0,
+          newPlayersThisMonth: newPlayersRes.count || 0,
           totalClubs: clubsRes.count || 0,
           activeCompetitions: activeCompsRes.data?.length || 0,
           monthlyRevenue: monthlyRevenue
@@ -127,7 +132,7 @@ const AdminDashboard = () => {
           const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59).toISOString();
           
           // For now, use estimated data - could be replaced with real query
-          const estimatedMembers = Math.max(1, (membersRes.count || 0) - (5 - i));
+          const estimatedMembers = Math.max(1, (playersRes.count || 0) - (5 - i));
           membershipTrendData.push({
             month: monthName,
             members: estimatedMembers
@@ -136,7 +141,8 @@ const AdminDashboard = () => {
         setMembershipData(membershipTrendData);
 
         console.log('Dashboard data loaded successfully:', {
-          members: membersRes.count,
+          totalPlayers: playersRes.count,
+          newPlayersThisMonth: newPlayersRes.count,
           clubs: clubsRes.count,
           activeCompetitions: activeCompsRes.data?.length,
           monthlyRevenue: monthlyRevenue,
@@ -159,11 +165,12 @@ const AdminDashboard = () => {
   }, []);
 
   const handleSettings = () => {
-    // Show admin settings options
+    // Open settings modal or navigation
+    setShowUserManagement(true);
     toast({
       title: "Admin Settings",
-      description: "Access user management, platform configuration, security settings, and system monitoring tools.",
-      duration: 4000
+      description: "Opening user management panel. Additional settings coming soon.",
+      duration: 3000
     });
   };
 
@@ -202,10 +209,10 @@ const AdminDashboard = () => {
             </div>
 
             {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               {loading ? (
                 <>
-                  {[...Array(4)].map((_, i) => (
+                  {[...Array(5)].map((_, i) => (
                     <Card key={i} className="p-6">
                       <Skeleton className="h-4 w-20 mb-2" />
                       <Skeleton className="h-8 w-16 mb-2" />
@@ -216,9 +223,15 @@ const AdminDashboard = () => {
               ) : (
                 <>
                   <StatsCard
-                    title="Total Members"
-                    value={stats.totalMembers.toString()}
-                    description="Registered users"
+                    title="Total Players"
+                    value={stats.totalPlayers.toString()}
+                    description="Registered players"
+                    icon={Users}
+                  />
+                  <StatsCard
+                    title="New Players This Month"
+                    value={stats.newPlayersThisMonth.toString()}
+                    description={`Since ${new Date().toLocaleDateString('en-GB', { month: 'long' })} 1st`}
                     icon={Users}
                   />
                   <StatsCard
@@ -381,8 +394,12 @@ const AdminDashboard = () => {
                     ) : (
                       <div className="space-y-4 text-sm">
                         <div>
-                          <p className="font-medium text-foreground">Total Platform Users</p>
-                          <p className="text-muted-foreground">{stats.totalMembers} registered accounts</p>
+                          <p className="font-medium text-foreground">Total Players</p>
+                          <p className="text-muted-foreground">{stats.totalPlayers} registered players</p>
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">New Players This Month</p>
+                          <p className="text-muted-foreground">{stats.newPlayersThisMonth} new registrations</p>
                         </div>
                         <div>
                           <p className="font-medium text-foreground">Active Golf Clubs</p>
