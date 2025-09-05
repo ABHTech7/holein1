@@ -74,18 +74,8 @@ const RevenueBreakdown = () => {
           entry_date,
           paid,
           payment_date,
-          competitions!inner(
-            name,
-            entry_fee,
-            clubs!inner(
-              name
-            )
-          ),
-          profiles!inner(
-            first_name,
-            last_name,
-            email
-          )
+          competition_id,
+          player_id
         `)
         .order('entry_date', { ascending: false });
 
@@ -99,18 +89,43 @@ const RevenueBreakdown = () => {
         return;
       }
 
-      // Transform the data
-      const transformedEntries: EntryDetail[] = (entriesData || []).map(entry => ({
-        id: entry.id,
-        entry_date: entry.entry_date,
-        paid: entry.paid,
-        payment_date: entry.payment_date,
-        player_name: `${(entry.profiles as any).first_name || ''} ${(entry.profiles as any).last_name || ''}`.trim() || 'Unknown Player',
-        player_email: (entry.profiles as any).email,
-        club_name: (entry.competitions as any).clubs.name,
-        competition_name: (entry.competitions as any).name,
-        entry_fee: parseFloat((entry.competitions as any).entry_fee || '0')
-      }));
+      // Fetch competitions data separately
+      const { data: competitionsData } = await supabase
+        .from('competitions')
+        .select(`
+          id,
+          name,
+          entry_fee,
+          clubs!inner(name)
+        `);
+
+      // Fetch profiles data separately  
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          email
+        `);
+
+      // Transform the data by joining with competitions and profiles
+      const transformedEntries: EntryDetail[] = (entriesData || []).map(entry => {
+        const competition = competitionsData?.find(c => c.id === entry.competition_id);
+        const profile = profilesData?.find(p => p.id === entry.player_id);
+        
+        return {
+          id: entry.id,
+          entry_date: entry.entry_date,
+          paid: entry.paid,
+          payment_date: entry.payment_date,
+          player_name: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || 'Unknown Player',
+          player_email: profile?.email || 'Unknown Email',
+          club_name: (competition?.clubs as any)?.name || 'Unknown Club',
+          competition_name: competition?.name || 'Unknown Competition',
+          entry_fee: parseFloat(competition?.entry_fee?.toString() || '0')
+        };
+      });
 
       setEntries(transformedEntries);
 

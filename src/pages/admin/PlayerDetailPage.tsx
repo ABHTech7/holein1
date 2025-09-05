@@ -386,14 +386,13 @@ const PlayerDetailPage = () => {
                         <TableHead>Club</TableHead>
                         <TableHead>Entry Date & Time</TableHead>
                         <TableHead>Entry Fee</TableHead>
-                        <TableHead>Score</TableHead>
                         <TableHead>Payment Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {entries.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                             No competition entries found
                           </TableCell>
                         </TableRow>
@@ -411,7 +410,6 @@ const PlayerDetailPage = () => {
                               </div>
                             </TableCell>
                             <TableCell>{formatCurrency(entry.competition.entry_fee)}</TableCell>
-                            <TableCell>{entry.score || 'Not played'}</TableCell>
                             <TableCell>
                               <Badge variant={entry.paid ? "default" : "destructive"}>
                                 {entry.paid ? "Paid" : "Unpaid"}

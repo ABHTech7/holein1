@@ -254,7 +254,6 @@ const PlayerEntries = () => {
                           <TableHead>Entry Date & Time</TableHead>
                           <TableHead>Entry Fee</TableHead>
                           <TableHead>Payment</TableHead>
-                          <TableHead>Score</TableHead>
                           <TableHead>Completed</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -284,13 +283,6 @@ const PlayerEntries = () => {
                               <Badge variant={entry.paid ? "default" : "outline"} className={entry.paid ? "bg-accent" : ""}>
                                 {entry.paid ? "Paid" : "Pending"}
                               </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {entry.score ? (
-                                <span className="font-semibold">{entry.score}</span>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
                             </TableCell>
                             <TableCell>
                               {entry.completed_at ? (
