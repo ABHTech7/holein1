@@ -61,6 +61,7 @@ const CompetitionsPage = () => {
           *,
           clubs!inner(name)
         `)
+        .eq('archived', showArchived)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

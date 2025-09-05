@@ -58,6 +58,7 @@ const ClubsPage = () => {
       const { data: clubsData, error } = await supabase
         .from('clubs')
         .select('*')
+        .eq('archived', showArchived)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
