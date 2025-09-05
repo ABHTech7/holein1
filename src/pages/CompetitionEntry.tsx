@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar, MapPin, Trophy, Clock, AlertCircle, CheckCircle2, Copy } from "lucide-react";
+import { Calendar, MapPin, Trophy, Clock, AlertCircle, CheckCircle2, Copy, Target } from "lucide-react";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
@@ -25,6 +25,7 @@ interface CompetitionWithClub {
   end_date: string;
   entry_fee: number | null;
   prize_pool: number | null;
+  hole_number: number;
   status: 'SCHEDULED' | 'ACTIVE' | 'ENDED';
   rules: any;
   clubs: {
@@ -403,6 +404,11 @@ const CompetitionEntry = () => {
                     <div className="flex items-center gap-3">
                       <MapPin className="w-4 h-4 text-muted-foreground" />
                       <span className="text-sm">{competition.clubs.name}</span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <Target className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm">Hole #{competition.hole_number}</span>
                     </div>
                     
                     {competition.entry_fee && (

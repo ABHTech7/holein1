@@ -170,6 +170,7 @@ export type Database = {
           description: string | null
           end_date: string
           entry_fee: number | null
+          hole_number: number
           id: string
           max_participants: number | null
           name: string
@@ -185,6 +186,7 @@ export type Database = {
           description?: string | null
           end_date: string
           entry_fee?: number | null
+          hole_number?: number
           id?: string
           max_participants?: number | null
           name: string
@@ -200,6 +202,7 @@ export type Database = {
           description?: string | null
           end_date?: string
           entry_fee?: number | null
+          hole_number?: number
           id?: string
           max_participants?: number | null
           name?: string
