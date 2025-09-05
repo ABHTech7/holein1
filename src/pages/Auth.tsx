@@ -28,6 +28,7 @@ const Auth = () => {
     confirmPassword: "",
     firstName: "",
     lastName: "",
+    phone: "",
     role: "PLAYER" as "ADMIN" | "CLUB" | "PLAYER",
   });
 
@@ -72,6 +73,7 @@ const Auth = () => {
     await signUp(signUpData.email, signUpData.password, {
       first_name: signUpData.firstName,
       last_name: signUpData.lastName,
+      phone: signUpData.phone,
       role: signUpData.role,
     });
   };
@@ -183,6 +185,17 @@ const Auth = () => {
                           value={signUpData.email}
                           onChange={(e) => setSignUpData({...signUpData, email: e.target.value})}
                           required
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="phone">Mobile Number</Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          placeholder="Enter your mobile number"
+                          value={signUpData.phone}
+                          onChange={(e) => setSignUpData({...signUpData, phone: e.target.value})}
                         />
                       </div>
 

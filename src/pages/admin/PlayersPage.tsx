@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Mail, Calendar, Trophy, ArrowLeft } from "lucide-react";
+import { Search, Mail, Calendar, Trophy, ArrowLeft, Phone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -19,6 +19,7 @@ interface Player {
   email: string;
   first_name: string | null;
   last_name: string | null;
+  phone: string | null;
   created_at: string;
   last_entry_date: string | null;
   total_entries: number;
@@ -55,6 +56,7 @@ const PlayersPage = () => {
           email,
           first_name,
           last_name,
+          phone,
           created_at
         `)
         .eq('role', 'PLAYER')
@@ -161,6 +163,7 @@ const PlayersPage = () => {
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
+                      <TableHead>Mobile</TableHead>
                       <TableHead>Signed Up</TableHead>
                       <TableHead>Last Entry</TableHead>
                       <TableHead>Total Entries</TableHead>
@@ -170,7 +173,7 @@ const PlayersPage = () => {
                   <TableBody>
                     {filteredPlayers.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                           {searchTerm ? 'No players found matching your search.' : 'No players found.'}
                         </TableCell>
                       </TableRow>
@@ -189,6 +192,12 @@ const PlayersPage = () => {
                             <div className="flex items-center gap-2">
                               <Mail className="w-4 h-4 text-muted-foreground" />
                               {player.email}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4 text-muted-foreground" />
+                              {player.phone || 'Not provided'}
                             </div>
                           </TableCell>
                           <TableCell>

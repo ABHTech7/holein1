@@ -21,6 +21,7 @@ interface Player {
   email: string;
   first_name: string | null;
   last_name: string | null;
+  phone: string | null;
   created_at: string;
   role: string;
 }
@@ -61,7 +62,8 @@ const PlayerDetailPage = () => {
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
-    email: ""
+    email: "",
+    phone: ""
   });
 
   useEffect(() => {
@@ -87,7 +89,8 @@ const PlayerDetailPage = () => {
       setFormData({
         first_name: playerData.first_name || "",
         last_name: playerData.last_name || "",
-        email: playerData.email || ""
+        email: playerData.email || "",
+        phone: playerData.phone || ""
       });
 
       // Fetch player entries with competition details
@@ -150,7 +153,8 @@ const PlayerDetailPage = () => {
         .update({
           first_name: formData.first_name,
           last_name: formData.last_name,
-          email: formData.email
+          email: formData.email,
+          phone: formData.phone
         })
         .eq('id', playerId);
 
@@ -333,6 +337,18 @@ const PlayerDetailPage = () => {
                       value={formData.email}
                       onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                       disabled={!editMode}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Mobile Number</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                      disabled={!editMode}
+                      placeholder="Enter mobile number"
                     />
                   </div>
 

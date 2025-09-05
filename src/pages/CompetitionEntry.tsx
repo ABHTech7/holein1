@@ -178,6 +178,7 @@ const CompetitionEntry = () => {
           {
             first_name: formData.firstName,
             last_name: formData.lastName,
+            phone: formData.phone,
             role: 'PLAYER'
           }
         );

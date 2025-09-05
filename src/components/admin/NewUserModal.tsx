@@ -24,6 +24,7 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
     email: '',
     firstName: '',
     lastName: '',
+    phone: '',
     password: ''
   });
 
@@ -62,6 +63,7 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
             data: {
               first_name: playerData.firstName,
               last_name: playerData.lastName,
+              phone: playerData.phone,
               role: 'PLAYER'
             }
           }
@@ -130,7 +132,7 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
       });
 
       // Reset forms
-      setPlayerData({ email: '', firstName: '', lastName: '', password: '' });
+      setPlayerData({ email: '', firstName: '', lastName: '', phone: '', password: '' });
       setClubData({ email: '', firstName: '', lastName: '', password: '', clubName: '', clubAddress: '', clubPhone: '', clubEmail: '' });
       setAdminData({ email: '', firstName: '', lastName: '', password: '' });
       
@@ -206,16 +208,26 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="playerEmail">Email</Label>
-                  <Input
-                    id="playerEmail"
-                    type="email"
-                    value={playerData.email}
-                    onChange={(e) => setPlayerData(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="Enter email address"
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="playerEmail">Email</Label>
+                    <Input
+                      id="playerEmail"
+                      type="email"
+                      value={playerData.email}
+                      onChange={(e) => setPlayerData(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="Enter email address"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="playerPhone">Mobile Number</Label>
+                    <Input
+                      id="playerPhone"
+                      type="tel"
+                      value={playerData.phone}
+                      onChange={(e) => setPlayerData(prev => ({ ...prev, phone: e.target.value }))}
+                      placeholder="Enter mobile number"
+                    />
+                  </div>
                 <div className="space-y-2">
                   <Label htmlFor="playerPassword">Password</Label>
                   <Input
