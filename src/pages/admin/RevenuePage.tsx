@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Search, DollarSign, Building, Users, TrendingUp, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { formatCurrency } from "@/lib/formatters";
 import { toast } from "@/hooks/use-toast";
 import ClubDetailModal from "@/components/admin/ClubDetailModal";
 import SiteHeader from "@/components/layout/SiteHeader";
@@ -171,7 +172,7 @@ const RevenuePage = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                    <p className="text-2xl font-bold">£{totalRevenue.toFixed(2)}</p>
+                    <p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
                   </div>
                   <DollarSign className="h-8 w-8 text-green-600" />
                 </div>
@@ -195,9 +196,9 @@ const RevenuePage = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Avg Revenue per Club</p>
-                    <p className="text-2xl font-bold">
-                      £{clubRevenues.length > 0 ? (totalRevenue / clubRevenues.length).toFixed(2) : '0.00'}
-                    </p>
+                     <p className="text-2xl font-bold">
+                       {clubRevenues.length > 0 ? formatCurrency(totalRevenue / clubRevenues.length) : formatCurrency(0)}
+                     </p>
                   </div>
                   <TrendingUp className="h-8 w-8 text-purple-600" />
                 </div>
@@ -280,15 +281,15 @@ const RevenuePage = () => {
                             </button>
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-1 font-semibold text-green-600">
-                              <DollarSign className="w-4 h-4" />
-                              £{club.total_revenue.toFixed(2)}
-                            </div>
+                             <div className="flex items-center gap-1 font-semibold text-green-600">
+                               <DollarSign className="w-4 h-4" />
+                               {formatCurrency(club.total_revenue)}
+                             </div>
                           </TableCell>
                           <TableCell>{club.total_competitions}</TableCell>
                           <TableCell>{club.total_entries}</TableCell>
                           <TableCell>{club.paid_entries}</TableCell>
-                          <TableCell>£{club.average_entry_fee.toFixed(2)}</TableCell>
+                          <TableCell>{formatCurrency(club.average_entry_fee)}</TableCell>
                           <TableCell>
                             <span className={`font-medium ${
                               club.total_entries > 0 && (club.paid_entries / club.total_entries) > 0.7 

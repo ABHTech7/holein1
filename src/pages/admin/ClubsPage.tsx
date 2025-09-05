@@ -9,7 +9,7 @@ import { Search, Building, Mail, Phone, DollarSign, ArrowLeft } from "lucide-rea
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { formatDate } from "@/lib/formatters";
+import { formatCurrency } from "@/lib/formatters";
 import ClubDetailModal from "@/components/admin/ClubDetailModal";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
@@ -230,14 +230,14 @@ const ClubsPage = () => {
                               {club.total_competitions}
                             </Badge>
                           </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <DollarSign className="w-4 h-4 text-green-600" />
-                              <span className="font-medium">
-                                £{club.total_revenue.toFixed(2)}
-                              </span>
-                            </div>
-                          </TableCell>
+                           <TableCell>
+                             <div className="flex items-center gap-1">
+                               <DollarSign className="w-4 h-4 text-green-600" />
+                               <span className="font-medium">
+                                 {formatCurrency(club.total_revenue)}
+                               </span>
+                             </div>
+                           </TableCell>
                           <TableCell>
                             <Badge variant={club.active ? "default" : "outline"}>
                               {club.active ? "Active" : "Inactive"}

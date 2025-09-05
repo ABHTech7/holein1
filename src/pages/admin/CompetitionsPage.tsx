@@ -9,7 +9,7 @@ import { Search, Trophy, Calendar, DollarSign, Users, ArrowLeft, Plus } from "lu
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { formatDate } from "@/lib/formatters";
+import { formatCurrency, formatDate } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
@@ -225,12 +225,12 @@ const CompetitionsPage = () => {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <DollarSign className="w-4 h-4 text-green-600" />
-                              <span>£{competition.entry_fee.toFixed(2)}</span>
-                            </div>
-                          </TableCell>
+                           <TableCell>
+                             <div className="flex items-center gap-1">
+                               <DollarSign className="w-4 h-4 text-green-600" />
+                               <span>{formatCurrency(competition.entry_fee)}</span>
+                             </div>
+                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <Users className="w-4 h-4 text-muted-foreground" />
@@ -240,14 +240,14 @@ const CompetitionsPage = () => {
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <DollarSign className="w-4 h-4 text-green-600" />
-                              <span className="font-medium">
-                                £{competition.total_revenue.toFixed(2)}
-                              </span>
-                            </div>
-                          </TableCell>
+                           <TableCell>
+                             <div className="flex items-center gap-1">
+                               <DollarSign className="w-4 h-4 text-green-600" />
+                               <span className="font-medium">
+                                 {formatCurrency(competition.total_revenue)}
+                               </span>
+                             </div>
+                           </TableCell>
                           <TableCell>
                             <Badge variant={getStatusBadgeVariant(competition.status)}>
                               {competition.status}
