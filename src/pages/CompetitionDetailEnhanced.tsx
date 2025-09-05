@@ -64,7 +64,8 @@ interface Competition {
   entry_fee: number;
   commission_amount?: number;
   prize_pool: number;
-  max_participants: number;
+  is_year_round: boolean;
+  archived: boolean;
   clubs: {
     name: string;
   };

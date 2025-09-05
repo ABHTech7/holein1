@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Trophy, Calendar, PoundSterling, Users, ArrowLeft, Plus } from "lucide-react";
+import { Search, Trophy, Calendar, PoundSterling, Users, ArrowLeft, Plus, Archive } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -20,13 +20,13 @@ interface Competition {
   start_date: string;
   end_date: string;
   entry_fee: number;
-  max_participants: number | null;
   status: string;
   club_id: string;
   club_name: string;
   total_entries: number;
   total_revenue: number;
   created_at: string;
+  archived: boolean;
 }
 
 const CompetitionsPage = () => {
@@ -35,10 +35,11 @@ const CompetitionsPage = () => {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredCompetitions, setFilteredCompetitions] = useState<Competition[]>([]);
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     fetchCompetitions();
-  }, []);
+  }, [showArchived]);
 
   useEffect(() => {
     const filtered = competitions.filter(competition => {
@@ -140,13 +141,25 @@ const CompetitionsPage = () => {
             <div className="flex items-center justify-between">
               <h1 className="font-display text-3xl font-bold text-foreground">All Competitions</h1>
               
-              <Button 
-                onClick={() => navigate('/dashboard/admin/competitions/new')}
-                className="flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Create Competition
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button 
+                  variant={showArchived ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowArchived(!showArchived)}
+                  className="flex items-center gap-2"
+                >
+                  <Archive className="w-4 h-4" />
+                  {showArchived ? "Hide Archived" : "Show Archived"}
+                </Button>
+                
+                <Button 
+                  onClick={() => navigate('/dashboard/admin/competitions/new')}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Competition
+                </Button>
+              </div>
             </div>
 
           <Card>
@@ -235,15 +248,14 @@ const CompetitionsPage = () => {
                                <span>{formatCurrency(competition.entry_fee)}</span>
                              </div>
                            </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Users className="w-4 h-4 text-muted-foreground" />
-                              <span>
-                                {competition.total_entries}
-                                {competition.max_participants && ` / ${competition.max_participants}`}
-                              </span>
-                            </div>
-                          </TableCell>
+                           <TableCell>
+                             <div className="flex items-center gap-1">
+                               <Users className="w-4 h-4 text-muted-foreground" />
+                               <span>
+                                 {competition.total_entries}
+                               </span>
+                             </div>
+                           </TableCell>
                            <TableCell>
                              <div className="flex items-center gap-1">
                                <PoundSterling className="w-4 h-4 text-green-600" />

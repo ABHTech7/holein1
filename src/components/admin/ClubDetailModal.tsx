@@ -40,7 +40,6 @@ interface ClubCompetition {
   end_date: string;
   status: string;
   entry_fee: number;
-  max_participants: number | null;
   entries_count: number;
   total_revenue: number;
 }
@@ -110,7 +109,6 @@ const ClubDetailModal = ({ isOpen, onClose, clubId }: ClubDetailModalProps) => {
           end_date,
           status,
           entry_fee,
-          max_participants,
           entries(id, paid)
         `)
         .eq('club_id', clubId)
@@ -130,7 +128,6 @@ const ClubDetailModal = ({ isOpen, onClose, clubId }: ClubDetailModalProps) => {
             end_date: comp.end_date,
             status: comp.status,
             entry_fee: comp.entry_fee,
-            max_participants: comp.max_participants,
             entries_count: entries.length,
             total_revenue: paidEntries.length * comp.entry_fee
           };
@@ -423,7 +420,6 @@ const ClubDetailModal = ({ isOpen, onClose, clubId }: ClubDetailModalProps) => {
                               <TableCell>
                                 <Badge variant="secondary">
                                   {competition.entries_count}
-                                  {competition.max_participants && ` / ${competition.max_participants}`}
                                 </Badge>
                               </TableCell>
                               <TableCell className="font-medium">{formatCurrency(competition.total_revenue)}</TableCell>

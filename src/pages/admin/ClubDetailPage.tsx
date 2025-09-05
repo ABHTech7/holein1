@@ -39,11 +39,11 @@ interface Competition {
   end_date: string;
   entry_fee: number;
   commission_amount: number;
-  max_participants: number | null;
   status: string;
   total_entries: number;
   total_revenue: number;
   total_commission: number;
+  archived: boolean;
 }
 
 interface Payment {
@@ -816,7 +816,6 @@ const ClubDetailPage = () => {
                               </TableCell>
                               <TableCell>
                                 {competition.total_entries}
-                                {competition.max_participants && ` / ${competition.max_participants}`}
                               </TableCell>
                               <TableCell className="font-medium">{formatCurrency(competition.total_revenue)}</TableCell>
                               <TableCell className="font-medium text-green-600">{formatCurrency(competition.total_commission)}</TableCell>

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Building, Mail, Phone, PoundSterling, ArrowLeft } from "lucide-react";
+import { Search, Building, Mail, Phone, PoundSterling, ArrowLeft, Archive } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -35,10 +35,11 @@ const ClubsPage = () => {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredClubs, setFilteredClubs] = useState<Club[]>([]);
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     fetchClubs();
-  }, []);
+  }, [showArchived]);
 
   useEffect(() => {
     const filtered = clubs.filter(club => {
@@ -156,24 +157,34 @@ const ClubsPage = () => {
       
       <Section className="py-8">
         <div className="space-y-6">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/dashboard/admin')}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
-            </Button>
-          </div>
+            <div className="flex items-center justify-between gap-4">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/dashboard/admin')}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Dashboard
+              </Button>
+              
+              <Button 
+                variant={showArchived ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowArchived(!showArchived)}
+                className="flex items-center gap-2"
+              >
+                <Archive className="w-4 h-4" />
+                {showArchived ? "Hide Archived" : "Show Archived"}
+              </Button>
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building className="w-5 h-5" />
-                All Clubs ({clubs.length})
-              </CardTitle>
-            </CardHeader>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building className="w-5 h-5" />
+                  {showArchived ? 'Archived' : 'Active'} Clubs ({clubs.length})
+                </CardTitle>
+              </CardHeader>
             <CardContent className="space-y-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />

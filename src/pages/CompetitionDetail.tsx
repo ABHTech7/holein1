@@ -45,7 +45,7 @@ interface Competition {
   end_date: string;
   entry_fee: number;
   prize_pool: number;
-  max_participants: number;
+  archived: boolean;
   clubs: {
     name: string;
   };
@@ -387,11 +387,6 @@ const CompetitionDetail = () => {
                     <Users className="w-5 h-5" />
                     Entries ({entries.length})
                   </CardTitle>
-                  {competition.max_participants && (
-                    <p className="text-sm text-muted-foreground">
-                      {entries.length} / {competition.max_participants} participants
-                    </p>
-                  )}
                 </div>
               </CardHeader>
               <CardContent>

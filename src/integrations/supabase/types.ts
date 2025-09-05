@@ -190,6 +190,7 @@ export type Database = {
         Row: {
           active: boolean
           address: string | null
+          archived: boolean
           bank_account_holder: string | null
           bank_account_number: string | null
           bank_iban: string | null
@@ -207,6 +208,7 @@ export type Database = {
         Insert: {
           active?: boolean
           address?: string | null
+          archived?: boolean
           bank_account_holder?: string | null
           bank_account_number?: string | null
           bank_iban?: string | null
@@ -224,6 +226,7 @@ export type Database = {
         Update: {
           active?: boolean
           address?: string | null
+          archived?: boolean
           bank_account_holder?: string | null
           bank_account_number?: string | null
           bank_iban?: string | null
@@ -242,6 +245,7 @@ export type Database = {
       }
       competitions: {
         Row: {
+          archived: boolean
           club_id: string
           commission_amount: number | null
           created_at: string
@@ -251,7 +255,6 @@ export type Database = {
           hole_number: number
           id: string
           is_year_round: boolean
-          max_participants: number | null
           name: string
           prize_pool: number | null
           rules: Json | null
@@ -260,6 +263,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived?: boolean
           club_id: string
           commission_amount?: number | null
           created_at?: string
@@ -269,7 +273,6 @@ export type Database = {
           hole_number?: number
           id?: string
           is_year_round?: boolean
-          max_participants?: number | null
           name: string
           prize_pool?: number | null
           rules?: Json | null
@@ -278,6 +281,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived?: boolean
           club_id?: string
           commission_amount?: number | null
           created_at?: string
@@ -287,7 +291,6 @@ export type Database = {
           hole_number?: number
           id?: string
           is_year_round?: boolean
-          max_participants?: number | null
           name?: string
           prize_pool?: number | null
           rules?: Json | null

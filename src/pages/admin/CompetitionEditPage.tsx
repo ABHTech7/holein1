@@ -21,9 +21,12 @@ import {
   ArrowLeft,
   Save,
   X,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Archive,
+  Trash2
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 
 interface Competition {
@@ -36,9 +39,9 @@ interface Competition {
   end_date: string | null;
   entry_fee: number;
   prize_pool: number;
-  max_participants: number;
   commission_amount: number;
   is_year_round: boolean;
+  archived: boolean;
   club_id: string;
   clubs: {
     name: string;
@@ -55,7 +58,6 @@ const editFormSchema = z.object({
   end_date: z.date().optional(),
   is_year_round: z.boolean(),
   entry_fee: z.number().min(0, 'Entry fee must be at least 0'),
-  max_participants: z.number().min(1, 'Max participants must be at least 1').optional(),
   commission_amount: z.number().min(0, 'Commission amount must be at least 0'),
 }).refine((data) => {
   if (!data.is_year_round && !data.end_date) {
@@ -80,6 +82,8 @@ const CompetitionEditPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [competition, setCompetition] = useState<Competition | null>(null);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   
   const form = useForm<EditFormData>({
     resolver: zodResolver(editFormSchema),
@@ -113,7 +117,6 @@ const CompetitionEditPage = () => {
           end_date: data.end_date ? new Date(data.end_date) : undefined,
           is_year_round: data.is_year_round || false,
           entry_fee: data.entry_fee / 100, // Convert from cents
-          max_participants: data.max_participants || undefined,
           commission_amount: data.commission_amount ? data.commission_amount / 100 : 0, // Convert from pence
         });
       } catch (error) {
@@ -167,7 +170,6 @@ const CompetitionEditPage = () => {
           end_date: data.is_year_round ? null : data.end_date?.toISOString() || null,
           is_year_round: data.is_year_round,
           entry_fee: entry_fee_cents,
-          max_participants: data.max_participants || null,
           commission_amount: commission_amount_pence,
           status: newStatus,
           updated_at: new Date().toISOString(),
@@ -192,6 +194,62 @@ const CompetitionEditPage = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleArchive = async () => {
+    if (!competition) return;
+
+    try {
+      const { error } = await supabase
+        .from('competitions')
+        .update({ archived: true })
+        .eq('id', competition.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Competition archived successfully',
+      });
+
+      navigate('/dashboard/admin/competitions');
+    } catch (error) {
+      console.error('Error archiving competition:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to archive competition',
+        variant: 'destructive',
+      });
+    }
+    setShowArchiveModal(false);
+  };
+
+  const handleDelete = async () => {
+    if (!competition) return;
+
+    try {
+      const { error } = await supabase
+        .from('competitions')
+        .delete()
+        .eq('id', competition.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Competition deleted successfully',
+      });
+
+      navigate('/dashboard/admin/competitions');
+    } catch (error) {
+      console.error('Error deleting competition:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete competition',
+        variant: 'destructive',
+      });
+    }
+    setShowDeleteModal(false);
   };
 
   if (loading) {
@@ -230,15 +288,37 @@ const CompetitionEditPage = () => {
       <main className="flex-1 bg-muted/30">
         <Section spacing="lg">
           <div className="max-w-4xl mx-auto space-y-6">
-            <div className="flex items-center gap-4">
+            {/* Back Button and Actions */}
+            <div className="flex items-center justify-between gap-4">
               <Button 
                 variant="outline" 
-                onClick={() => navigate(`/dashboard/admin/competitions/${competition.id}`)}
+                onClick={() => navigate('/dashboard/admin/competitions')}
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Back to Competition Details
+                Back to Competitions
               </Button>
+              
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setShowArchiveModal(true)}
+                  className="text-orange-600 hover:text-orange-700"
+                >
+                  <Archive className="w-4 h-4 mr-1" />
+                  Archive
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setShowDeleteModal(true)}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Delete
+                </Button>
+              </div>
             </div>
 
             {/* Header */}
@@ -389,7 +469,7 @@ const CompetitionEditPage = () => {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Entry Fee */}
                     <div className="space-y-2">
                       <Label htmlFor="entry_fee">Entry Fee (£) *</Label>
@@ -404,23 +484,6 @@ const CompetitionEditPage = () => {
                       {form.formState.errors.entry_fee && (
                         <p className="text-sm text-destructive">
                           {form.formState.errors.entry_fee.message}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Max Participants */}
-                    <div className="space-y-2">
-                      <Label htmlFor="max_participants">Max Participants</Label>
-                      <Input
-                        id="max_participants"
-                        type="number"
-                        min="1"
-                        {...form.register('max_participants', { valueAsNumber: true })}
-                        placeholder="Unlimited"
-                      />
-                      {form.formState.errors.max_participants && (
-                        <p className="text-sm text-destructive">
-                          {form.formState.errors.max_participants.message}
                         </p>
                       )}
                     </div>
@@ -466,6 +529,42 @@ const CompetitionEditPage = () => {
           </div>
         </Section>
       </main>
+
+      {/* Archive Modal */}
+      <AlertDialog open={showArchiveModal} onOpenChange={setShowArchiveModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive Competition</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to archive "{competition.name}"? This will hide it from the main competitions list, but it can be restored later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleArchive} className="bg-orange-600 hover:bg-orange-700">
+              Archive Competition
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Modal */}
+      <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Competition</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete "{competition.name}"? This action cannot be undone and will remove all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              Delete Competition
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
