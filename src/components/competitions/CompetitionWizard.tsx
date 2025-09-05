@@ -17,6 +17,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/formatters';
+import { useAuth } from '@/hooks/useAuth';
+import React from 'react';
 
 const stepSchemas = [
   // Step 1: Basics
@@ -36,6 +38,7 @@ const stepSchemas = [
   // Step 3: Pricing
   z.object({
     entry_fee: z.number().min(0, 'Entry fee cannot be negative'),
+    commission_rate: z.number().min(0, 'Commission rate cannot be negative'),
     visibility_notes: z.string().max(200, 'Notes too long').optional(),
   }),
   // Step 4: Review (no additional validation needed)
@@ -49,6 +52,7 @@ const fullSchema = z.object({
   start_date: z.date({ required_error: 'Start date is required' }),
   end_date: z.date({ required_error: 'End date is required' }),
   entry_fee: z.number().min(0, 'Entry fee cannot be negative'),
+  commission_rate: z.number().min(0, 'Commission rate cannot be negative'),
   visibility_notes: z.string().max(200, 'Notes too long').optional(),
 }).refine((data) => data.start_date < data.end_date, {
   message: 'End date must be after start date',
@@ -65,9 +69,11 @@ interface CompetitionWizardProps {
 const CompetitionWizard = ({ clubId, prefillData }: CompetitionWizardProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [overlapWarning, setOverlapWarning] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string>('CLUB');
 
   const form = useForm<FormData>({
     resolver: zodResolver(fullSchema),
@@ -78,12 +84,32 @@ const CompetitionWizard = ({ clubId, prefillData }: CompetitionWizardProps) => {
       start_date: prefillData?.start_date || new Date(),
       end_date: prefillData?.end_date || new Date(Date.now() + 86400000), // +1 day
       entry_fee: prefillData?.entry_fee || 0,
+      commission_rate: prefillData?.commission_rate || 0,
       visibility_notes: prefillData?.visibility_notes || '',
     },
     mode: 'onChange',
   });
 
   const watchedValues = form.watch();
+
+  // Fetch user role on component mount
+  React.useEffect(() => {
+    const fetchUserRole = async () => {
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile) {
+          setUserRole(profile.role);
+        }
+      }
+    };
+    
+    fetchUserRole();
+  }, [user]);
 
   const checkForOverlaps = async (holeNumber: number, startDate: Date, endDate: Date) => {
     try {
@@ -127,7 +153,7 @@ const CompetitionWizard = ({ clubId, prefillData }: CompetitionWizardProps) => {
     } else if (step === 2) {
       fieldsToValidate = ['start_date', 'end_date'];
     } else if (step === 3) {
-      fieldsToValidate = ['entry_fee', 'visibility_notes'];
+      fieldsToValidate = ['entry_fee', 'commission_rate', 'visibility_notes'];
     }
     
     const currentData = Object.fromEntries(
@@ -191,6 +217,7 @@ const CompetitionWizard = ({ clubId, prefillData }: CompetitionWizardProps) => {
           start_date: data.start_date.toISOString(),
           end_date: data.end_date.toISOString(),
           entry_fee: entry_fee_cents,
+          commission_rate: data.commission_rate,
           status,
         })
         .select()
@@ -354,6 +381,26 @@ const CompetitionWizard = ({ clubId, prefillData }: CompetitionWizardProps) => {
               )}
             </div>
 
+            {userRole === 'ADMIN' && (
+              <div>
+                <Label htmlFor="commission_rate">Commission Rate (£ per entry)</Label>
+                <Input
+                  id="commission_rate"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  {...form.register('commission_rate', { valueAsNumber: true })}
+                  placeholder="0.00"
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Fixed commission amount paid to the club per paid entry
+                </p>
+                {form.formState.errors.commission_rate && (
+                  <p className="text-sm text-destructive mt-1">{form.formState.errors.commission_rate.message}</p>
+                )}
+              </div>
+            )}
+
             <div>
               <Label htmlFor="visibility_notes">Internal Notes (Optional)</Label>
               <Textarea
@@ -397,6 +444,14 @@ const CompetitionWizard = ({ clubId, prefillData }: CompetitionWizardProps) => {
                     {watchedValues.entry_fee === 0 ? 'Free' : formatCurrency(watchedValues.entry_fee * 100)}
                   </p>
                 </div>
+                {userRole === 'ADMIN' && (
+                  <div>
+                    <p className="text-muted-foreground">Commission Rate</p>
+                    <p className="font-medium">
+                      {formatCurrency(watchedValues.commission_rate * 100)} per entry
+                    </p>
+                  </div>
+                )}
                 <div>
                   <p className="text-muted-foreground">Start</p>
                   <p className="font-medium">{format(watchedValues.start_date, "PPp")}</p>

@@ -124,10 +124,77 @@ export type Database = {
           },
         ]
       }
+      club_payments: {
+        Row: {
+          amount: number
+          club_id: string
+          commission_rate: number
+          created_at: string
+          created_by: string | null
+          entries_count: number
+          id: string
+          notes: string | null
+          payment_date: string
+          payment_method: string | null
+          payment_reference: string | null
+          period_end: string
+          period_start: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          club_id: string
+          commission_rate?: number
+          created_at?: string
+          created_by?: string | null
+          entries_count?: number
+          id?: string
+          notes?: string | null
+          payment_date: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          period_end: string
+          period_start: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          club_id?: string
+          commission_rate?: number
+          created_at?: string
+          created_by?: string | null
+          entries_count?: number
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          payment_reference?: string | null
+          period_end?: string
+          period_start?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_payments_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clubs: {
         Row: {
           active: boolean
           address: string | null
+          bank_account_holder: string | null
+          bank_account_number: string | null
+          bank_iban: string | null
+          bank_sort_code: string | null
+          bank_swift: string | null
           created_at: string
           email: string | null
           id: string
@@ -140,6 +207,11 @@ export type Database = {
         Insert: {
           active?: boolean
           address?: string | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_iban?: string | null
+          bank_sort_code?: string | null
+          bank_swift?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -152,6 +224,11 @@ export type Database = {
         Update: {
           active?: boolean
           address?: string | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_iban?: string | null
+          bank_sort_code?: string | null
+          bank_swift?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -166,6 +243,7 @@ export type Database = {
       competitions: {
         Row: {
           club_id: string
+          commission_rate: number | null
           created_at: string
           description: string | null
           end_date: string
@@ -182,6 +260,7 @@ export type Database = {
         }
         Insert: {
           club_id: string
+          commission_rate?: number | null
           created_at?: string
           description?: string | null
           end_date: string
@@ -198,6 +277,7 @@ export type Database = {
         }
         Update: {
           club_id?: string
+          commission_rate?: number | null
           created_at?: string
           description?: string | null
           end_date?: string
@@ -229,6 +309,10 @@ export type Database = {
           created_at: string
           entry_date: string
           id: string
+          location_accuracy: number | null
+          location_latitude: number | null
+          location_longitude: number | null
+          location_timestamp: string | null
           paid: boolean
           payment_date: string | null
           player_id: string
@@ -241,6 +325,10 @@ export type Database = {
           created_at?: string
           entry_date?: string
           id?: string
+          location_accuracy?: number | null
+          location_latitude?: number | null
+          location_longitude?: number | null
+          location_timestamp?: string | null
           paid?: boolean
           payment_date?: string | null
           player_id: string
@@ -253,6 +341,10 @@ export type Database = {
           created_at?: string
           entry_date?: string
           id?: string
+          location_accuracy?: number | null
+          location_latitude?: number | null
+          location_longitude?: number | null
+          location_timestamp?: string | null
           paid?: boolean
           payment_date?: string | null
           player_id?: string
@@ -337,6 +429,10 @@ export type Database = {
           first_name: string | null
           id: string
           last_name: string | null
+          location_accuracy: number | null
+          location_latitude: number | null
+          location_longitude: number | null
+          location_timestamp: string | null
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
@@ -348,6 +444,10 @@ export type Database = {
           first_name?: string | null
           id: string
           last_name?: string | null
+          location_accuracy?: number | null
+          location_latitude?: number | null
+          location_longitude?: number | null
+          location_timestamp?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
@@ -359,6 +459,10 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          location_accuracy?: number | null
+          location_latitude?: number | null
+          location_longitude?: number | null
+          location_timestamp?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string

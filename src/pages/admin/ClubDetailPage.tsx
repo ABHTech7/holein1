@@ -16,6 +16,8 @@ import { formatDate, formatCurrency } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
+import ClubCommissionSection from "@/components/admin/ClubCommissionSection";
+import ClubBankDetailsSection from "@/components/admin/ClubBankDetailsSection";
 
 interface Club {
   id: string;
@@ -35,10 +37,12 @@ interface Competition {
   start_date: string;
   end_date: string;
   entry_fee: number;
+  commission_rate: number;
   max_participants: number | null;
   status: string;
   total_entries: number;
   total_revenue: number;
+  total_commission: number;
 }
 
 interface Payment {
@@ -63,15 +67,9 @@ const ClubDetailPage = () => {
   const [saving, setSaving] = useState(false);
   const [club, setClub] = useState<Club | null>(null);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
-  const [payments, setPayments] = useState<Payment[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [newNote, setNewNote] = useState("");
-  const [newPayment, setNewPayment] = useState({
-    amount: "",
-    description: "",
-    type: "revenue"
-  });
 
   // Form data for editing
   const [formData, setFormData] = useState({
@@ -112,7 +110,7 @@ const ClubDetailPage = () => {
         active: clubData.active
       });
 
-      // Fetch competitions
+      // Fetch competitions with commission rates
       const { data: competitionsData, error: competitionsError } = await supabase
         .from('competitions')
         .select('*')
@@ -121,7 +119,7 @@ const ClubDetailPage = () => {
 
       if (competitionsError) throw competitionsError;
 
-      // Get entries for each competition
+      // Get entries for each competition and calculate commission
       const competitionsWithStats = await Promise.all(
         (competitionsData || []).map(async (competition) => {
           const { data: entries, error: entriesError } = await supabase
@@ -136,35 +134,21 @@ const ClubDetailPage = () => {
           const totalEntries = entries?.length || 0;
           const paidEntries = entries?.filter(entry => entry.paid).length || 0;
           const totalRevenue = paidEntries * (parseFloat(competition.entry_fee?.toString() || '0'));
+          const commissionRate = parseFloat(competition.commission_rate?.toString() || '0');
+          const totalCommission = paidEntries * commissionRate;
 
           return {
             ...competition,
             total_entries: totalEntries,
-            total_revenue: totalRevenue
+            total_revenue: totalRevenue,
+            total_commission: totalCommission
           };
         })
       );
 
       setCompetitions(competitionsWithStats);
 
-      // Mock data for payments and notes
-      setPayments([
-        {
-          id: '1',
-          amount: 15000,
-          date: '2024-01-15',
-          description: 'Competition revenue payment',
-          type: 'revenue'
-        },
-        {
-          id: '2',
-          amount: 5000,
-          date: '2024-01-01',
-          description: 'Setup fee payment',
-          type: 'setup'
-        }
-      ]);
-
+      // Mock data for notes
       setNotes([
         {
           id: '1',
@@ -242,26 +226,6 @@ const ClubDetailPage = () => {
     });
   };
 
-  const addPayment = () => {
-    if (!newPayment.amount || !newPayment.description) return;
-
-    const payment: Payment = {
-      id: Date.now().toString(),
-      amount: parseFloat(newPayment.amount) * 100, // Convert to pence
-      date: new Date().toISOString(),
-      description: newPayment.description,
-      type: newPayment.type
-    };
-
-    setPayments(prev => [payment, ...prev]);
-    setNewPayment({ amount: "", description: "", type: "revenue" });
-    
-    toast({
-      title: "Payment Added",
-      description: "Payment record has been added successfully.",
-    });
-  };
-
   if (loading || !club) {
     return (
       <div className="min-h-screen bg-background">
@@ -286,7 +250,7 @@ const ClubDetailPage = () => {
   }
 
   const totalRevenue = competitions.reduce((sum, comp) => sum + comp.total_revenue, 0);
-  const totalPayments = payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const totalCommission = competitions.reduce((sum, comp) => sum + comp.total_commission, 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -342,8 +306,8 @@ const ClubDetailPage = () => {
             </Card>
             <Card>
               <CardContent className="p-4">
-                <div className="text-2xl font-bold">{formatCurrency(totalPayments)}</div>
-                <div className="text-sm text-muted-foreground">Payments Made</div>
+                <div className="text-2xl font-bold">{formatCurrency(totalCommission)}</div>
+                <div className="text-sm text-muted-foreground">Total Commission Generated</div>
               </CardContent>
             </Card>
             <Card>
@@ -358,7 +322,8 @@ const ClubDetailPage = () => {
             <TabsList>
               <TabsTrigger value="details">Club Details</TabsTrigger>
               <TabsTrigger value="competitions">Competitions</TabsTrigger>
-              <TabsTrigger value="payments">Payments</TabsTrigger>
+              <TabsTrigger value="commission">Commission & Payments</TabsTrigger>
+              <TabsTrigger value="banking">Bank Details</TabsTrigger>
               <TabsTrigger value="notes">Notes</TabsTrigger>
             </TabsList>
 
@@ -446,118 +411,64 @@ const ClubDetailPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Competition</TableHead>
-                        <TableHead>Dates</TableHead>
-                        <TableHead>Entry Fee</TableHead>
-                        <TableHead>Entries</TableHead>
-                        <TableHead>Revenue</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {competitions.length === 0 ? (
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                            No competitions found
-                          </TableCell>
+                          <TableHead>Competition</TableHead>
+                          <TableHead>Dates</TableHead>
+                          <TableHead>Entry Fee</TableHead>
+                          <TableHead>Commission Rate</TableHead>
+                          <TableHead>Entries</TableHead>
+                          <TableHead>Revenue</TableHead>
+                          <TableHead>Commission</TableHead>
+                          <TableHead>Status</TableHead>
                         </TableRow>
-                      ) : (
-                        competitions.map((competition) => (
-                          <TableRow key={competition.id}>
-                            <TableCell className="font-medium">{competition.name}</TableCell>
-                            <TableCell>
-                              <div className="text-sm">
-                                <div>{formatDate(competition.start_date, 'short')}</div>
-                                <div className="text-muted-foreground">to {formatDate(competition.end_date, 'short')}</div>
-                              </div>
-                            </TableCell>
-                            <TableCell>{formatCurrency(competition.entry_fee)}</TableCell>
-                            <TableCell>
-                              {competition.total_entries}
-                              {competition.max_participants && ` / ${competition.max_participants}`}
-                            </TableCell>
-                            <TableCell className="font-medium">{formatCurrency(competition.total_revenue)}</TableCell>
-                            <TableCell>
-                              <Badge variant={competition.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                                {competition.status}
-                              </Badge>
+                      </TableHeader>
+                      <TableBody>
+                        {competitions.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                              No competitions found
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                        ) : (
+                          competitions.map((competition) => (
+                            <TableRow key={competition.id}>
+                              <TableCell className="font-medium">{competition.name}</TableCell>
+                              <TableCell>
+                                <div className="text-sm">
+                                  <div>{formatDate(competition.start_date, 'short')}</div>
+                                  <div className="text-muted-foreground">to {formatDate(competition.end_date, 'short')}</div>
+                                </div>
+                              </TableCell>
+                              <TableCell>{formatCurrency(competition.entry_fee)}</TableCell>
+                              <TableCell>{formatCurrency(competition.commission_rate)}</TableCell>
+                              <TableCell>
+                                {competition.total_entries}
+                                {competition.max_participants && ` / ${competition.max_participants}`}
+                              </TableCell>
+                              <TableCell className="font-medium">{formatCurrency(competition.total_revenue)}</TableCell>
+                              <TableCell className="font-medium text-green-600">{formatCurrency(competition.total_commission)}</TableCell>
+                              <TableCell>
+                                <Badge variant={competition.status === 'ACTIVE' ? 'default' : 'secondary'}>
+                                  {competition.status}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="payments">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <PoundSterling className="w-5 h-5" />
-                    Payment History
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
-                    <div className="space-y-2">
-                      <Label htmlFor="paymentAmount">Amount (£)</Label>
-                      <Input
-                        id="paymentAmount"
-                        type="number"
-                        value={newPayment.amount}
-                        onChange={(e) => setNewPayment(prev => ({ ...prev, amount: e.target.value }))}
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="paymentDescription">Description</Label>
-                      <Input
-                        id="paymentDescription"
-                        value={newPayment.description}
-                        onChange={(e) => setNewPayment(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="Payment description"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Action</Label>
-                      <Button onClick={addPayment} className="w-full">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Payment
-                      </Button>
-                    </div>
-                  </div>
+            <TabsContent value="commission">
+              <ClubCommissionSection clubId={clubId!} />
+            </TabsContent>
 
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Amount</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {payments.map((payment) => (
-                        <TableRow key={payment.id}>
-                          <TableCell>{formatDate(payment.date, 'short')}</TableCell>
-                          <TableCell>{payment.description}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{payment.type}</Badge>
-                          </TableCell>
-                          <TableCell className="font-medium text-green-600">
-                            {formatCurrency(payment.amount)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+            <TabsContent value="banking">
+              <ClubBankDetailsSection clubId={clubId!} />
             </TabsContent>
 
             <TabsContent value="notes">
