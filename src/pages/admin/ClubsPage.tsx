@@ -25,6 +25,7 @@ interface Club {
   created_at: string;
   total_competitions: number;
   total_revenue: number;
+  total_commission: number;
   manager_name: string | null;
   manager_email: string | null;
 }
@@ -63,10 +64,10 @@ const ClubsPage = () => {
 
       const clubsWithStats = await Promise.all(
         (clubsData || []).map(async (club) => {
-          // Get competitions count
+          // Get competitions with their commission rates
           const { data: competitions, error: competitionsError } = await supabase
             .from('competitions')
-            .select('id, entry_fee')
+            .select('id, entry_fee, commission_rate')
             .eq('club_id', club.id);
 
           if (competitionsError) {
@@ -85,10 +86,39 @@ const ClubsPage = () => {
             console.error('Error fetching managers for club:', club.id, managersError);
           }
 
-          // Calculate total revenue from entry fees
-          const totalRevenue = competitions?.reduce((sum, comp) => {
-            return sum + (parseFloat(comp.entry_fee?.toString() || '0'));
-          }, 0) || 0;
+          // Calculate total revenue and commission from actual paid entries
+          let totalRevenue = 0;
+          let totalCommission = 0;
+
+          if (competitions) {
+            const revenuePromises = competitions.map(async (competition) => {
+              const { data: entries, error: entriesError } = await supabase
+                .from('entries')
+                .select('id, paid')
+                .eq('competition_id', competition.id);
+
+              if (entriesError) {
+                console.error('Error fetching entries for competition:', competition.id, entriesError);
+                return { revenue: 0, commission: 0 };
+              }
+
+              const paidEntries = entries?.filter(entry => entry.paid).length || 0;
+              const entryFee = parseFloat(competition.entry_fee?.toString() || '0');
+              const commissionRate = parseFloat(competition.commission_rate?.toString() || '0');
+
+              const competitionRevenue = paidEntries * entryFee;
+              const competitionCommission = paidEntries * commissionRate;
+
+              return {
+                revenue: competitionRevenue,
+                commission: competitionCommission
+              };
+            });
+
+            const results = await Promise.all(revenuePromises);
+            totalRevenue = results.reduce((sum, result) => sum + result.revenue, 0);
+            totalCommission = results.reduce((sum, result) => sum + result.commission, 0);
+          }
 
           const manager = managers?.[0];
           const managerName = manager ? `${manager.first_name || ''} ${manager.last_name || ''}`.trim() : null;
@@ -97,6 +127,7 @@ const ClubsPage = () => {
             ...club,
             total_competitions: competitions?.length || 0,
             total_revenue: totalRevenue,
+            total_commission: totalCommission,
             manager_name: managerName || null,
             manager_email: manager?.email || null
           };
@@ -167,83 +198,92 @@ const ClubsPage = () => {
                   ))}
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Club Name</TableHead>
-                      <TableHead>Address</TableHead>
-                      <TableHead>Manager</TableHead>
-                      <TableHead>Contact</TableHead>
-                      <TableHead>Competitions</TableHead>
-                      <TableHead>Revenue</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredClubs.length === 0 ? (
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                          {searchTerm ? 'No clubs found matching your search.' : 'No clubs found.'}
-                        </TableCell>
+                        <TableHead>Club Name</TableHead>
+                        <TableHead>Address</TableHead>
+                        <TableHead>Manager</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Competitions</TableHead>
+                        <TableHead>Revenue</TableHead>
+                        <TableHead>Commission</TableHead>
+                        <TableHead>Status</TableHead>
                       </TableRow>
-                    ) : (
-                      filteredClubs.map((club) => (
-                        <TableRow key={club.id}>
-                          <TableCell className="font-medium">
-                            <button
-                              onClick={() => handleClubClick(club.id)}
-                              className="text-left hover:text-primary hover:underline focus:outline-none focus:text-primary"
-                            >
-                              {club.name}
-                            </button>
-                          </TableCell>
-                          <TableCell>
-                            <div className="max-w-48 truncate">
-                              {club.address || 'No address provided'}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {club.manager_name || 'No manager assigned'}
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              {club.email && (
-                                <div className="flex items-center gap-1 text-sm">
-                                  <Mail className="w-3 h-3 text-muted-foreground" />
-                                  <span className="truncate max-w-32">{club.email}</span>
-                                </div>
-                              )}
-                              {club.phone && (
-                                <div className="flex items-center gap-1 text-sm">
-                                  <Phone className="w-3 h-3 text-muted-foreground" />
-                                  <span>{club.phone}</span>
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">
-                              {club.total_competitions}
-                            </Badge>
-                          </TableCell>
-                           <TableCell>
-                             <div className="flex items-center gap-1">
-                               <PoundSterling className="w-4 h-4 text-green-600" />
-                               <span className="font-medium">
-                                 {formatCurrency(club.total_revenue)}
-                               </span>
-                             </div>
-                           </TableCell>
-                          <TableCell>
-                            <Badge variant={club.active ? "default" : "outline"}>
-                              {club.active ? "Active" : "Inactive"}
-                            </Badge>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredClubs.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                            {searchTerm ? 'No clubs found matching your search.' : 'No clubs found.'}
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                      ) : (
+                        filteredClubs.map((club) => (
+                          <TableRow key={club.id}>
+                            <TableCell className="font-medium">
+                              <button
+                                onClick={() => handleClubClick(club.id)}
+                                className="text-left hover:text-primary hover:underline focus:outline-none focus:text-primary"
+                              >
+                                {club.name}
+                              </button>
+                            </TableCell>
+                            <TableCell>
+                              <div className="max-w-48 truncate">
+                                {club.address || 'No address provided'}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {club.manager_name || 'No manager assigned'}
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                {club.email && (
+                                  <div className="flex items-center gap-1 text-sm">
+                                    <Mail className="w-3 h-3 text-muted-foreground" />
+                                    <span className="truncate max-w-32">{club.email}</span>
+                                  </div>
+                                )}
+                                {club.phone && (
+                                  <div className="flex items-center gap-1 text-sm">
+                                    <Phone className="w-3 h-3 text-muted-foreground" />
+                                    <span>{club.phone}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">
+                                {club.total_competitions}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <PoundSterling className="w-4 h-4 text-green-600" />
+                                <span className="font-medium">
+                                  {formatCurrency(club.total_revenue)}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <PoundSterling className="w-4 h-4 text-blue-600" />
+                                <span className="font-medium text-blue-600">
+                                  {formatCurrency(club.total_commission)}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={club.active ? "default" : "outline"}>
+                                {club.active ? "Active" : "Inactive"}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
               )}
             </CardContent>
           </Card>
