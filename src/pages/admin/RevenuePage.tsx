@@ -257,14 +257,13 @@ const RevenuePage = () => {
                         <TableHead>Total Revenue</TableHead>
                         <TableHead>Competitions</TableHead>
                         <TableHead>Total Entries</TableHead>
-                        <TableHead>Paid Entries</TableHead>
                         <TableHead>Avg Entry Fee</TableHead>
                       </TableRow>
                     </TableHeader>
                   <TableBody>
                     {filteredClubRevenues.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                           {searchTerm ? 'No clubs found matching your search.' : 'No revenue data found.'}
                         </TableCell>
                       </TableRow>
@@ -287,7 +286,6 @@ const RevenuePage = () => {
                           </TableCell>
                           <TableCell>{club.total_competitions}</TableCell>
                           <TableCell>{club.total_entries}</TableCell>
-                          <TableCell>{club.paid_entries}</TableCell>
                           <TableCell>{formatCurrency(club.average_entry_fee)}</TableCell>
                         </TableRow>
                       ))
