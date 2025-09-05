@@ -291,11 +291,15 @@ const AdminDashboard = () => {
             </div>
 
             {/* Revenue Overview - Top Priority */}
-            <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+            <Card 
+              className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20 cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => navigate('/dashboard/admin/revenue/breakdown')}
+            >
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-primary" />
                   Revenue Overview
+                  <span className="text-sm font-normal text-muted-foreground ml-auto">Click to view breakdown</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>

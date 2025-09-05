@@ -13,7 +13,8 @@ const SiteHeader = () => {
   const { user, profile, signOut } = useAuth();
 
   const navigation = [
-    { name: "Home", href: "/" },
+    // Only show Home on non-admin pages
+    ...(location.pathname.startsWith('/dashboard/admin') ? [] : [{ name: "Home", href: "/" }]),
   ];
 
   const authNavigation = user ? [

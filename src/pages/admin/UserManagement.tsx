@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
-import { ArrowLeft, Plus, Search, Edit, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Plus, Search, Edit, MoreHorizontal, Shield, Building } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/formatters";
@@ -227,17 +227,20 @@ const UserManagement = () => {
               </CardContent>
             </Card>
 
-            {/* Users List */}
+            {/* Admin Staff Section */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Staff Accounts ({filteredUsers.length})</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-red-600" />
+                    Administrator Accounts ({filteredUsers.filter(u => u.role === 'ADMIN').length})
+                  </CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
                 {loading ? (
                   <div className="space-y-4">
-                    {[...Array(5)].map((_, i) => (
+                    {[...Array(2)].map((_, i) => (
                       <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
                         <Skeleton className="h-10 w-10 rounded-full" />
                         <div className="flex-1">
@@ -248,43 +251,112 @@ const UserManagement = () => {
                       </div>
                     ))}
                   </div>
-                ) : filteredUsers.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">No users found</p>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredUsers.filter(user => user.role === 'ADMIN').length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">No administrators found</p>
+                      </div>
+                    ) : (
+                      filteredUsers.filter(user => user.role === 'ADMIN').map((user) => (
+                        <div key={user.id} className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-medium text-red-600">
+                              {(user.first_name?.[0] || user.email[0]).toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-medium">
+                                {user.first_name && user.last_name 
+                                  ? `${user.first_name} ${user.last_name}`
+                                  : user.email
+                                }
+                              </h3>
+                              <Badge className={getRoleColor(user.role)}>
+                                {user.role}
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground space-y-1">
+                              <p>{user.email}</p>
+                              {user.phone && <p>📱 {user.phone}</p>}
+                              <p>Created {formatDate(user.created_at)}</p>
+                            </div>
+                          </div>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Club Managers Section */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Building className="w-5 h-5 text-blue-600" />
+                    Club Managers ({filteredUsers.filter(u => u.role === 'CLUB').length})
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="flex-1">
+                          <Skeleton className="h-4 w-48 mb-2" />
+                          <Skeleton className="h-3 w-32" />
+                        </div>
+                        <Skeleton className="h-6 w-20" />
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {filteredUsers.map((user) => (
-                      <div key={user.id} className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-medium text-primary">
-                            {(user.first_name?.[0] || user.email[0]).toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-medium">
-                              {user.first_name && user.last_name 
-                                ? `${user.first_name} ${user.last_name}`
-                                : user.email
-                              }
-                            </h3>
-                            <Badge className={getRoleColor(user.role)}>
-                              {user.role}
-                            </Badge>
-                          </div>
-                          <div className="text-sm text-muted-foreground space-y-1">
-                            <p>{user.email}</p>
-                            {user.phone && <p>📱 {user.phone}</p>}
-                            {user.clubs?.name && <p>🏌️ {user.clubs.name}</p>}
-                            <p>Created {formatDate(user.created_at)}</p>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
+                    {filteredUsers.filter(user => user.role === 'CLUB').length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">No club managers found</p>
                       </div>
-                    ))}
+                    ) : (
+                      filteredUsers.filter(user => user.role === 'CLUB').map((user) => (
+                        <div key={user.id} className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-medium text-blue-600">
+                              {(user.first_name?.[0] || user.email[0]).toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-medium">
+                                {user.first_name && user.last_name 
+                                  ? `${user.first_name} ${user.last_name}`
+                                  : user.email
+                                }
+                              </h3>
+                              <Badge className={getRoleColor(user.role)}>
+                                {user.role}
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground space-y-1">
+                              <p>{user.email}</p>
+                              {user.phone && <p>📱 {user.phone}</p>}
+                              {user.clubs?.name && <p>🏌️ {user.clubs.name}</p>}
+                              <p>Created {formatDate(user.created_at)}</p>
+                            </div>
+                          </div>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
               </CardContent>
