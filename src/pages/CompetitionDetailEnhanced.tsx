@@ -395,29 +395,6 @@ const CompetitionDetailEnhanced = () => {
     );
   }
 
-  // Auth guards
-  if (!user) {
-    return <Navigate to="/players/login" replace />;
-  }
-
-  // ADMIN users can access this page for any competition
-  if (!profile || (profile.role !== 'CLUB' && profile.role !== 'ADMIN')) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="max-w-md mx-auto">
-          <CardHeader>
-            <CardTitle>Access Denied</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              This page is only accessible to club administrators and system administrators.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   if (!competition) {
     return (
       <div className="min-h-screen flex items-center justify-center">
