@@ -95,7 +95,9 @@ const CompetitionWizardPage = () => {
     );
   }
 
-  if (!profile.club_id) {
+  // ADMIN users don't need to be associated with a club - they can select one
+  // Only check club association for non-ADMIN users (though CLUB users no longer have access anyway)
+  if (profile.role !== 'ADMIN' && !profile.club_id) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center max-w-md">
@@ -118,16 +120,17 @@ const CompetitionWizardPage = () => {
             {/* Breadcrumbs */}
             <nav className="mb-8">
               <ol className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <li><a href="/dashboard/club" className="hover:text-foreground">Dashboard</a></li>
+                <li><a href="/dashboard/admin" className="hover:text-foreground">Admin Dashboard</a></li>
                 <li>/</li>
-                <li><a href="/dashboard/club" className="hover:text-foreground">Competitions</a></li>
+                <li><a href="/dashboard/admin/competitions" className="hover:text-foreground">Competitions</a></li>
                 <li>/</li>
                 <li className="text-foreground">New Competition</li>
               </ol>
             </nav>
 
             <CompetitionWizard 
-              clubId={profile.club_id} 
+              clubId={profile.club_id}
+              isAdmin={profile.role === 'ADMIN'}
               prefillData={prefillData}
             />
           </div>

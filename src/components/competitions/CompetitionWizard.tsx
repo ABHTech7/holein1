@@ -62,18 +62,21 @@ const fullSchema = z.object({
 type FormData = z.infer<typeof fullSchema>;
 
 interface CompetitionWizardProps {
-  clubId: string;
+  clubId?: string;
+  isAdmin?: boolean;
   prefillData?: Partial<FormData>;
 }
 
-const CompetitionWizard = ({ clubId, prefillData }: CompetitionWizardProps) => {
+const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: CompetitionWizardProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(isAdmin && !clubId ? 0 : 1); // Start at step 0 for admin club selection
   const [loading, setLoading] = useState(false);
   const [overlapWarning, setOverlapWarning] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>('CLUB');
+  const [selectedClubId, setSelectedClubId] = useState<string | null>(clubId || null);
+  const [clubs, setClubs] = useState<Array<{ id: string; name: string }>>([]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(fullSchema),
@@ -92,9 +95,9 @@ const CompetitionWizard = ({ clubId, prefillData }: CompetitionWizardProps) => {
 
   const watchedValues = form.watch();
 
-  // Fetch user role on component mount
+  // Fetch user role and clubs on component mount
   React.useEffect(() => {
-    const fetchUserRole = async () => {
+    const fetchUserRoleAndClubs = async () => {
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -104,19 +107,35 @@ const CompetitionWizard = ({ clubId, prefillData }: CompetitionWizardProps) => {
         
         if (profile) {
           setUserRole(profile.role);
+          
+          // If admin and no club provided, fetch all clubs
+          if (profile.role === 'ADMIN' && !clubId) {
+            const { data: clubsData } = await supabase
+              .from('clubs')
+              .select('id, name')
+              .eq('active', true)
+              .order('name');
+            
+            if (clubsData) {
+              setClubs(clubsData);
+            }
+          }
         }
       }
     };
     
-    fetchUserRole();
-  }, [user]);
+    fetchUserRoleAndClubs();
+  }, [user, clubId]);
 
   const checkForOverlaps = async (holeNumber: number, startDate: Date, endDate: Date) => {
+    const targetClubId = selectedClubId || clubId;
+    if (!targetClubId) return false;
+
     try {
       const { data: existingCompetitions, error } = await supabase
         .from('competitions')
         .select('id, name, start_date, end_date')
-        .eq('club_id', clubId)
+        .eq('club_id', targetClubId)
         .eq('hole_number', holeNumber)
         .in('status', ['SCHEDULED', 'ACTIVE']);
 
@@ -186,13 +205,15 @@ const CompetitionWizard = ({ clubId, prefillData }: CompetitionWizardProps) => {
 
   const nextStep = async () => {
     const isValid = await validateStep(currentStep);
-    if (isValid && currentStep < 4) {
+    const maxSteps = isAdmin && !clubId ? 5 : 4; // Extra step for club selection
+    if (isValid && currentStep < maxSteps) {
       setCurrentStep(currentStep + 1);
     }
   };
 
   const prevStep = () => {
-    if (currentStep > 1) {
+    const minStep = isAdmin && !clubId ? 0 : 1;
+    if (currentStep > minStep) {
       setCurrentStep(currentStep - 1);
     }
   };
@@ -210,7 +231,7 @@ const CompetitionWizard = ({ clubId, prefillData }: CompetitionWizardProps) => {
       const { data: competition, error } = await supabase
         .from('competitions')
         .insert({
-          club_id: clubId,
+          club_id: selectedClubId || clubId,
           name: data.name,
           hole_number: data.hole_number,
           description: data.description,
@@ -230,7 +251,12 @@ const CompetitionWizard = ({ clubId, prefillData }: CompetitionWizardProps) => {
         description: 'Your Hole in 1 Challenge has been published successfully.',
       });
 
-      navigate(`/dashboard/club/competitions/${competition.id}`);
+      // Navigate based on user role
+      if (isAdmin) {
+        navigate('/dashboard/admin/competitions');
+      } else {
+        navigate(`/dashboard/club/competitions/${competition.id}`);
+      }
     } catch (error) {
       console.error('Error creating competition:', error);
       toast({
@@ -245,6 +271,31 @@ const CompetitionWizard = ({ clubId, prefillData }: CompetitionWizardProps) => {
 
   const renderStep = () => {
     switch (currentStep) {
+      case 0: // Club selection for admins
+        return (
+          <div className="space-y-6">
+            <div>
+              <Label htmlFor="club_selection">Select Club</Label>
+              <select 
+                id="club_selection"
+                className="w-full p-2 border border-input rounded-md bg-background"
+                value={selectedClubId || ''}
+                onChange={(e) => setSelectedClubId(e.target.value)}
+              >
+                <option value="">Select a club...</option>
+                {clubs.map((club) => (
+                  <option key={club.id} value={club.id}>
+                    {club.name}
+                  </option>
+                ))}
+              </select>
+              {!selectedClubId && (
+                <p className="text-sm text-destructive mt-1">Please select a club to continue</p>
+              )}
+            </div>
+          </div>
+        );
+
       case 1:
         return (
           <div className="space-y-6">
@@ -484,12 +535,12 @@ const CompetitionWizard = ({ clubId, prefillData }: CompetitionWizardProps) => {
     }
   };
 
-  const stepTitles = [
-    'Competition Details',
-    'Schedule',
-    'Pricing & Settings',
-    'Review & Publish'
-  ];
+  const stepTitles = isAdmin && !clubId 
+    ? ['Select Club', 'Competition Details', 'Schedule', 'Pricing & Settings', 'Review & Publish']
+    : ['Competition Details', 'Schedule', 'Pricing & Settings', 'Review & Publish'];
+
+  const totalSteps = isAdmin && !clubId ? 5 : 4;
+  const displayStep = isAdmin && !clubId ? currentStep + 1 : currentStep;
 
   return (
     <Card className="max-w-2xl mx-auto">
@@ -497,11 +548,11 @@ const CompetitionWizard = ({ clubId, prefillData }: CompetitionWizardProps) => {
         <div className="flex items-center justify-between">
           <CardTitle>Create New Challenge</CardTitle>
           <span className="text-sm text-muted-foreground">
-            Step {currentStep} of 4
+            Step {displayStep} of {totalSteps}
           </span>
         </div>
-        <Progress value={(currentStep / 4) * 100} className="mt-2" />
-        <p className="text-muted-foreground">{stepTitles[currentStep - 1]}</p>
+        <Progress value={(displayStep / totalSteps) * 100} className="mt-2" />
+        <p className="text-muted-foreground">{stepTitles[currentStep]}</p>
       </CardHeader>
 
       <CardContent>
@@ -513,14 +564,14 @@ const CompetitionWizard = ({ clubId, prefillData }: CompetitionWizardProps) => {
               type="button"
               variant="outline"
               onClick={prevStep}
-              disabled={currentStep === 1}
+              disabled={currentStep === (isAdmin && !clubId ? 0 : 1)}
               className="gap-2"
             >
               <ChevronLeft className="w-4 h-4" />
               Previous
             </Button>
 
-            {currentStep < 4 ? (
+            {currentStep < totalSteps ? (
               <Button
                 type="button"
                 onClick={nextStep}
