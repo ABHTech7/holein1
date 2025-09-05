@@ -465,6 +465,11 @@ const CompetitionDetailEnhanced = () => {
                 <Badge className={getCompetitionStatusColor(competition.status)}>
                   {competition.status}
                 </Badge>
+                {competition.archived && (
+                  <Badge variant="outline">
+                    Archived
+                  </Badge>
+                )}
                 
                 <Button 
                   variant="default" 
@@ -475,6 +480,86 @@ const CompetitionDetailEnhanced = () => {
                   <Edit className="w-4 h-4" />
                   Edit Competition
                 </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      const { error } = await supabase
+                        .from('competitions')
+                        .update({ archived: !competition.archived })
+                        .eq('id', competition.id);
+                      
+                      if (error) throw error;
+                      
+                      setCompetition(prev => prev ? { ...prev, archived: !prev.archived } : null);
+                      
+                      toast({
+                        title: "Success",
+                        description: `Competition ${competition.archived ? 'unarchived' : 'archived'} successfully`,
+                      });
+                    } catch (error) {
+                      console.error('Error archiving competition:', error);
+                      toast({
+                        title: "Error",
+                        description: "Failed to archive competition",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                  className="gap-2"
+                >
+                  {competition.archived ? 'Unarchive' : 'Archive'}
+                </Button>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" className="gap-2">
+                      Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Competition?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete the competition and all its entries. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={async () => {
+                          try {
+                            const { error } = await supabase
+                              .from('competitions')
+                              .delete()
+                              .eq('id', competition.id);
+                            
+                            if (error) throw error;
+                            
+                            toast({
+                              title: "Competition Deleted",
+                              description: "Competition has been permanently deleted",
+                            });
+                            
+                            navigate('/dashboard/admin/competitions');
+                          } catch (error) {
+                            console.error('Error deleting competition:', error);
+                            toast({
+                              title: "Error",
+                              description: "Failed to delete competition",
+                              variant: "destructive"
+                            });
+                          }
+                        }}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete Competition
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 
                 {competition.status !== 'ENDED' && (
                   <AlertDialog>

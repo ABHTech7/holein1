@@ -28,6 +28,7 @@ interface Club {
   phone: string | null;
   website: string | null;
   active: boolean;
+  archived: boolean;
   created_at: string;
   logo_url: string | null;
 }
@@ -564,9 +565,40 @@ const ClubDetailPage = () => {
                   </Button>
                 </div>
               ) : (
-                <Button onClick={() => setEditMode(true)}>
-                  Edit Club
-                </Button>
+                <div className="flex gap-2">
+                  <Button onClick={() => setEditMode(true)}>
+                    Edit Club
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        const { error } = await supabase
+                          .from('clubs')
+                          .update({ archived: !club.archived })
+                          .eq('id', clubId);
+                        
+                        if (error) throw error;
+                        
+                        setClub(prev => prev ? { ...prev, archived: !prev.archived } : null);
+                        
+                        toast({
+                          title: "Success",
+                          description: `Club ${club.archived ? 'unarchived' : 'archived'} successfully`,
+                        });
+                      } catch (error) {
+                        console.error('Error archiving club:', error);
+                        toast({
+                          title: "Error",
+                          description: "Failed to archive club",
+                          variant: "destructive"
+                        });
+                      }
+                    }}
+                  >
+                    {club.archived ? 'Unarchive' : 'Archive'}
+                  </Button>
+                </div>
               )}
             </div>
           </div>

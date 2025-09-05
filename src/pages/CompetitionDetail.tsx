@@ -268,6 +268,49 @@ const CompetitionDetail = () => {
                 <ArrowLeft className="w-4 h-4" />
                 Back to Competitions
               </Button>
+              
+              <div className="flex items-center gap-2 ml-auto">
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={() => navigate(`/dashboard/admin/competitions/${competition.id}/edit`)}
+                  className="gap-2"
+                >
+                  Edit Competition
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      const { error } = await supabase
+                        .from('competitions')
+                        .update({ archived: !competition.archived })
+                        .eq('id', competition.id);
+                      
+                      if (error) throw error;
+                      
+                      setCompetition(prev => prev ? { ...prev, archived: !prev.archived } : null);
+                      
+                      toast({
+                        title: "Success",
+                        description: `Competition ${competition.archived ? 'unarchived' : 'archived'} successfully`,
+                      });
+                    } catch (error) {
+                      console.error('Error archiving competition:', error);
+                      toast({
+                        title: "Error",
+                        description: "Failed to archive competition",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                  className="gap-2"
+                >
+                  {competition.archived ? 'Unarchive' : 'Archive'}
+                </Button>
+              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -278,9 +321,16 @@ const CompetitionDetail = () => {
                 </p>
               </div>
               
-              <Badge className={getCompetitionStatusColor(competition.status)}>
-                {competition.status}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge className={getCompetitionStatusColor(competition.status)}>
+                  {competition.status}
+                </Badge>
+                {competition.archived && (
+                  <Badge variant="outline">
+                    Archived
+                  </Badge>
+                )}
+              </div>
             </div>
 
             {/* Competition Overview */}

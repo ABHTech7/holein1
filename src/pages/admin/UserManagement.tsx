@@ -425,6 +425,7 @@ const UserManagement = () => {
                     onChange={(e) => setNewUser({...newUser, password: e.target.value})}
                     required
                     placeholder="User will need to change this"
+                    autoComplete="new-password"
                   />
                 </div>
 
