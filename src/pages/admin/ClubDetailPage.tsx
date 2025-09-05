@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Building, Mail, Phone, MapPin, Trophy, FileText, PoundSterling, Plus, Save, Calendar, ArrowLeft } from "lucide-react";
+import { Building, Mail, Phone, MapPin, Trophy, FileText, PoundSterling, Plus, Save, Calendar, ArrowLeft, Edit2, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate, formatCurrency } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
@@ -18,6 +18,7 @@ import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 import ClubCommissionSection from "@/components/admin/ClubCommissionSection";
 import ClubBankDetailsSection from "@/components/admin/ClubBankDetailsSection";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Club {
   id: string;
@@ -63,6 +64,7 @@ interface Note {
 const ClubDetailPage = () => {
   const { clubId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [club, setClub] = useState<Club | null>(null);
@@ -70,6 +72,8 @@ const ClubDetailPage = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [newNote, setNewNote] = useState("");
+  const [editingCommission, setEditingCommission] = useState<string | null>(null);
+  const [tempCommissionRate, setTempCommissionRate] = useState<string>("");
 
   // Form data for editing
   const [formData, setFormData] = useState({
@@ -148,7 +152,8 @@ const ClubDetailPage = () => {
 
       setCompetitions(competitionsWithStats);
 
-      // Mock data for notes
+      // Fetch actual notes from database - for now using mock data
+      // TODO: Create proper notes table linked to clubs
       setNotes([
         {
           id: '1',
@@ -170,9 +175,45 @@ const ClubDetailPage = () => {
     }
   };
 
+  const addAuditNote = async (changes: string[]) => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', user?.id)
+        .single();
+      
+      const adminName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'Admin';
+      const timestamp = new Date().toISOString();
+      const changesList = changes.join(', ');
+      
+      const auditNote: Note = {
+        id: Date.now().toString(),
+        content: `Club details updated: ${changesList}`,
+        created_at: timestamp,
+        created_by: `${adminName} (${new Date().toLocaleString()})`
+      };
+      
+      setNotes(prev => [auditNote, ...prev]);
+    } catch (error) {
+      console.error('Error adding audit note:', error);
+    }
+  };
+
   const handleSave = async () => {
     try {
       setSaving(true);
+      
+      // Track changes for audit
+      const changes: string[] = [];
+      if (club) {
+        if (club.name !== formData.name) changes.push(`name changed from "${club.name}" to "${formData.name}"`);
+        if (club.address !== formData.address) changes.push(`address updated`);
+        if (club.email !== formData.email) changes.push(`email updated`);
+        if (club.phone !== formData.phone) changes.push(`phone updated`);
+        if (club.website !== formData.website) changes.push(`website updated`);
+        if (club.active !== formData.active) changes.push(`status changed to ${formData.active ? 'active' : 'inactive'}`);
+      }
 
       const { error } = await supabase
         .from('clubs')
@@ -190,6 +231,11 @@ const ClubDetailPage = () => {
 
       setClub(prev => prev ? { ...prev, ...formData } : null);
       setEditMode(false);
+      
+      // Add audit trail if there were changes
+      if (changes.length > 0) {
+        await addAuditNote(changes);
+      }
 
       toast({
         title: "Success",
@@ -207,6 +253,70 @@ const ClubDetailPage = () => {
     }
   };
 
+  const handleCommissionEdit = (competitionId: string, currentRate: number) => {
+    setEditingCommission(competitionId);
+    setTempCommissionRate(currentRate.toString());
+  };
+
+  const handleCommissionSave = async (competitionId: string) => {
+    try {
+      const newRate = parseFloat(tempCommissionRate);
+      if (isNaN(newRate) || newRate < 0) {
+        toast({
+          title: "Error",
+          description: "Please enter a valid commission rate",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const competition = competitions.find(c => c.id === competitionId);
+      if (!competition) return;
+
+      const { error } = await supabase
+        .from('competitions')
+        .update({ commission_rate: newRate })
+        .eq('id', competitionId);
+
+      if (error) throw error;
+
+      // Update local state
+      setCompetitions(prev => prev.map(comp => {
+        if (comp.id === competitionId) {
+          const updatedComp = { ...comp, commission_rate: newRate };
+          // Recalculate commission with new rate
+          const paidEntries = Math.round(comp.total_revenue / comp.entry_fee) || 0;
+          updatedComp.total_commission = paidEntries * newRate;
+          return updatedComp;
+        }
+        return comp;
+      }));
+
+      setEditingCommission(null);
+      setTempCommissionRate("");
+
+      // Add audit note for commission change
+      await addAuditNote([`competition "${competition.name}" commission rate changed from £${competition.commission_rate} to £${newRate}`]);
+
+      toast({
+        title: "Success",
+        description: "Commission rate updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating commission rate:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update commission rate",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleCommissionCancel = () => {
+    setEditingCommission(null);
+    setTempCommissionRate("");
+  };
+
   const addNote = () => {
     if (!newNote.trim()) return;
 
@@ -214,7 +324,7 @@ const ClubDetailPage = () => {
       id: Date.now().toString(),
       content: newNote,
       created_at: new Date().toISOString(),
-      created_by: 'Admin'
+      created_by: 'Admin (Manual Note)'
     };
 
     setNotes(prev => [note, ...prev]);
@@ -442,7 +552,48 @@ const ClubDetailPage = () => {
                                 </div>
                               </TableCell>
                               <TableCell>{formatCurrency(competition.entry_fee)}</TableCell>
-                              <TableCell>{formatCurrency(competition.commission_rate)}</TableCell>
+                              <TableCell>
+                                {editingCommission === competition.id ? (
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      value={tempCommissionRate}
+                                      onChange={(e) => setTempCommissionRate(e.target.value)}
+                                      className="w-20 h-8"
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleCommissionSave(competition.id)}
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <Check className="w-4 h-4 text-green-600" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={handleCommissionCancel}
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <X className="w-4 h-4 text-red-600" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <span>{formatCurrency(competition.commission_rate)}</span>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleCommissionEdit(competition.id, competition.commission_rate)}
+                                      className="h-8 w-8 p-0"
+                                    >
+                                      <Edit2 className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </TableCell>
                               <TableCell>
                                 {competition.total_entries}
                                 {competition.max_participants && ` / ${competition.max_participants}`}
