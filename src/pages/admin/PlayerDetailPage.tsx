@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { User, Mail, Phone, Calendar, Trophy, FileText, PoundSterling, Plus, Save, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDate, formatCurrency } from "@/lib/formatters";
+import { formatDate, formatCurrency, formatDateTime } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
@@ -384,7 +384,7 @@ const PlayerDetailPage = () => {
                       <TableRow>
                         <TableHead>Competition</TableHead>
                         <TableHead>Club</TableHead>
-                        <TableHead>Entry Date</TableHead>
+                        <TableHead>Entry Date & Time</TableHead>
                         <TableHead>Entry Fee</TableHead>
                         <TableHead>Score</TableHead>
                         <TableHead>Payment Status</TableHead>
@@ -402,7 +402,14 @@ const PlayerDetailPage = () => {
                           <TableRow key={entry.id}>
                             <TableCell className="font-medium">{entry.competition.name}</TableCell>
                             <TableCell>{entry.competition.club_name}</TableCell>
-                            <TableCell>{formatDate(entry.entry_date, 'short')}</TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                <div className="font-medium">{formatDate(entry.entry_date, 'short')}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {formatDateTime(entry.entry_date)}
+                                </div>
+                              </div>
+                            </TableCell>
                             <TableCell>{formatCurrency(entry.competition.entry_fee)}</TableCell>
                             <TableCell>{entry.score || 'Not played'}</TableCell>
                             <TableCell>

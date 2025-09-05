@@ -12,6 +12,7 @@ import { Trophy, Target, Calendar, Clock, PoundSterling } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import useAuth from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { formatDateTime } from "@/lib/formatters";
 
 interface Entry {
   id: string;
@@ -250,7 +251,7 @@ const PlayerEntries = () => {
                           <TableHead>Competition</TableHead>
                           <TableHead>Club</TableHead>
                           <TableHead>Status</TableHead>
-                          <TableHead>Entry Date</TableHead>
+                          <TableHead>Entry Date & Time</TableHead>
                           <TableHead>Entry Fee</TableHead>
                           <TableHead>Payment</TableHead>
                           <TableHead>Score</TableHead>
@@ -270,7 +271,14 @@ const PlayerEntries = () => {
                             </TableCell>
                             <TableCell>{entry.competition.club.name}</TableCell>
                             <TableCell>{getStatusBadge(entry.competition.status)}</TableCell>
-                            <TableCell>{formatDate(entry.entry_date)}</TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                <div className="font-medium">{formatDate(entry.entry_date)}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {formatDateTime(entry.entry_date)}
+                                </div>
+                              </div>
+                            </TableCell>
                             <TableCell>{formatCurrency(entry.competition.entry_fee)}</TableCell>
                             <TableCell>
                               <Badge variant={entry.paid ? "default" : "outline"} className={entry.paid ? "bg-accent" : ""}>
