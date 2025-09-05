@@ -149,7 +149,9 @@ const RevenueBreakdown = () => {
       // Get unique clubs for filter
       const uniqueClubs = Array.from(
         new Set(transformedEntries.map(e => e.club_name))
-      ).map(name => ({ id: name, name }));
+      )
+      .filter(name => name && name.trim() !== '') // Filter out empty names
+      .map(name => ({ id: name, name }));
       setClubs(uniqueClubs);
 
     } catch (error) {
