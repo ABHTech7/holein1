@@ -442,6 +442,18 @@ const CompetitionDetailEnhanced = () => {
       <main className="flex-1">
         <Section spacing="lg">
           <div className="max-w-6xl mx-auto space-y-8">
+            {/* Back Button */}
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/dashboard/admin/competitions')}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Competitions
+              </Button>
+            </div>
+
             {/* Breadcrumbs */}
             <nav className="mb-8">
               <ol className="flex items-center space-x-2 text-sm text-muted-foreground">
@@ -661,7 +673,7 @@ const CompetitionDetailEnhanced = () => {
                           <TableRow>
                             <TableHead>Player</TableHead>
                             <TableHead>Entry Date</TableHead>
-                            <TableHead>Payment Status</TableHead>
+                            <TableHead>Status</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -682,8 +694,8 @@ const CompetitionDetailEnhanced = () => {
                               </TableCell>
                               <TableCell>{formatDateTime(entry.entry_date)}</TableCell>
                               <TableCell>
-                                <Badge variant={entry.paid ? "default" : "secondary"}>
-                                  {competition.entry_fee === 0 ? "FREE" : entry.paid ? "PAID" : "PENDING"}
+                                <Badge variant={entry.score === 1 ? "default" : "secondary"}>
+                                  {entry.completed_at ? (entry.score === 1 ? "Won" : "Missed") : "In Progress"}
                                 </Badge>
                               </TableCell>
                             </TableRow>

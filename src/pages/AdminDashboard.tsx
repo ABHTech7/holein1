@@ -5,6 +5,7 @@ import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
 import StatsCard from "@/components/ui/stats-card";
@@ -271,8 +272,8 @@ const AdminDashboard = () => {
             {/* Header */}
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="font-display text-3xl font-bold text-foreground">Admin Dashboard</h1>
-                <p className="text-muted-foreground mt-1">Manage your club operations and monitor performance</p>
+                <h1 className="font-display text-3xl font-bold text-foreground">The Clubhouse HQ</h1>
+                <p className="text-muted-foreground mt-1">Keeping score, counting cash, and dodging sand traps.</p>
               </div>
               <div className="flex gap-3">
                 <Button variant="outline" className="gap-2" onClick={handleSettings}>
@@ -298,7 +299,7 @@ const AdminDashboard = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-primary" />
-                  Revenue Overview
+                  Show Me the Money
                   <span className="text-sm font-normal text-muted-foreground ml-auto">Click to view breakdown</span>
                 </CardTitle>
               </CardHeader>
@@ -314,24 +315,47 @@ const AdminDashboard = () => {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-primary mb-1">
-                        {formatCurrency(stats.todayRevenue)}
+                    <TooltipProvider>
+                      <div className="text-center">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="text-2xl font-bold text-primary mb-1 cursor-help">
+                              {formatCurrency(stats.todayRevenue)}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Cha-ching!</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <div className="text-sm text-muted-foreground">Today's Revenue</div>
                       </div>
-                      <div className="text-sm text-muted-foreground">Today's Revenue</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-primary mb-1">
-                        {formatCurrency(stats.monthlyRevenue)}
+                      <div className="text-center">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="text-2xl font-bold text-primary mb-1 cursor-help">
+                              {formatCurrency(stats.monthlyRevenue)}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Cha-ching!</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <div className="text-sm text-muted-foreground">Month to Date</div>
                       </div>
-                      <div className="text-sm text-muted-foreground">Month to Date</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-primary mb-1">
-                        {formatCurrency(stats.yearlyRevenue)}
+                      <div className="text-center">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="text-2xl font-bold text-primary mb-1 cursor-help">
+                              {formatCurrency(stats.yearlyRevenue)}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Cha-ching!</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <div className="text-sm text-muted-foreground">Year to Date</div>
                       </div>
-                      <div className="text-sm text-muted-foreground">Year to Date</div>
-                    </div>
+                    </TooltipProvider>
                   </div>
                 )}
               </CardContent>
