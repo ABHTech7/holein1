@@ -219,7 +219,7 @@ const CompetitionDetail = () => {
     return <Navigate to="/players/login" replace />;
   }
 
-  if (!profile || profile.role !== 'CLUB') {
+  if (!profile || (profile.role !== 'CLUB' && profile.role !== 'ADMIN')) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="max-w-md mx-auto">
@@ -228,7 +228,7 @@ const CompetitionDetail = () => {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">
-              This page is only accessible to club administrators.
+              This page is only accessible to club administrators and admins.
             </p>
           </CardContent>
         </Card>
