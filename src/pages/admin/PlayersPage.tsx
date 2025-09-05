@@ -1,0 +1,246 @@
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Search, Mail, Calendar, Trophy, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { formatDate } from "@/lib/formatters";
+import PlayerDetailModal from "@/components/admin/PlayerDetailModal";
+import SiteHeader from "@/components/layout/SiteHeader";
+import SiteFooter from "@/components/layout/SiteFooter";
+import Section from "@/components/layout/Section";
+
+interface Player {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  created_at: string;
+  last_entry_date: string | null;
+  total_entries: number;
+}
+
+const PlayersPage = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredPlayers, setFilteredPlayers] = useState<Player[]>([]);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [showPlayerDetail, setShowPlayerDetail] = useState(false);
+
+  useEffect(() => {
+    fetchPlayers();
+  }, []);
+
+  useEffect(() => {
+    const filtered = players.filter(player => {
+      const fullName = `${player.first_name || ''} ${player.last_name || ''}`.toLowerCase();
+      const search = searchTerm.toLowerCase();
+      return fullName.includes(search) || player.email.toLowerCase().includes(search);
+    });
+    setFilteredPlayers(filtered);
+  }, [players, searchTerm]);
+
+  const fetchPlayers = async () => {
+    try {
+      setLoading(true);
+
+      const { data: playersData, error } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          email,
+          first_name,
+          last_name,
+          created_at
+        `)
+        .eq('role', 'PLAYER')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const playersWithStats = await Promise.all(
+        (playersData || []).map(async (player) => {
+          const { data: entries, error: entriesError } = await supabase
+            .from('entries')
+            .select('entry_date')
+            .eq('player_id', player.id)
+            .order('entry_date', { ascending: false });
+
+          if (entriesError) {
+            console.error('Error fetching entries for player:', player.id, entriesError);
+          }
+
+          const totalEntries = entries?.length || 0;
+          const lastEntryDate = entries && entries.length > 0 ? entries[0].entry_date : null;
+
+          return {
+            ...player,
+            total_entries: totalEntries,
+            last_entry_date: lastEntryDate
+          };
+        })
+      );
+
+      setPlayers(playersWithStats);
+    } catch (error) {
+      console.error('Error fetching players:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load players data.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePlayerClick = (playerId: string) => {
+    setSelectedPlayerId(playerId);
+    setShowPlayerDetail(true);
+  };
+
+  const getPlayerName = (player: Player) => {
+    if (player.first_name || player.last_name) {
+      return `${player.first_name || ''} ${player.last_name || ''}`.trim();
+    }
+    return 'No name provided';
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <SiteHeader />
+      
+      <Section className="py-8">
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/dashboard/admin')}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Dashboard
+            </Button>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="w-5 h-5" />
+                All Players ({players.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search players by name or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {loading ? (
+                <div className="space-y-3">
+                  {[...Array(10)].map((_, i) => (
+                    <div key={i} className="flex items-center space-x-4 p-3 border rounded">
+                      <Skeleton className="h-4 w-48" />
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Signed Up</TableHead>
+                      <TableHead>Last Entry</TableHead>
+                      <TableHead>Total Entries</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPlayers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          {searchTerm ? 'No players found matching your search.' : 'No players found.'}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredPlayers.map((player) => (
+                        <TableRow key={player.id}>
+                          <TableCell className="font-medium">
+                            <button
+                              onClick={() => handlePlayerClick(player.id)}
+                              className="text-left hover:text-primary hover:underline focus:outline-none focus:text-primary"
+                            >
+                              {getPlayerName(player)}
+                            </button>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Mail className="w-4 h-4 text-muted-foreground" />
+                              {player.email}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-muted-foreground" />
+                              {formatDate(player.created_at, 'short')}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {player.last_entry_date ? (
+                              <div className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-muted-foreground" />
+                                {formatDate(player.last_entry_date, 'short')}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">Never</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {player.total_entries}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={player.total_entries > 0 ? "default" : "outline"}>
+                              {player.total_entries > 0 ? "Active" : "Inactive"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </Section>
+
+      <SiteFooter />
+
+      <PlayerDetailModal 
+        isOpen={showPlayerDetail}
+        onClose={() => setShowPlayerDetail(false)}
+        playerId={selectedPlayerId}
+      />
+    </div>
+  );
+};
+
+export default PlayersPage;

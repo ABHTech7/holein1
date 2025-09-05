@@ -15,6 +15,10 @@ import DeveloperDemo from "./pages/DeveloperDemo";
 import AdminDashboard from "./pages/AdminDashboard";
 import ClubDashboard from "./pages/ClubDashboard";
 import ClubDashboardNew from "./pages/ClubDashboardNew";
+import PlayersPage from "./pages/admin/PlayersPage";
+import ClubsPage from "./pages/admin/ClubsPage";
+import CompetitionsPage from "./pages/admin/CompetitionsPage";
+import RevenuePage from "./pages/admin/RevenuePage";
 import CompetitionDetail from "./pages/CompetitionDetail";
 import CompetitionDetailEnhanced from "./pages/CompetitionDetailEnhanced";
 import CompetitionWizardPage from "./pages/CompetitionWizardPage";
@@ -66,6 +70,38 @@ const App = () => (
             element={
               <RoleGuard allowedRoles={['ADMIN']}>
                 <AdminDashboard />
+              </RoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/admin/players" 
+            element={
+              <RoleGuard allowedRoles={['ADMIN']}>
+                <PlayersPage />
+              </RoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/admin/clubs" 
+            element={
+              <RoleGuard allowedRoles={['ADMIN']}>
+                <ClubsPage />
+              </RoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/admin/competitions" 
+            element={
+              <RoleGuard allowedRoles={['ADMIN']}>
+                <CompetitionsPage />
+              </RoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/admin/revenue" 
+            element={
+              <RoleGuard allowedRoles={['ADMIN']}>
+                <RevenuePage />
               </RoleGuard>
             } 
           />

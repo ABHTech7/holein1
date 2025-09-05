@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,8 +12,6 @@ import StatsCard from "@/components/ui/stats-card";
 import ChartWrapper from "@/components/ui/chart-wrapper";
 import UserManagementModal from "@/components/admin/UserManagementModal";
 import SiteSettingsModal from "@/components/admin/SiteSettingsModal";
-import PlayersListModal from "@/components/admin/PlayersListModal";
-import ClubsListModal from "@/components/admin/ClubsListModal";
 import { Users, Calendar, Trophy, TrendingUp, Plus, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -37,11 +36,10 @@ interface Competition {
 }
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [showUserManagement, setShowUserManagement] = useState(false);
   const [showSiteSettings, setShowSiteSettings] = useState(false);
-  const [showPlayersList, setShowPlayersList] = useState(false);
-  const [showClubsList, setShowClubsList] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     totalPlayers: 0,
     newPlayersThisMonth: 0,
@@ -179,11 +177,19 @@ const AdminDashboard = () => {
   };
 
   const handlePlayersClick = () => {
-    setShowPlayersList(true);
+    navigate('/dashboard/admin/players');
   };
 
   const handleClubsClick = () => {
-    setShowClubsList(true);
+    navigate('/dashboard/admin/clubs');
+  };
+
+  const handleCompetitionsClick = () => {
+    navigate('/dashboard/admin/competitions');
+  };
+
+  const handleRevenueClick = () => {
+    navigate('/dashboard/admin/revenue');
   };
 
   const clubDistribution = [
@@ -255,12 +261,14 @@ const AdminDashboard = () => {
                     value={stats.activeCompetitions.toString()}
                     description="Currently running"
                     icon={Trophy}
+                    onClick={handleCompetitionsClick}
                   />
                   <StatsCard
                     title="Month-to-Date Revenue"
                     value={formatCurrency(stats.monthlyRevenue)}
                     description={`Revenue since ${new Date().toLocaleDateString('en-GB', { month: 'long' })} 1st`}
                     icon={TrendingUp}
+                    onClick={handleRevenueClick}
                   />
                 </>
               )}
@@ -307,18 +315,6 @@ const AdminDashboard = () => {
       <SiteSettingsModal 
         isOpen={showSiteSettings}
         onClose={() => setShowSiteSettings(false)}
-      />
-
-      {/* Players List Modal */}
-      <PlayersListModal 
-        isOpen={showPlayersList}
-        onClose={() => setShowPlayersList(false)}
-      />
-
-      {/* Clubs List Modal */}
-      <ClubsListModal 
-        isOpen={showClubsList}
-        onClose={() => setShowClubsList(false)}
       />
     </div>
   );
