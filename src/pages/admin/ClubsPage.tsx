@@ -11,7 +11,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
-import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 
 interface Club {
@@ -289,8 +288,6 @@ const ClubsPage = () => {
           </Card>
         </div>
       </Section>
-
-      <SiteFooter />
     </div>
   );
 };

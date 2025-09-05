@@ -11,7 +11,6 @@ import { formatCurrency } from "@/lib/formatters";
 import { toast } from "@/hooks/use-toast";
 import ClubDetailModal from "@/components/admin/ClubDetailModal";
 import SiteHeader from "@/components/layout/SiteHeader";
-import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 
 interface ClubRevenue {
@@ -297,8 +296,6 @@ const RevenuePage = () => {
           </Card>
         </div>
       </Section>
-
-      <SiteFooter />
 
       <ClubDetailModal 
         isOpen={showClubDetail}

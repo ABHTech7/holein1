@@ -11,7 +11,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
-import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 import NewUserModal from "@/components/admin/NewUserModal";
 
@@ -245,8 +244,6 @@ const PlayersPage = () => {
           </Card>
         </div>
       </Section>
-
-      <SiteFooter />
 
       <NewUserModal 
         isOpen={showNewUser}

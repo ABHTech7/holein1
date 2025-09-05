@@ -11,7 +11,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
-import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 
 interface Competition {
@@ -263,8 +262,6 @@ const CompetitionsPage = () => {
           </Card>
         </div>
       </Section>
-
-      <SiteFooter />
     </div>
   );
 };

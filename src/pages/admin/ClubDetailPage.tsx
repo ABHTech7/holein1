@@ -14,7 +14,6 @@ import { Building, Mail, Phone, MapPin, Trophy, FileText, PoundSterling, Plus, S
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate, formatCurrency } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
-import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 import ClubCommissionSection from "@/components/admin/ClubCommissionSection";
 import ClubBankDetailsSection from "@/components/admin/ClubBankDetailsSection";
@@ -354,7 +353,6 @@ const ClubDetailPage = () => {
             </div>
           </div>
         </Section>
-        <SiteFooter />
       </div>
     );
   }
@@ -662,8 +660,6 @@ const ClubDetailPage = () => {
           </Tabs>
         </div>
       </Section>
-
-      <SiteFooter />
     </div>
   );
 };

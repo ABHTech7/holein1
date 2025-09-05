@@ -13,7 +13,6 @@ import { User, Mail, Phone, Calendar, Trophy, FileText, PoundSterling, Plus, Sav
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate, formatCurrency, formatDateTime } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
-import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 
 interface Player {
@@ -216,7 +215,6 @@ const PlayerDetailPage = () => {
             </div>
           </div>
         </Section>
-        <SiteFooter />
       </div>
     );
   }
@@ -483,8 +481,6 @@ const PlayerDetailPage = () => {
           </Tabs>
         </div>
       </Section>
-
-      <SiteFooter />
     </div>
   );
 };
