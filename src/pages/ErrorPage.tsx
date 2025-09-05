@@ -1,4 +1,4 @@
-import { Link, useRouteError } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import SiteHeader from "@/components/layout/SiteHeader";
@@ -7,8 +7,8 @@ import Section from "@/components/layout/Section";
 import { AlertTriangle, Home, RefreshCw } from "lucide-react";
 
 const ErrorPage = () => {
-  const error = useRouteError() as any;
-  const isNotFound = error?.status === 404;
+  const location = useLocation();
+  const isNotFound = location.pathname !== "/500";
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -32,14 +32,6 @@ const ErrorPage = () => {
                   }
                 </p>
               </div>
-
-              {error?.statusText && (
-                <div className="mb-6 p-3 bg-muted/50 rounded-lg">
-                  <p className="text-sm font-mono text-muted-foreground">
-                    Error: {error.statusText}
-                  </p>
-                </div>
-              )}
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Button 
