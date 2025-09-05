@@ -230,7 +230,7 @@ const PartnershipApplication = () => {
                         <Input
                           id="phone"
                           type="tel"
-                          placeholder="(555) 123-4567"
+                          placeholder="+44 20 7946 0958"
                           value={formData.phone}
                           onChange={(e) => setFormData({...formData, phone: e.target.value})}
                         />
