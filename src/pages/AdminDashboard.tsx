@@ -217,7 +217,7 @@ const AdminDashboard = () => {
                 </Button>
                 <Button className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2" onClick={handleAddMember}>
                   <Plus className="w-4 h-4" />
-                  Add Member
+                  Add New User
                 </Button>
               </div>
             </div>
