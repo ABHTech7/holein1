@@ -8,11 +8,15 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import ClubSignup from "./pages/ClubSignup";
 import PlayerLogin from "./pages/PlayerLogin";
+import Auth from "./pages/Auth";
 import CompetitionEntry from "./pages/CompetitionEntry";
 import AdminDashboard from "./pages/AdminDashboard";
 import ClubDashboard from "./pages/ClubDashboard";
 import Styleguide from "./pages/Styleguide";
 import ErrorPage from "./pages/ErrorPage";
+
+// Auth components
+import RoleGuard from "./components/auth/RoleGuard";
 
 // Policy Pages
 import PrivacyPolicy from "./pages/policies/PrivacyPolicy";
@@ -38,11 +42,26 @@ const App = () => (
           <Route path="/" element={<Home />} />
           <Route path="/clubs/signup" element={<ClubSignup />} />
           <Route path="/players/login" element={<PlayerLogin />} />
+          <Route path="/auth" element={<Auth />} />
           <Route path="/enter/:competitionId" element={<CompetitionEntry />} />
           
           {/* Dashboard Routes */}
-          <Route path="/dashboard/admin" element={<AdminDashboard />} />
-          <Route path="/dashboard/club" element={<ClubDashboard />} />
+          <Route 
+            path="/dashboard/admin" 
+            element={
+              <RoleGuard allowedRoles={['ADMIN']}>
+                <AdminDashboard />
+              </RoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/club" 
+            element={
+              <RoleGuard allowedRoles={['CLUB']}>
+                <ClubDashboard />
+              </RoleGuard>
+            } 
+          />
           
           {/* Policy Routes */}
           <Route path="/policies/privacy" element={<PrivacyPolicy />} />

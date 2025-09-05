@@ -2,17 +2,26 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Container from "./Container";
-import { Trophy, Menu } from "lucide-react";
+import { Trophy, Menu, User, LogOut } from "lucide-react";
 import { useState } from "react";
+import useAuth from "@/hooks/useAuth";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const SiteHeader = () => {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, profile, signOut } = useAuth();
 
   const navigation = [
     { name: "Home", href: "/" },
-    { name: "Sign Up", href: "/clubs/signup" },
-    { name: "Login", href: "/players/login" },
+  ];
+
+  const authNavigation = user ? [
+    ...(profile?.role === 'ADMIN' ? [{ name: "Admin", href: "/dashboard/admin" }] : []),
+    ...(profile?.role === 'CLUB' ? [{ name: "Dashboard", href: "/dashboard/club" }] : []),
+  ] : [
+    { name: "Sign Up", href: "/auth" },
+    { name: "Login", href: "/auth" },
   ];
 
   const isActive = (href: string) => location.pathname === href;
@@ -33,7 +42,7 @@ const SiteHeader = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-1">
-            {navigation.map((item) => (
+            {[...navigation, ...authNavigation].map((item) => (
               <Link
                 key={item.name}
                 to={item.href}
@@ -49,15 +58,32 @@ const SiteHeader = () => {
             ))}
           </nav>
 
-          {/* CTA Button (Desktop) */}
+          {/* User Menu or CTA Button (Desktop) */}
           <div className="hidden md:block">
-            <Button 
-              asChild
-              variant="default"
-              className="bg-gradient-primary hover:opacity-90 text-primary-foreground font-medium"
-            >
-              <Link to="/clubs/signup">Get Started</Link>
-            </Button>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <User className="w-4 h-4 mr-2" />
+                    {profile?.first_name || user.email}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => signOut()}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button 
+                asChild
+                variant="default"
+                className="bg-gradient-primary hover:opacity-90 text-primary-foreground font-medium"
+              >
+                <Link to="/auth">Get Started</Link>
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -75,7 +101,7 @@ const SiteHeader = () => {
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <div className="md:hidden py-4 space-y-2 border-t border-border/40">
-            {navigation.map((item) => (
+            {[...navigation, ...authNavigation].map((item) => (
               <Link
                 key={item.name}
                 to={item.href}
@@ -91,13 +117,27 @@ const SiteHeader = () => {
               </Link>
             ))}
             <div className="pt-2">
-              <Button 
-                asChild
-                variant="default"
-                className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground font-medium"
-              >
-                <Link to="/clubs/signup">Get Started</Link>
-              </Button>
+              {user ? (
+                <Button 
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    signOut();
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </Button>
+              ) : (
+                <Button 
+                  asChild
+                  variant="default"
+                  className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground font-medium"
+                >
+                  <Link to="/auth">Get Started</Link>
+                </Button>
+              )}
             </div>
           </div>
         )}
