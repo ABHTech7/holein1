@@ -126,7 +126,7 @@ const CompetitionsPage = () => {
       <main className="flex-1 bg-muted/30">
         <Section spacing="lg">
           <div className="max-w-6xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-6">
               <Button 
                 variant="ghost" 
                 onClick={() => navigate('/dashboard/admin')}
