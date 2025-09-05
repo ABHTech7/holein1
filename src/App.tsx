@@ -67,6 +67,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dev/demo" element={<DeveloperDemo />} />
           <Route path="/enter/:competitionId" element={<CompetitionEntry />} />
+          <Route path="/competitions/:id" element={<CompetitionDetail />} />
           
           {/* Dashboard Routes */}
           <Route 
