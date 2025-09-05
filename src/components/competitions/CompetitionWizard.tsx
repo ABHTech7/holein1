@@ -163,6 +163,19 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
   };
 
   const validateStep = async (step: number) => {
+    // Step 0 is club selection - just check if a club is selected
+    if (step === 0) {
+      if (!selectedClubId) {
+        toast({
+          title: 'Club Required',
+          description: 'Please select a club to continue',
+          variant: 'destructive',
+        });
+        return false;
+      }
+      return true;
+    }
+
     const currentSchema = stepSchemas[step - 1];
     
     // Get the fields to validate based on the step

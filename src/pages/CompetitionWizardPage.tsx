@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import useAuth from '@/hooks/useAuth';
 import SiteHeader from '@/components/layout/SiteHeader';
-import SiteFooter from '@/components/layout/SiteFooter';
 import Section from '@/components/layout/Section';
 import CompetitionWizard from '@/components/competitions/CompetitionWizard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -19,6 +20,7 @@ const CompetitionWizardPage = () => {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -71,7 +73,6 @@ const CompetitionWizardPage = () => {
             </div>
           </Section>
         </main>
-        <SiteFooter />
       </div>
     );
   }
@@ -117,16 +118,17 @@ const CompetitionWizardPage = () => {
       <main className="flex-1">
         <Section spacing="lg">
           <div className="max-w-4xl mx-auto">
-            {/* Breadcrumbs */}
-            <nav className="mb-8">
-              <ol className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <li><a href="/dashboard/admin" className="hover:text-foreground">Admin Dashboard</a></li>
-                <li>/</li>
-                <li><a href="/dashboard/admin/competitions" className="hover:text-foreground">Competitions</a></li>
-                <li>/</li>
-                <li className="text-foreground">New Competition</li>
-              </ol>
-            </nav>
+            {/* Back Button */}
+            <div className="mb-6">
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate('/dashboard/admin/competitions')}
+                className="gap-2"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Back to Competitions
+              </Button>
+            </div>
 
             <CompetitionWizard 
               clubId={profile.club_id}
@@ -136,8 +138,6 @@ const CompetitionWizardPage = () => {
           </div>
         </Section>
       </main>
-
-      <SiteFooter />
     </div>
   );
 };
