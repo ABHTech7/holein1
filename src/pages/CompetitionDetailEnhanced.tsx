@@ -441,9 +441,9 @@ const CompetitionDetailEnhanced = () => {
             {/* Breadcrumbs */}
             <nav className="mb-8">
               <ol className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <li><a href="/dashboard/club" className="hover:text-foreground">Dashboard</a></li>
+                <li><a href="/dashboard/admin" className="hover:text-foreground">Admin Dashboard</a></li>
                 <li>/</li>
-                <li><a href="/dashboard/club" className="hover:text-foreground">Competitions</a></li>
+                <li><a href="/dashboard/admin/competitions" className="hover:text-foreground">Competitions</a></li>
                 <li>/</li>
                 <li className="text-foreground">{competition.name}</li>
               </ol>

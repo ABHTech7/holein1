@@ -136,7 +136,7 @@ const CompetitionsPage = () => {
             </Button>
             
             <Button 
-              onClick={() => navigate('/competitions/create')}
+              onClick={() => navigate('/dashboard/admin/competitions/new')}
               className="flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />

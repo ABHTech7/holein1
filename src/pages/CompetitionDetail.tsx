@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Navigate } from 'react-router-dom';
+import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import useAuth from '@/hooks/useAuth';
@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import SiteHeader from '@/components/layout/SiteHeader';
-import SiteFooter from '@/components/layout/SiteFooter';
 import Section from '@/components/layout/Section';
 import { 
   Copy, 
@@ -67,6 +66,7 @@ interface Entry {
 
 const CompetitionDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -209,7 +209,6 @@ const CompetitionDetail = () => {
             </div>
           </Section>
         </main>
-        <SiteFooter />
       </div>
     );
   }
@@ -259,10 +258,14 @@ const CompetitionDetail = () => {
       
       <main className="flex-1">
         <Section spacing="lg">
-          <div className="max-w-4xl mx-auto space-y-8">
+          <div className="max-w-6xl mx-auto space-y-8">
             {/* Header */}
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" onClick={() => window.history.back()}>
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/dashboard/admin')}
+                className="flex items-center gap-2"
+              >
                 <ArrowLeft className="w-4 h-4" />
                 Back to Dashboard
               </Button>
@@ -452,8 +455,6 @@ const CompetitionDetail = () => {
           </div>
         </Section>
       </main>
-
-      <SiteFooter />
     </div>
   );
 };
