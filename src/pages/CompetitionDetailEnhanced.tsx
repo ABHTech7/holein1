@@ -396,7 +396,8 @@ const CompetitionDetailEnhanced = () => {
     return <Navigate to="/players/login" replace />;
   }
 
-  if (!profile || profile.role !== 'CLUB') {
+  // Club users no longer have access to competition editing
+  if (!profile || profile.role !== 'ADMIN') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="max-w-md mx-auto">
@@ -405,7 +406,7 @@ const CompetitionDetailEnhanced = () => {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">
-              This page is only accessible to club administrators.
+              This page is only accessible to system administrators.
             </p>
           </CardContent>
         </Card>

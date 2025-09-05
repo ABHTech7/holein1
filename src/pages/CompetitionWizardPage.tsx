@@ -81,13 +81,14 @@ const CompetitionWizardPage = () => {
     return <Navigate to="/players/login" replace />;
   }
 
-  if (!profile || profile.role !== 'CLUB') {
+  // Club users no longer have access to competition creation
+  if (!profile || profile.role !== 'ADMIN') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center max-w-md">
           <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
           <p className="text-muted-foreground">
-            This page is only accessible to club administrators.
+            This page is only accessible to system administrators.
           </p>
         </div>
       </div>
