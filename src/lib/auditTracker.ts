@@ -20,6 +20,20 @@ export const logAuditEvent = async ({
   description
 }: AuditLogOptions) => {
   try {
+    // Get user's name for audit trail
+    let adminName = 'System';
+    if (userId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', userId)
+        .single();
+      
+      if (profile) {
+        adminName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Admin User';
+      }
+    }
+
     // Insert into audit_events table
     const { error: auditError } = await supabase
       .from('audit_events')
@@ -36,11 +50,36 @@ export const logAuditEvent = async ({
       console.error('Error logging audit event:', auditError);
     }
 
-    return {
+    // Also create a note record for the UI
+    const { data: noteData, error: noteError } = await supabase
+      .from('notes')
+      .insert({
+        entity_type: entityType,
+        entity_id: entityId,
+        content: description,
+        created_by: userId || null,
+        created_by_name: adminName,
+        immutable: true,
+        note_type: 'system_audit'
+      })
+      .select()
+      .single();
+
+    if (noteError) {
+      console.error('Error creating audit note:', noteError);
+    }
+
+    return noteData ? {
+      id: noteData.id,
+      content: noteData.content,
+      created_at: noteData.created_at,
+      created_by: noteData.created_by_name,
+      immutable: noteData.immutable
+    } : {
       id: Date.now().toString(),
       content: description,
       created_at: new Date().toISOString(),
-      created_by: `System Audit - ${new Date().toLocaleString()}`,
+      created_by: adminName,
       immutable: true
     };
   } catch (error) {

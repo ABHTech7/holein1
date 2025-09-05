@@ -154,17 +154,27 @@ const ClubDetailPage = () => {
 
       setCompetitions(competitionsWithStats);
 
-      // Fetch actual notes from database - for now using mock data
-      // TODO: Create proper notes table linked to clubs
-      setNotes([
-        {
-          id: '1',
-          content: 'Club manager very responsive and helpful',
-          created_at: '2024-01-10',
-          created_by: 'Admin',
-          immutable: false
-        }
-      ]);
+      // Fetch notes from database
+      const { data: notesData, error: notesError } = await supabase
+        .from('notes')
+        .select('*')
+        .eq('entity_type', 'club')
+        .eq('entity_id', clubId)
+        .order('created_at', { ascending: false });
+
+      if (notesError) {
+        console.error('Error fetching notes:', notesError);
+      }
+
+      const formattedNotes = notesData?.map(note => ({
+        id: note.id,
+        content: note.content,
+        created_at: note.created_at,
+        created_by: note.created_by_name || 'Unknown User',
+        immutable: note.immutable
+      })) || [];
+      
+      setNotes(formattedNotes);
 
     } catch (error) {
       console.error('Error fetching club details:', error);
@@ -433,24 +443,52 @@ const ClubDetailPage = () => {
     }
   };
 
-  const addNote = () => {
-    if (!newNote.trim()) return;
+  const addNote = async () => {
+    if (!newNote.trim() || !user || !clubId) return;
 
-    const note: Note = {
-      id: Date.now().toString(),
-      content: newNote,
-      created_at: new Date().toISOString(),
-      created_by: 'Admin (Manual Note)',
-      immutable: false
-    };
+    try {
+      // Get user's full name
+      const userFullName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || user.email : user.email;
 
-    setNotes(prev => [note, ...prev]);
-    setNewNote("");
-    
-    toast({
-      title: "Note Added",
-      description: "Note has been added successfully.",
-    });
+      const { data: noteData, error } = await supabase
+        .from('notes')
+        .insert({
+          entity_type: 'club',
+          entity_id: clubId,
+          content: newNote,
+          created_by: user.id,
+          created_by_name: userFullName,
+          immutable: false,
+          note_type: 'manual'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const note: Note = {
+        id: noteData.id,
+        content: noteData.content,
+        created_at: noteData.created_at,
+        created_by: noteData.created_by_name,
+        immutable: false
+      };
+
+      setNotes(prev => [note, ...prev]);
+      setNewNote("");
+      
+      toast({
+        title: "Note Added",
+        description: "Note has been added successfully.",
+      });
+    } catch (error) {
+      console.error('Error adding note:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add note. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   if (loading || !club) {

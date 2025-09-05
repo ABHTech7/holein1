@@ -125,16 +125,27 @@ const PlayerDetailPage = () => {
 
       setEntries(formattedEntries);
 
-      // Mock notes data
-      setNotes([
-        {
-          id: '1',
-          content: 'Player is very active and competitive',
-          created_at: '2024-01-10',
-          created_by: 'Admin',
-          immutable: false
-        }
-      ]);
+      // Fetch notes from database
+      const { data: notesData, error: notesError } = await supabase
+        .from('notes')
+        .select('*')
+        .eq('entity_type', 'player')
+        .eq('entity_id', playerId)
+        .order('created_at', { ascending: false });
+
+      if (notesError) {
+        console.error('Error fetching notes:', notesError);
+      }
+
+      const formattedNotes = notesData?.map(note => ({
+        id: note.id,
+        content: note.content,
+        created_at: note.created_at,
+        created_by: note.created_by_name || 'Unknown User',
+        immutable: note.immutable
+      })) || [];
+      
+      setNotes(formattedNotes);
 
     } catch (error) {
       console.error('Error fetching player details:', error);
@@ -194,24 +205,52 @@ const PlayerDetailPage = () => {
     }
   };
 
-  const addNote = () => {
-    if (!newNote.trim()) return;
+  const addNote = async () => {
+    if (!newNote.trim() || !user || !playerId) return;
 
-    const note: Note = {
-      id: Date.now().toString(),
-      content: newNote,
-      created_at: new Date().toISOString(),
-      created_by: 'Admin',
-      immutable: false
-    };
+    try {
+      // Get user's full name
+      const userFullName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || user.email : user.email;
 
-    setNotes(prev => [note, ...prev]);
-    setNewNote("");
-    
-    toast({
-      title: "Note Added",
-      description: "Note has been added successfully.",
-    });
+      const { data: noteData, error } = await supabase
+        .from('notes')
+        .insert({
+          entity_type: 'player',
+          entity_id: playerId,
+          content: newNote,
+          created_by: user.id,
+          created_by_name: userFullName,
+          immutable: false,
+          note_type: 'manual'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const note: Note = {
+        id: noteData.id,
+        content: noteData.content,
+        created_at: noteData.created_at,
+        created_by: noteData.created_by_name,
+        immutable: false
+      };
+
+      setNotes(prev => [note, ...prev]);
+      setNewNote("");
+      
+      toast({
+        title: "Note Added",
+        description: "Note has been added successfully.",
+      });
+    } catch (error) {
+      console.error('Error adding note:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add note. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   if (loading || !player) {

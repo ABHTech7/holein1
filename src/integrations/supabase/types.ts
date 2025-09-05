@@ -421,6 +421,45 @@ export type Database = {
           },
         ]
       }
+      notes: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          immutable: boolean
+          note_type: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          immutable?: boolean
+          note_type?: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          immutable?: boolean
+          note_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           club_id: string | null
