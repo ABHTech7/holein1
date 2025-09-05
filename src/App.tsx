@@ -16,6 +16,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ClubDashboard from "./pages/ClubDashboard";
 import ClubDashboardNew from "./pages/ClubDashboardNew";
 import CompetitionDetail from "./pages/CompetitionDetail";
+import CompetitionDetailEnhanced from "./pages/CompetitionDetailEnhanced";
+import CompetitionWizardPage from "./pages/CompetitionWizardPage";
 import Styleguide from "./pages/Styleguide";
 import ErrorPage from "./pages/ErrorPage";
 
@@ -76,10 +78,18 @@ const App = () => (
             } 
           />
           <Route 
+            path="/dashboard/club/competitions/new" 
+            element={
+              <RoleGuard allowedRoles={['CLUB']}>
+                <CompetitionWizardPage />
+              </RoleGuard>
+            } 
+          />
+          <Route 
             path="/dashboard/club/competitions/:id" 
             element={
               <RoleGuard allowedRoles={['CLUB']}>
-                <CompetitionDetail />
+                <CompetitionDetailEnhanced />
               </RoleGuard>
             } 
           />

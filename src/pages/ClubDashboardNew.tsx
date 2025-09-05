@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import useAuth from '@/hooks/useAuth';
@@ -65,6 +65,7 @@ interface Entry {
 const ClubDashboardNew = () => {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('7');
@@ -411,7 +412,7 @@ const ClubDashboardNew = () => {
                     description="Set up your first Hole in 1 Challenge to get started"
                     action={{
                       label: "Set Up New Challenge",
-                      onClick: () => {} // TODO: Navigate to competition wizard
+                      onClick: () => navigate('/dashboard/club/competitions/new')
                     }}
                   />
                 ) : (
@@ -428,7 +429,11 @@ const ClubDashboardNew = () => {
                     </TableHeader>
                     <TableBody>
                       {competitions.map((competition) => (
-                        <TableRow key={competition.id} className="cursor-pointer">
+                        <TableRow 
+                          key={competition.id} 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => navigate(`/dashboard/club/competitions/${competition.id}`)}
+                        >
                           <TableCell className="font-medium">{competition.name}</TableCell>
                           <TableCell>{competition.hole_number}</TableCell>
                           <TableCell>
