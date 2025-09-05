@@ -11,6 +11,7 @@ import PlayerLogin from "./pages/PlayerLogin";
 import PlayerEntries from "./pages/PlayerEntries";
 import Auth from "./pages/Auth";
 import CompetitionEntry from "./pages/CompetitionEntry";
+import DeveloperDemo from "./pages/DeveloperDemo";
 import AdminDashboard from "./pages/AdminDashboard";
 import ClubDashboard from "./pages/ClubDashboard";
 import Styleguide from "./pages/Styleguide";
@@ -52,6 +53,7 @@ const App = () => (
             } 
           />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/dev/demo" element={<DeveloperDemo />} />
           <Route path="/enter/:competitionId" element={<CompetitionEntry />} />
           
           {/* Dashboard Routes */}
