@@ -243,13 +243,14 @@ export type Database = {
       competitions: {
         Row: {
           club_id: string
-          commission_rate: number | null
+          commission_amount: number | null
           created_at: string
           description: string | null
-          end_date: string
+          end_date: string | null
           entry_fee: number | null
           hole_number: number
           id: string
+          is_year_round: boolean
           max_participants: number | null
           name: string
           prize_pool: number | null
@@ -260,13 +261,14 @@ export type Database = {
         }
         Insert: {
           club_id: string
-          commission_rate?: number | null
+          commission_amount?: number | null
           created_at?: string
           description?: string | null
-          end_date: string
+          end_date?: string | null
           entry_fee?: number | null
           hole_number?: number
           id?: string
+          is_year_round?: boolean
           max_participants?: number | null
           name: string
           prize_pool?: number | null
@@ -277,13 +279,14 @@ export type Database = {
         }
         Update: {
           club_id?: string
-          commission_rate?: number | null
+          commission_amount?: number | null
           created_at?: string
           description?: string | null
-          end_date?: string
+          end_date?: string | null
           entry_fee?: number | null
           hole_number?: number
           id?: string
+          is_year_round?: boolean
           max_participants?: number | null
           name?: string
           prize_pool?: number | null
@@ -521,6 +524,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_competition_status: {
+        Args: { end_date: string; is_year_round: boolean; start_date: string }
+        Returns: Database["public"]["Enums"]["competition_status"]
+      }
       get_current_user_club_id: {
         Args: Record<PropertyKey, never>
         Returns: string
