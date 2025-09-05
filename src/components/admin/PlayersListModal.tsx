@@ -9,6 +9,7 @@ import { Search, Mail, Phone, Calendar, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/formatters";
+import PlayerDetailModal from "./PlayerDetailModal";
 
 interface PlayersListModalProps {
   isOpen: boolean;
@@ -30,6 +31,8 @@ const PlayersListModal = ({ isOpen, onClose }: PlayersListModalProps) => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredPlayers, setFilteredPlayers] = useState<Player[]>([]);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [showPlayerDetail, setShowPlayerDetail] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -102,6 +105,11 @@ const PlayersListModal = ({ isOpen, onClose }: PlayersListModalProps) => {
     }
   };
 
+  const handlePlayerClick = (playerId: string) => {
+    setSelectedPlayerId(playerId);
+    setShowPlayerDetail(true);
+  };
+
   const getPlayerName = (player: Player) => {
     if (player.first_name || player.last_name) {
       return `${player.first_name || ''} ${player.last_name || ''}`.trim();
@@ -166,7 +174,12 @@ const PlayersListModal = ({ isOpen, onClose }: PlayersListModalProps) => {
                   filteredPlayers.map((player) => (
                     <TableRow key={player.id}>
                       <TableCell className="font-medium">
-                        {getPlayerName(player)}
+                        <button
+                          onClick={() => handlePlayerClick(player.id)}
+                          className="text-left hover:text-primary hover:underline focus:outline-none focus:text-primary"
+                        >
+                          {getPlayerName(player)}
+                        </button>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -214,6 +227,13 @@ const PlayersListModal = ({ isOpen, onClose }: PlayersListModalProps) => {
           </Button>
         </div>
       </DialogContent>
+
+      {/* Player Details Modal */}
+      <PlayerDetailModal 
+        isOpen={showPlayerDetail}
+        onClose={() => setShowPlayerDetail(false)}
+        playerId={selectedPlayerId}
+      />
     </Dialog>
   );
 };

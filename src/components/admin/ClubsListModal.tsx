@@ -9,6 +9,7 @@ import { Search, MapPin, Mail, Phone, Building, PoundSterling } from "lucide-rea
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate } from "@/lib/formatters";
+import ClubDetailModal from "./ClubDetailModal";
 
 interface ClubsListModalProps {
   isOpen: boolean;
@@ -36,6 +37,8 @@ const ClubsListModal = ({ isOpen, onClose }: ClubsListModalProps) => {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredClubs, setFilteredClubs] = useState<Club[]>([]);
+  const [selectedClubId, setSelectedClubId] = useState<string | null>(null);
+  const [showClubDetail, setShowClubDetail] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -126,6 +129,11 @@ const ClubsListModal = ({ isOpen, onClose }: ClubsListModalProps) => {
     }
   };
 
+  const handleClubClick = (clubId: string) => {
+    setSelectedClubId(clubId);
+    setShowClubDetail(true);
+  };
+
   const parseAddress = (address: string | null) => {
     if (!address) return { town: 'N/A', postcode: 'N/A' };
     
@@ -202,7 +210,12 @@ const ClubsListModal = ({ isOpen, onClose }: ClubsListModalProps) => {
                     return (
                       <TableRow key={club.id}>
                         <TableCell className="font-medium">
-                          {club.name}
+                          <button
+                            onClick={() => handleClubClick(club.id)}
+                            className="text-left hover:text-primary hover:underline focus:outline-none focus:text-primary"
+                          >
+                            {club.name}
+                          </button>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -271,6 +284,13 @@ const ClubsListModal = ({ isOpen, onClose }: ClubsListModalProps) => {
           </Button>
         </div>
       </DialogContent>
+
+      {/* Club Details Modal */}
+      <ClubDetailModal 
+        isOpen={showClubDetail}
+        onClose={() => setShowClubDetail(false)}
+        clubId={selectedClubId}
+      />
     </Dialog>
   );
 };
