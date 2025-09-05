@@ -27,7 +27,7 @@ const Home = () => {
               size="lg"
               className="bg-gradient-primary hover:opacity-90 text-primary-foreground font-semibold"
             >
-              <Link to="/clubs/signup">Partner with Us</Link>
+              <Link to="/partnership">Partner with Us</Link>
             </Button>
           </HeroActions>
         </Hero>

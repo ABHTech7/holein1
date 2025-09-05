@@ -29,6 +29,7 @@ import CompetitionEditPage from "./pages/admin/CompetitionEditPage";
 import CompetitionWizardPage from "./pages/CompetitionWizardPage";
 import Styleguide from "./pages/Styleguide";
 import ErrorPage from "./pages/ErrorPage";
+import PartnershipApplication from "./pages/PartnershipApplication";
 
 // Auth components
 import RoleGuard from "./components/auth/RoleGuard";
@@ -55,6 +56,7 @@ const App = () => (
         <Routes>
           {/* Main Routes */}
           <Route path="/" element={<Home />} />
+          <Route path="/partnership" element={<PartnershipApplication />} />
           <Route path="/clubs/signup" element={<ClubSignup />} />
           <Route path="/players/login" element={<PlayerLogin />} />
           <Route 
