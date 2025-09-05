@@ -262,18 +262,47 @@ const CompetitionDetail = () => {
                   size="sm"
                   onClick={async () => {
                     try {
+                      const isCurrentlyArchived = competition.archived;
+                      const newArchivedStatus = !isCurrentlyArchived;
+                      
+                      let newStatus = competition.status;
+                      if (newArchivedStatus) {
+                        // Archiving - set to ENDED
+                        newStatus = 'ENDED';
+                      } else {
+                        // Unarchiving - determine status based on dates
+                        const now = new Date();
+                        const startDate = new Date(competition.start_date);
+                        const endDate = new Date(competition.end_date);
+                        
+                        if (now < startDate) {
+                          newStatus = 'SCHEDULED';
+                        } else if (now >= startDate && now <= endDate) {
+                          newStatus = 'ACTIVE';
+                        } else {
+                          newStatus = 'ENDED';
+                        }
+                      }
+                      
                       const { error } = await supabase
                         .from('competitions')
-                        .update({ archived: !competition.archived })
+                        .update({ 
+                          archived: newArchivedStatus,
+                          status: newStatus
+                        })
                         .eq('id', competition.id);
                       
                       if (error) throw error;
                       
-                      setCompetition(prev => prev ? { ...prev, archived: !prev.archived } : null);
+                      setCompetition(prev => prev ? { 
+                        ...prev, 
+                        archived: newArchivedStatus,
+                        status: newStatus
+                      } : null);
                       
                       toast({
                         title: "Success",
-                        description: `Competition ${competition.archived ? 'unarchived' : 'archived'} successfully`,
+                        description: `Competition ${isCurrentlyArchived ? 'unarchived' : 'archived'} and status updated to ${newStatus}`,
                       });
                     } catch (error) {
                       console.error('Error archiving competition:', error);

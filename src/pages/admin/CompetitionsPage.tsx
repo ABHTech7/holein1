@@ -54,7 +54,6 @@ const CompetitionsPage = () => {
   const fetchCompetitions = async () => {
     try {
       setLoading(true);
-      console.log('Fetching competitions with showArchived:', showArchived);
 
       const { data: competitionsData, error } = await supabase
         .from('competitions')
@@ -66,7 +65,6 @@ const CompetitionsPage = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      console.log('Fetched competitions data:', competitionsData);
 
       const competitionsWithStats = await Promise.all(
         (competitionsData || []).map(async (competition) => {
@@ -148,11 +146,7 @@ const CompetitionsPage = () => {
                 <Button 
                   variant={showArchived ? "default" : "outline"}
                   size="sm"
-                  onClick={() => {
-                    console.log('Button clicked, current showArchived:', showArchived);
-                    setShowArchived(!showArchived);
-                    console.log('Setting showArchived to:', !showArchived);
-                  }}
+                  onClick={() => setShowArchived(!showArchived)}
                   className="flex items-center gap-2"
                 >
                   <Archive className="w-4 h-4" />

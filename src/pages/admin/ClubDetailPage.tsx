@@ -573,18 +573,29 @@ const ClubDetailPage = () => {
                     variant="outline"
                     onClick={async () => {
                       try {
+                        const isCurrentlyArchived = club.archived;
+                        const newArchivedStatus = !isCurrentlyArchived;
+                        const newActiveStatus = !newArchivedStatus; // Active when not archived
+                        
                         const { error } = await supabase
                           .from('clubs')
-                          .update({ archived: !club.archived })
+                          .update({ 
+                            archived: newArchivedStatus,
+                            active: newActiveStatus
+                          })
                           .eq('id', clubId);
                         
                         if (error) throw error;
                         
-                        setClub(prev => prev ? { ...prev, archived: !prev.archived } : null);
+                        setClub(prev => prev ? { 
+                          ...prev, 
+                          archived: newArchivedStatus,
+                          active: newActiveStatus
+                        } : null);
                         
                         toast({
                           title: "Success",
-                          description: `Club ${club.archived ? 'unarchived' : 'archived'} successfully`,
+                          description: `Club ${isCurrentlyArchived ? 'unarchived and activated' : 'archived and deactivated'} successfully`,
                         });
                       } catch (error) {
                         console.error('Error archiving club:', error);

@@ -202,14 +202,17 @@ const CompetitionEditPage = () => {
     try {
       const { error } = await supabase
         .from('competitions')
-        .update({ archived: true })
+        .update({ 
+          archived: true,
+          status: 'ENDED'
+        })
         .eq('id', competition.id);
 
       if (error) throw error;
 
       toast({
         title: 'Success',
-        description: 'Competition archived successfully',
+        description: 'Competition archived and status set to ENDED successfully',
       });
 
       navigate('/dashboard/admin/competitions');
