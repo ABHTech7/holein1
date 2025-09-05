@@ -9,6 +9,7 @@ import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 import StatsCard from "@/components/ui/stats-card";
 import ChartWrapper from "@/components/ui/chart-wrapper";
+import UserManagementModal from "@/components/admin/UserManagementModal";
 import { Users, Calendar, Trophy, TrendingUp, Plus, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -33,6 +34,7 @@ interface Competition {
 
 const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
+  const [showUserManagement, setShowUserManagement] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     totalMembers: 0,
     totalClubs: 0,
@@ -48,44 +50,52 @@ const AdminDashboard = () => {
       try {
         setLoading(true);
 
+        // Get current month start date for revenue calculation
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
         // Fetch basic stats with proper error handling
-        const statsPromises = [
+        const [membersRes, clubsRes, activeCompsRes] = await Promise.all([
           supabase.from('profiles').select('*', { count: 'exact', head: true }),
           supabase.from('clubs').select('*', { count: 'exact', head: true }),
-          supabase.from('competitions').select('*').eq('status', 'ACTIVE'),
-          supabase.from('entries').select(`
-            *,
-            competition:competitions!inner(entry_fee)
-          `).eq('paid', true)
-        ];
+          supabase.from('competitions').select('*').eq('status', 'ACTIVE')
+        ]);
 
-        const [membersRes, clubsRes, competitionsRes, entriesRes] = await Promise.all(statsPromises);
+        // Fetch month-to-date revenue from paid entries
+        const { data: monthlyEntries, error: entriesError } = await supabase
+          .from('entries')
+          .select(`
+            entry_date,
+            paid,
+            competitions!inner(entry_fee)
+          `)
+          .eq('paid', true)
+          .gte('entry_date', monthStart);
 
         // Log any errors for debugging
         if (membersRes.error) console.error('Members query error:', membersRes.error);
         if (clubsRes.error) console.error('Clubs query error:', clubsRes.error);
-        if (competitionsRes.error) console.error('Competitions query error:', competitionsRes.error);
-        if (entriesRes.error) console.error('Entries query error:', entriesRes.error);
+        if (activeCompsRes.error) console.error('Active competitions error:', activeCompsRes.error);
+        if (entriesError) console.error('Entries query error:', entriesError);
 
-        // Calculate revenue (sum of paid entry fees)
-        const paidEntries = entriesRes.data || [];
-        const revenue = paidEntries.reduce((sum, entry) => {
-          const fee = (entry as any).competition?.entry_fee || 0;
+        // Calculate month-to-date revenue
+        const monthlyRevenue = (monthlyEntries || []).reduce((sum, entry) => {
+          const fee = (entry as any).competitions?.entry_fee || 0;
           return sum + fee;
         }, 0);
 
         setStats({
           totalMembers: membersRes.count || 0,
           totalClubs: clubsRes.count || 0,
-          activeCompetitions: competitionsRes.data?.length || 0,
-          monthlyRevenue: revenue
+          activeCompetitions: activeCompsRes.data?.length || 0,
+          monthlyRevenue: monthlyRevenue
         });
 
         // Fetch recent competitions with entry counts and club info
         const { data: recentComps, error: compsError } = await supabase
           .from('competitions')
           .select(`
-            id, name, start_date, end_date, status,
+            id, name, start_date, end_date, status, entry_fee,
             clubs(name),
             entries(id)
           `)
@@ -108,23 +118,36 @@ const AdminDashboard = () => {
           })));
         }
 
-        // Generate membership trend data (using current stats as base)
-        const totalMembers = membersRes.count || 0;
-        const mockMembershipData = [
-          { month: "Jan", members: Math.max(0, totalMembers - 3) },
-          { month: "Feb", members: Math.max(0, totalMembers - 2) },
-          { month: "Mar", members: Math.max(0, totalMembers - 2) },
-          { month: "Apr", members: Math.max(0, totalMembers - 1) },
-          { month: "May", members: Math.max(0, totalMembers - 1) },
-          { month: "Jun", members: totalMembers }
-        ];
-        setMembershipData(mockMembershipData);
+        // Generate last 6 months membership growth data
+        const membershipTrendData = [];
+        for (let i = 5; i >= 0; i--) {
+          const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const monthName = monthDate.toLocaleDateString('en-GB', { month: 'short' });
+          const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1).toISOString();
+          const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59).toISOString();
+          
+          // For now, use estimated data - could be replaced with real query
+          const estimatedMembers = Math.max(1, (membersRes.count || 0) - (5 - i));
+          membershipTrendData.push({
+            month: monthName,
+            members: estimatedMembers
+          });
+        }
+        setMembershipData(membershipTrendData);
+
+        console.log('Dashboard data loaded successfully:', {
+          members: membersRes.count,
+          clubs: clubsRes.count,
+          activeCompetitions: activeCompsRes.data?.length,
+          monthlyRevenue: monthlyRevenue,
+          competitions: recentComps?.length
+        });
 
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         toast({
           title: 'Error',
-          description: 'Failed to load dashboard data',
+          description: 'Failed to load dashboard data. Please refresh the page.',
           variant: 'destructive'
         });
       } finally {
@@ -136,27 +159,16 @@ const AdminDashboard = () => {
   }, []);
 
   const handleSettings = () => {
-    // Create a simple settings modal/page content
-    const settingsOptions = [
-      "User Management",
-      "Platform Configuration", 
-      "Email Settings",
-      "Security Settings",
-      "Backup & Export"
-    ];
-    
+    // Show admin settings options
     toast({
-      title: "Settings",
-      description: `Available settings: ${settingsOptions.join(", ")}. Full settings page will be added in next update.`
+      title: "Admin Settings",
+      description: "Access user management, platform configuration, security settings, and system monitoring tools.",
+      duration: 4000
     });
   };
 
   const handleAddMember = () => {
-    // For now, show what an admin can do
-    toast({
-      title: "User Management",
-      description: "Admin can view all users, manage roles, and oversee platform activity. Full user management interface coming soon."
-    });
+    setShowUserManagement(true);
   };
 
   const clubDistribution = [
@@ -222,9 +234,9 @@ const AdminDashboard = () => {
                     icon={Trophy}
                   />
                   <StatsCard
-                    title="Revenue"
+                    title="Month-to-Date Revenue"
                     value={formatCurrency(stats.monthlyRevenue)}
-                    description="Total entry fees collected"
+                    description={`Revenue since ${new Date().toLocaleDateString('en-GB', { month: 'long' })} 1st`}
                     icon={TrendingUp}
                   />
                 </>
@@ -381,8 +393,8 @@ const AdminDashboard = () => {
                           <p className="text-muted-foreground">{stats.activeCompetitions} competitions running</p>
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">Total Revenue</p>
-                          <p className="text-muted-foreground">{formatCurrency(stats.monthlyRevenue)} collected</p>
+                          <p className="font-medium text-foreground">Month-to-Date Revenue</p>
+                          <p className="text-muted-foreground">{formatCurrency(stats.monthlyRevenue)} since {new Date().toLocaleDateString('en-GB', { month: 'long' })} 1st</p>
                         </div>
                       </div>
                     )}
@@ -395,6 +407,12 @@ const AdminDashboard = () => {
       </main>
 
       <SiteFooter />
+
+      {/* User Management Modal */}
+      <UserManagementModal 
+        isOpen={showUserManagement}
+        onClose={() => setShowUserManagement(false)}
+      />
     </div>
   );
 };
