@@ -1,13 +1,6 @@
-import { useState } from "react";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageSquare, Phone, Mail, HelpCircle, Bug, Star } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { MessageSquare, Phone, Mail, HelpCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
@@ -16,74 +9,26 @@ import Container from "@/components/layout/Container";
 
 const ClubSupport = () => {
   const { profile } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    subject: '',
-    category: '',
-    priority: 'medium',
-    message: '',
-    name: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || '',
-    email: profile?.email || '',
-    phone: ''
-  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.subject || !formData.category || !formData.message) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields.",
-        variant: "destructive"
-      });
-      return;
-    }
+  const handleMessageTeam = () => {
+    const subject = "Support Request from Hole in 1 Challenge";
+    const body = `Hi Support Team,
 
-    setLoading(true);
+I need assistance with my club account.
 
-    try {
-      // Call edge function to send support ticket
-      const { error } = await supabase.functions.invoke('send-support-ticket', {
-        body: {
-          ...formData,
-          club_id: profile?.club_id,
-          user_id: profile?.id,
-          user_role: profile?.role
-        }
-      });
+Club: ${profile?.club_id || 'N/A'}
+Name: ${profile?.first_name || ''} ${profile?.last_name || ''}
+Email: ${profile?.email || ''}
 
-      if (error) throw error;
+Please describe your issue below:
 
-      toast({
-        title: "Support Ticket Submitted",
-        description: "We've received your request and will get back to you within 24 hours.",
-      });
+---
 
-      // Reset form
-      setFormData({
-        subject: '',
-        category: '',
-        priority: 'medium',
-        message: '',
-        name: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || '',
-        email: profile?.email || '',
-        phone: ''
-      });
+Best regards,
+${profile?.first_name || ''} ${profile?.last_name || ''}`;
 
-    } catch (error) {
-      console.error('Error submitting support ticket:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit support ticket. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    const mailtoLink = `mailto:support@holein1challenge.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoLink;
   };
 
   return (
@@ -156,115 +101,32 @@ const ClubSupport = () => {
                   </Card>
                 </div>
 
-                {/* Support Ticket Form */}
+                {/* Message Team */}
                 <div className="lg:col-span-2">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <MessageSquare className="w-5 h-5" />
-                        Submit Support Ticket
+                        Contact Support
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <form onSubmit={handleSubmit} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="name">Name *</Label>
-                            <Input
-                              id="name"
-                              value={formData.name}
-                              onChange={(e) => handleInputChange('name', e.target.value)}
-                              placeholder="Your full name"
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="email">Email *</Label>
-                            <Input
-                              id="email"
-                              type="email"
-                              value={formData.email}
-                              onChange={(e) => handleInputChange('email', e.target.value)}
-                              placeholder="your@email.com"
-                              required
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="phone">Phone (Optional)</Label>
-                          <Input
-                            id="phone"
-                            value={formData.phone}
-                            onChange={(e) => handleInputChange('phone', e.target.value)}
-                            placeholder="Your phone number"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="category">Category *</Label>
-                            <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select category" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="technical">Technical Issue</SelectItem>
-                                <SelectItem value="billing">Billing & Payments</SelectItem>
-                                <SelectItem value="competition">Competition Management</SelectItem>
-                                <SelectItem value="player">Player Management</SelectItem>
-                                <SelectItem value="feature">Feature Request</SelectItem>
-                                <SelectItem value="general">General Question</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="priority">Priority</Label>
-                            <Select value={formData.priority} onValueChange={(value) => handleInputChange('priority', value)}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="low">Low</SelectItem>
-                                <SelectItem value="medium">Medium</SelectItem>
-                                <SelectItem value="high">High</SelectItem>
-                                <SelectItem value="urgent">Urgent</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="subject">Subject *</Label>
-                          <Input
-                            id="subject"
-                            value={formData.subject}
-                            onChange={(e) => handleInputChange('subject', e.target.value)}
-                            placeholder="Brief description of your issue"
-                            required
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="message">Message *</Label>
-                          <Textarea
-                            id="message"
-                            value={formData.message}
-                            onChange={(e) => handleInputChange('message', e.target.value)}
-                            placeholder="Please provide as much detail as possible about your question or issue..."
-                            rows={6}
-                            required
-                          />
-                        </div>
-
+                    <CardContent className="space-y-6">
+                      <div className="text-center py-8">
+                        <MessageSquare className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-medium mb-2">Need Help?</h3>
+                        <p className="text-muted-foreground mb-6">
+                          Click the button below to send us an email with your support request. 
+                          We'll get back to you within 24 hours.
+                        </p>
                         <Button 
-                          type="submit" 
-                          disabled={loading}
-                          className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground"
+                          onClick={handleMessageTeam}
+                          className="bg-gradient-primary hover:opacity-90 text-primary-foreground"
+                          size="lg"
                         >
-                          {loading ? "Submitting..." : "Submit Support Ticket"}
+                          <Mail className="w-4 h-4 mr-2" />
+                          Message the Team
                         </Button>
-                      </form>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
