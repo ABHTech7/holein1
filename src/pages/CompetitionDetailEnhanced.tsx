@@ -606,7 +606,10 @@ const CompetitionDetailEnhanced = () => {
                     <div>
                       <p className="text-sm text-muted-foreground">Duration</p>
                       <p className="font-semibold">
-                        {formatDate(competition.start_date)} - {formatDate(competition.end_date)}
+                        {competition.is_year_round 
+                          ? `${formatDate(competition.start_date)} - Ongoing`
+                          : `${formatDate(competition.start_date)} - ${formatDate(competition.end_date)}`
+                        }
                       </p>
                     </div>
                   </div>
@@ -632,7 +635,7 @@ const CompetitionDetailEnhanced = () => {
                   <div className="flex items-center gap-3">
                     <Trophy className="w-5 h-5 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Prize Pool</p>
+                      <p className="text-sm text-muted-foreground">Cash Prize</p>
                       <p className="font-semibold">
                         {competition.prize_pool ? formatCurrency(competition.prize_pool) : 'TBD'}
                       </p>
@@ -815,200 +818,76 @@ const CompetitionDetailEnhanced = () => {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle>Competition Settings</CardTitle>
-                      {!isEditing && (
-                        <Button onClick={() => setIsEditing(true)} className="gap-2">
-                          <Edit className="w-4 h-4" />
-                          Edit
-                        </Button>
-                      )}
+                      <Button 
+                        onClick={() => navigate(`/dashboard/admin/competitions/${competition.id}/edit`)} 
+                        className="gap-2"
+                      >
+                        <Edit className="w-4 h-4" />
+                        Edit Competition
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {isEditing ? (
-                      <form onSubmit={editForm.handleSubmit(handleSaveChanges)} className="space-y-6">
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Name</p>
+                        <p className="font-medium">{competition.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">Prize Description</p>
+                        <p className="font-medium">{competition.description || 'No description provided'}</p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <Label htmlFor="edit-name">Competition Name</Label>
-                          <Input
-                            id="edit-name"
-                            {...editForm.register('name')}
-                          />
-                          {editForm.formState.errors.name && (
-                            <p className="text-sm text-destructive mt-1">{editForm.formState.errors.name.message}</p>
-                          )}
+                          <p className="text-sm text-muted-foreground">Hole Number</p>
+                          <p className="font-medium">{competition.hole_number}</p>
                         </div>
-
                         <div>
-                          <Label htmlFor="edit-description">Prize Description</Label>
-                          <Textarea
-                            id="edit-description"
-                            {...editForm.register('description')}
-                            rows={4}
-                          />
-                          {editForm.formState.errors.description && (
-                            <p className="text-sm text-destructive mt-1">{editForm.formState.errors.description.message}</p>
-                          )}
+                          <p className="text-sm text-muted-foreground">Entry Fee</p>
+                          <p className="font-medium">
+                            {competition.entry_fee === 0 ? 'Free' : formatCurrency(competition.entry_fee)}
+                          </p>
                         </div>
-
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Cash Prize</p>
+                          <p className="font-medium">
+                            {competition.prize_pool ? formatCurrency(competition.prize_pool) : 'TBD'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Competition Type</p>
+                          <p className="font-medium">
+                            {competition.is_year_round ? 'Year-round' : 'Fixed Duration'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {profile?.role === 'ADMIN' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <Label>Start Date</Label>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !editForm.watch('start_date') && "text-muted-foreground"
-                                  )}
-                                >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {editForm.watch('start_date') ? format(editForm.watch('start_date'), "PPp") : "Pick start date"}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={editForm.watch('start_date')}
-                                  onSelect={(date) => editForm.setValue('start_date', date || new Date())}
-                                  initialFocus
-                                  className={cn("p-3 pointer-events-auto")}
-                                />
-                              </PopoverContent>
-                            </Popover>
-                            {editForm.formState.errors.start_date && (
-                              <p className="text-sm text-destructive mt-1">{editForm.formState.errors.start_date.message}</p>
-                            )}
-                          </div>
-
-                          <div>
-                            <Label>End Date</Label>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !editForm.watch('end_date') && "text-muted-foreground"
-                                  )}
-                                >
-                                  <CalendarIcon className="mr-2 h-4 w-4" />
-                                  {editForm.watch('end_date') ? format(editForm.watch('end_date'), "PPp") : "Pick end date"}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={editForm.watch('end_date')}
-                                  onSelect={(date) => editForm.setValue('end_date', date || new Date())}
-                                  initialFocus
-                                  className={cn("p-3 pointer-events-auto")}
-                                />
-                              </PopoverContent>
-                            </Popover>
-                            {editForm.formState.errors.end_date && (
-                              <p className="text-sm text-destructive mt-1">{editForm.formState.errors.end_date.message}</p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div>
-                          <Label htmlFor="edit-entry-fee">Entry Fee (£)</Label>
-                          <Input
-                            id="edit-entry-fee"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            {...editForm.register('entry_fee', { valueAsNumber: true })}
-                          />
-                          {editForm.formState.errors.entry_fee && (
-                            <p className="text-sm text-destructive mt-1">{editForm.formState.errors.entry_fee.message}</p>
-                          )}
-                        </div>
-
-                        {profile?.role === 'ADMIN' && (
-                          <div>
-                            <Label htmlFor="edit-commission-amount">Commission Amount (£ per entry)</Label>
-                            <Input
-                              id="edit-commission-amount"
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              {...editForm.register('commission_amount', { valueAsNumber: true })}
-                            />
-                            <p className="text-sm text-muted-foreground mt-1">
-                              Fixed commission amount paid to the club per paid entry
-                            </p>
-                            {editForm.formState.errors.commission_amount && (
-                              <p className="text-sm text-destructive mt-1">{editForm.formState.errors.commission_amount.message}</p>
-                            )}
-                          </div>
-                        )}
-
-                        <div className="flex gap-3">
-                          <Button type="submit" disabled={saving} className="gap-2">
-                            <Save className="w-4 h-4" />
-                            {saving ? 'Saving...' : 'Save Changes'}
-                          </Button>
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            onClick={() => {
-                              setIsEditing(false);
-                              editForm.reset();
-                            }}
-                            className="gap-2"
-                          >
-                            <X className="w-4 h-4" />
-                            Cancel
-                          </Button>
-                        </div>
-                      </form>
-                    ) : (
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Name</p>
-                          <p className="font-medium">{competition.name}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Prize Description</p>
-                          <p className="font-medium">{competition.description}</p>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Hole Number</p>
-                            <p className="font-medium">{competition.hole_number}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Entry Fee</p>
+                            <p className="text-sm text-muted-foreground">Commission Amount</p>
                             <p className="font-medium">
-                              {competition.entry_fee === 0 ? 'Free' : formatCurrency(competition.entry_fee)}
+                              {formatCurrency(competition.commission_amount || 0)} per entry
                             </p>
                           </div>
                         </div>
-                        
-                        {profile?.role === 'ADMIN' && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm text-muted-foreground">Commission Amount</p>
-                              <p className="font-medium">
-                                {formatCurrency(competition.commission_amount || 0)} per entry
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Start Date</p>
-                            <p className="font-medium">{format(new Date(competition.start_date), "PPp")}</p>
-                          </div>
+                      )}
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Start Date</p>
+                          <p className="font-medium">{format(new Date(competition.start_date), "PPp")}</p>
+                        </div>
+                        {!competition.is_year_round && (
                           <div>
                             <p className="text-sm text-muted-foreground">End Date</p>
                             <p className="font-medium">{format(new Date(competition.end_date), "PPp")}</p>
                           </div>
-                        </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>

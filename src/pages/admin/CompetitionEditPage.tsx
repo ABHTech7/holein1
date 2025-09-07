@@ -58,6 +58,7 @@ const editFormSchema = z.object({
   end_date: z.date().optional(),
   is_year_round: z.boolean(),
   entry_fee: z.number().min(0, 'Entry fee must be at least 0'),
+  prize_pool: z.number().min(0, 'Prize pool must be at least 0').optional(),
   commission_amount: z.number().min(0, 'Commission amount must be at least 0'),
 }).refine((data) => {
   if (!data.is_year_round && !data.end_date) {
@@ -117,6 +118,7 @@ const CompetitionEditPage = () => {
           end_date: data.end_date ? new Date(data.end_date) : undefined,
           is_year_round: data.is_year_round || false,
           entry_fee: data.entry_fee / 100, // Convert from cents
+          prize_pool: data.prize_pool ? data.prize_pool / 100 : 0, // Convert from cents
           commission_amount: data.commission_amount ? data.commission_amount / 100 : 0, // Convert from pence
         });
       } catch (error) {
@@ -142,6 +144,7 @@ const CompetitionEditPage = () => {
     try {
       // Convert entry fee back to cents and commission to pence
       const entry_fee_cents = Math.round(data.entry_fee * 100);
+      const prize_pool_cents = data.prize_pool ? Math.round(data.prize_pool * 100) : null;
       const commission_amount_pence = Math.round(data.commission_amount * 100);
       
       // Determine new status based on dates and year-round flag
@@ -170,6 +173,7 @@ const CompetitionEditPage = () => {
           end_date: data.is_year_round ? null : data.end_date?.toISOString() || null,
           is_year_round: data.is_year_round,
           entry_fee: entry_fee_cents,
+          prize_pool: prize_pool_cents,
           commission_amount: commission_amount_pence,
           status: newStatus,
           updated_at: new Date().toISOString(),
@@ -295,11 +299,11 @@ const CompetitionEditPage = () => {
             <div className="flex items-center justify-between gap-4">
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/dashboard/admin/competitions')}
+                onClick={() => navigate(`/dashboard/admin/competitions/${competition.id}`)}
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Back to Competitions
+                Back to Competition
               </Button>
               
               <div className="flex items-center gap-2">
@@ -473,41 +477,62 @@ const CompetitionEditPage = () => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Entry Fee */}
-                    <div className="space-y-2">
-                      <Label htmlFor="entry_fee">Entry Fee (£) *</Label>
-                      <Input
-                        id="entry_fee"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        {...form.register('entry_fee', { valueAsNumber: true })}
-                        placeholder="0.00"
-                      />
-                      {form.formState.errors.entry_fee && (
+                     {/* Entry Fee */}
+                     <div className="space-y-2">
+                       <Label htmlFor="entry_fee">Entry Fee (£) *</Label>
+                       <Input
+                         id="entry_fee"
+                         type="number"
+                         step="0.01"
+                         min="0"
+                         {...form.register('entry_fee', { valueAsNumber: true })}
+                         placeholder="0.00"
+                       />
+                       {form.formState.errors.entry_fee && (
                         <p className="text-sm text-destructive">
                           {form.formState.errors.entry_fee.message}
                         </p>
                       )}
                     </div>
 
-                    {/* Commission Amount */}
-                    <div className="space-y-2">
-                      <Label htmlFor="commission_amount">Commission Amount (£)</Label>
-                      <Input
-                        id="commission_amount"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        {...form.register('commission_amount', { valueAsNumber: true })}
-                        placeholder="0.00"
-                      />
-                      {form.formState.errors.commission_amount && (
-                        <p className="text-sm text-destructive">
-                          {form.formState.errors.commission_amount.message}
-                        </p>
-                      )}
-                    </div>
+                     {/* Cash Prize */}
+                     <div className="space-y-2">
+                       <Label htmlFor="prize_pool">CASH PRIZE (£)</Label>
+                       <Input
+                         id="prize_pool"
+                         type="number"
+                         step="0.01"
+                         min="0"
+                         {...form.register('prize_pool', { valueAsNumber: true })}
+                         placeholder="0.00"
+                       />
+                       {form.formState.errors.prize_pool && (
+                         <p className="text-sm text-destructive">
+                           {form.formState.errors.prize_pool.message}
+                         </p>
+                       )}
+                     </div>
+                  </div>
+
+                  {/* Commission Amount - Full Width */}
+                  <div className="space-y-2">
+                    <Label htmlFor="commission_amount">Commission Amount (£) *</Label>
+                    <Input
+                      id="commission_amount"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      {...form.register('commission_amount', { valueAsNumber: true })}
+                      placeholder="0.00"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Fixed commission amount paid to the club per paid entry
+                    </p>
+                    {form.formState.errors.commission_amount && (
+                      <p className="text-sm text-destructive">
+                        {form.formState.errors.commission_amount.message}
+                      </p>
+                    )}
                   </div>
 
                   {/* Action Buttons */}
