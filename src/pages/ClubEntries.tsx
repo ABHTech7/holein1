@@ -25,6 +25,7 @@ interface Entry {
   completed_at: string | null;
   player_email: string;
   player_name: string;
+  competition_id: string;
   competition_name: string;
   competition_hole_number: number;
   competition_status: string;
@@ -42,23 +43,17 @@ const ClubEntries = () => {
   const [competitionFilter, setCompetitionFilter] = useState("all");
   const [filteredEntries, setFilteredEntries] = useState<Entry[]>([]);
   const [competitions, setCompetitions] = useState<{id: string, name: string}[]>([]);
+  const [selectedCompetitionId, setSelectedCompetitionId] = useState<string>("");
   const [selectedCompetitionName, setSelectedCompetitionName] = useState<string>("");
 
   // Handle URL query parameters for competition filtering
   useEffect(() => {
     const competitionId = searchParams.get('competition');
-    if (competitionId && competitions.length > 0) {
-      // Find the competition name by ID when data is loaded
-      const competition = competitions.find(c => c.id === competitionId);
-      if (competition) {
-        setCompetitionFilter(competition.name);
-        setSelectedCompetitionName(competition.name);
-        console.log('Setting competition filter:', competition.name, 'for ID:', competitionId);
-      } else {
-        console.log('Competition not found for ID:', competitionId, 'in competitions:', competitions);
-      }
+    if (competitionId) {
+      setSelectedCompetitionId(competitionId);
+      setCompetitionFilter(competitionId); // Filter by ID instead of name
     }
-  }, [searchParams, competitions]);
+  }, [searchParams]);
 
   useEffect(() => {
     if (profile?.club_id) {
@@ -84,6 +79,7 @@ const ClubEntries = () => {
                            (statusFilter === "completed" && entry.completed_at);
 
       const matchesCompetition = competitionFilter === "all" || 
+                                entry.competition_id === competitionFilter ||
                                 entry.competition_name === competitionFilter;
       
       return matchesSearch && matchesStatus && matchesCompetition;
@@ -141,6 +137,7 @@ const ClubEntries = () => {
         player_name: entry.profiles?.first_name && entry.profiles?.last_name 
           ? `${entry.profiles?.first_name} ${entry.profiles?.last_name}`.trim()
           : entry.profiles?.email || 'Unknown User',
+        competition_id: entry.competitions.id,
         competition_name: entry.competitions.name,
         competition_hole_number: entry.competitions.hole_number,
         competition_status: entry.competitions.status,
@@ -162,6 +159,14 @@ const ClubEntries = () => {
       }, [] as {id: string, name: string}[]) || [];
       
       setCompetitions(uniqueCompetitions);
+
+      // Set selected competition name if filtering by ID
+      if (selectedCompetitionId) {
+        const selectedComp = uniqueCompetitions.find(c => c.id === selectedCompetitionId);
+        if (selectedComp) {
+          setSelectedCompetitionName(selectedComp.name);
+        }
+      }
 
     } catch (error) {
       console.error('Error fetching entries:', error);
@@ -275,7 +280,7 @@ const ClubEntries = () => {
                         <SelectContent>
                         <SelectItem value="all">All Competitions</SelectItem>
                         {competitions.map((comp) => (
-                          <SelectItem key={comp.id} value={comp.name}>{comp.name}</SelectItem>
+                          <SelectItem key={comp.id} value={comp.id}>{comp.name}</SelectItem>
                         ))}
                         </SelectContent>
                     </Select>
