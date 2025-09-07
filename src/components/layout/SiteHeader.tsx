@@ -46,7 +46,6 @@ const SiteHeader = () => {
     ...(profile?.role === 'ADMIN' ? [{ name: "Admin", href: "/dashboard/admin" }] : []),
     ...(profile?.role === 'CLUB' ? [{ name: "Dashboard", href: "/dashboard/club" }] : []),
   ] : [
-    { name: "Sign Up", href: "/auth" },
     { name: "Login", href: "/auth" },
   ];
 
@@ -84,9 +83,9 @@ const SiteHeader = () => {
             ))}
           </nav>
 
-          {/* User Menu or CTA Button (Desktop) */}
+          {/* User Menu (Desktop) */}
           <div className="hidden md:block">
-            {user ? (
+            {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm">
@@ -101,14 +100,6 @@ const SiteHeader = () => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : (
-              <Button 
-                asChild
-                variant="default"
-                className="bg-gradient-primary hover:opacity-90 text-primary-foreground font-medium"
-              >
-                <Link to="/auth">Get Started</Link>
-              </Button>
             )}
           </div>
 
@@ -142,8 +133,8 @@ const SiteHeader = () => {
                 {item.name}
               </Link>
             ))}
-            <div className="pt-2">
-              {user ? (
+            {user && (
+              <div className="pt-2">
                 <Button 
                   variant="outline"
                   className="w-full"
@@ -155,16 +146,8 @@ const SiteHeader = () => {
                   <LogOut className="w-4 h-4 mr-2" />
                   Sign Out
                 </Button>
-              ) : (
-                <Button 
-                  asChild
-                  variant="default"
-                  className="w-full bg-gradient-primary hover:opacity-90 text-primary-foreground font-medium"
-                >
-                  <Link to="/auth">Get Started</Link>
-                </Button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
       </Container>
