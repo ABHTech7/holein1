@@ -422,7 +422,7 @@ const CompetitionDetailEnhanced = () => {
             <div className="flex items-center gap-4">
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/dashboard/admin/competitions')}
+                onClick={() => navigate(profile?.role === 'ADMIN' ? '/dashboard/admin/competitions' : '/dashboard/club/competitions')}
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
