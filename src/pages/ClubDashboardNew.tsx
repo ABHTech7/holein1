@@ -323,11 +323,9 @@ const ClubDashboardNew = () => {
                 <Download className="w-4 h-4" />
                 Download Report (CSV)
               </Button>
-              <Button variant="outline" asChild className="gap-2">
-                <a href="mailto:ops@holein1.test">
-                  <Mail className="w-4 h-4" />
-                  Support
-                </a>
+              <Button variant="outline" onClick={() => navigate('/dashboard/club/support')} className="gap-2">
+                <Mail className="w-4 h-4" />
+                Contact Support
               </Button>
             </div>
 
