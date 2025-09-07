@@ -177,10 +177,9 @@ const ClubRevenue = () => {
             <div className="space-y-8">
               {/* Back Button */}
               <Button
-                variant="ghost"
-                size="sm"
+                variant="outline"
                 onClick={() => navigate('/dashboard/club')}
-                className="mb-6"
+                className="flex items-center gap-2 mb-6"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back to Dashboard
