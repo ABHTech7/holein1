@@ -101,7 +101,7 @@ const Home = () => {
                   size="lg"
                   className="bg-gradient-primary hover:opacity-90 text-primary-foreground font-semibold"
                 >
-                  <Link to="/clubs/signup">See It In Action</Link>
+                  <Link to="/partnership">See It In Action</Link>
                 </Button>
               </div>
               <div className="relative">
@@ -163,7 +163,7 @@ const Home = () => {
                 variant="secondary"
                 className="bg-background text-foreground hover:bg-background/90"
               >
-                <Link to="/clubs/signup">Sign Up Your Club Today</Link>
+                <Link to="/partnership">Sign Up Your Club Today</Link>
               </Button>
             </div>
           </Container>
