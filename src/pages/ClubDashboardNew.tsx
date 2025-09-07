@@ -167,13 +167,13 @@ const ClubDashboardNew = () => {
             id,
             entry_date,
             paid,
-            competitions!inner(
+            competitions(
               entry_fee,
               commission_amount,
               name,
               club_id
             ),
-            profiles!inner(
+            profiles(
               email
             )
           `)
@@ -252,7 +252,7 @@ const ClubDashboardNew = () => {
           // Process recent entries for display
           setRecentEntries(entriesData.slice(0, 10).map(entry => ({
             id: entry.id,
-            player_email: entry.profiles.email,
+            player_email: entry.profiles?.email || 'unknown@email.com',
             competition_name: entry.competitions.name,
             entry_date: entry.entry_date,
             paid: entry.paid,

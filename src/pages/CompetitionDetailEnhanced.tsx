@@ -81,7 +81,7 @@ interface Entry {
     email: string;
     first_name: string;
     last_name: string;
-  };
+  } | null;
 }
 
 const editSchema = z.object({
@@ -784,15 +784,15 @@ const CompetitionDetailEnhanced = () => {
                             <TableRow key={entry.id}>
                               <TableCell>
                                 <div>
-                                  <p className="font-medium">
-                                    {entry.profiles.first_name && entry.profiles.last_name 
-                                      ? `${entry.profiles.first_name} ${entry.profiles.last_name}`
-                                      : obfuscateEmail(entry.profiles.email)
-                                    }
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {obfuscateEmail(entry.profiles.email)}
-                                  </p>
+                                   <p className="font-medium">
+                                     {entry.profiles?.first_name && entry.profiles?.last_name 
+                                       ? `${entry.profiles.first_name} ${entry.profiles.last_name}`
+                                       : entry.profiles?.email ? obfuscateEmail(entry.profiles.email) : 'Unknown User'
+                                     }
+                                   </p>
+                                   <p className="text-sm text-muted-foreground">
+                                     {entry.profiles?.email ? obfuscateEmail(entry.profiles.email) : 'No email'}
+                                   </p>
                                 </div>
                               </TableCell>
                               <TableCell>{formatDateTime(entry.entry_date)}</TableCell>

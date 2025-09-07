@@ -61,7 +61,7 @@ interface Entry {
     email: string;
     first_name: string;
     last_name: string;
-  };
+  } | null;
 }
 
 const CompetitionDetail = () => {
@@ -472,13 +472,13 @@ const CompetitionDetail = () => {
                           <TableCell>
                             <div>
                               <p className="font-medium">
-                                {entry.profiles.first_name && entry.profiles.last_name 
+                                {entry.profiles?.first_name && entry.profiles?.last_name 
                                   ? `${entry.profiles.first_name} ${entry.profiles.last_name}`
-                                  : obfuscateEmail(entry.profiles.email)
+                                  : entry.profiles?.email ? obfuscateEmail(entry.profiles.email) : 'Unknown User'
                                 }
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                {obfuscateEmail(entry.profiles.email)}
+                                {entry.profiles?.email ? obfuscateEmail(entry.profiles.email) : 'No email'}
                               </p>
                             </div>
                           </TableCell>

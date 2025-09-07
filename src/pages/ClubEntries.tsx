@@ -103,7 +103,7 @@ const ClubEntries = () => {
           paid,
           completed_at,
           competition_id,
-          competitions!inner(
+          competitions(
             id,
             name,
             hole_number,
@@ -111,7 +111,7 @@ const ClubEntries = () => {
             entry_fee,
             club_id
           ),
-          profiles!inner(
+          profiles(
             email,
             first_name,
             last_name
@@ -127,8 +127,10 @@ const ClubEntries = () => {
         entry_date: entry.entry_date,
         paid: entry.paid,
         completed_at: entry.completed_at,
-        player_email: entry.profiles.email,
-        player_name: `${entry.profiles.first_name || ''} ${entry.profiles.last_name || ''}`.trim() || entry.profiles.email,
+        player_email: entry.profiles?.email || 'unknown@email.com',
+        player_name: entry.profiles?.first_name && entry.profiles?.last_name 
+          ? `${entry.profiles.first_name} ${entry.profiles.last_name}`.trim()
+          : entry.profiles?.email || 'Unknown User',
         competition_name: entry.competitions.name,
         competition_hole_number: entry.competitions.hole_number,
         competition_status: entry.competitions.status,
