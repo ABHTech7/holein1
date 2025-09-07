@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +26,7 @@ interface Player {
   phone: string | null;
   created_at: string;
   role: string;
+  club_id: string | null;
 }
 
 interface Entry {
@@ -53,6 +54,7 @@ interface Note {
 const PlayerDetailPage = () => {
   const { playerId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -213,6 +215,7 @@ const PlayerDetailPage = () => {
       // Get user's full name
       const userFullName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || user.email : user.email;
 
+      // Create note for the player/user
       const { data: noteData, error } = await supabase
         .from('notes')
         .insert({
@@ -229,6 +232,28 @@ const PlayerDetailPage = () => {
 
       if (error) throw error;
 
+      // If this is a club manager, also create a note for the club they manage
+      if (isClubManager && player?.club_id) {
+        const clubNoteContent = `Note about club manager (${playerName}): ${newNote}`;
+        
+        const { error: clubNoteError } = await supabase
+          .from('notes')
+          .insert({
+            entity_type: 'club',
+            entity_id: player.club_id,
+            content: clubNoteContent,
+            created_by: user.id,
+            created_by_name: userFullName,
+            immutable: false,
+            note_type: 'manual'
+          });
+
+        if (clubNoteError) {
+          console.error('Error adding club note:', clubNoteError);
+          // Don't fail the whole operation if club note fails
+        }
+      }
+
       const note: Note = {
         id: noteData.id,
         content: noteData.content,
@@ -240,9 +265,13 @@ const PlayerDetailPage = () => {
       setNotes(prev => [note, ...prev]);
       setNewNote("");
       
+      const successMessage = isClubManager && player?.club_id 
+        ? "Note added successfully to both user and club records."
+        : "Note has been added successfully.";
+      
       toast({
         title: "Note Added",
-        description: "Note has been added successfully.",
+        description: successMessage,
       });
     } catch (error) {
       console.error('Error adding note:', error);
@@ -280,6 +309,18 @@ const PlayerDetailPage = () => {
   const totalRevenue = entries.reduce((sum, entry) => sum + (entry.paid ? entry.competition.entry_fee : 0), 0);
   const totalEntries = entries.length;
   const paidEntries = entries.filter(entry => entry.paid).length;
+  
+  // Get navigation context from URL params
+  const fromClub = searchParams.get('from') === 'club';
+  const clubId = searchParams.get('clubId');
+  const clubName = searchParams.get('clubName');
+  const isClubManager = player?.role === 'CLUB';
+  
+  // Dynamic content based on role
+  const entityTypeLabel = isClubManager ? 'Club Manager' : 'Player';
+  const informationLabel = `${entityTypeLabel} Information`;
+  const backButtonText = fromClub ? `Back to ${clubName || 'Club'}` : 'Back to Players';
+  const backButtonPath = fromClub ? `/dashboard/admin/clubs/${clubId}` : '/dashboard/admin/players';
 
   return (
     <div className="min-h-screen bg-background">
@@ -291,15 +332,15 @@ const PlayerDetailPage = () => {
             <div className="flex items-center gap-4">
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/dashboard/admin/players')}
+                onClick={() => navigate(backButtonPath)}
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Back to Players
+                {backButtonText}
               </Button>
               <div>
                 <h1 className="text-2xl font-bold">{playerName}</h1>
-                <p className="text-muted-foreground">Player Details & Management</p>
+                <p className="text-muted-foreground">{entityTypeLabel} Details & Management</p>
               </div>
             </div>
             
@@ -360,7 +401,7 @@ const PlayerDetailPage = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <User className="w-5 h-5" />
-                    Player Information
+                    {informationLabel}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">

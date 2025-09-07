@@ -1343,7 +1343,7 @@ const ClubDetailPage = () => {
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      onClick={() => navigate(`/dashboard/admin/players/${user.id}`)}
+                                      onClick={() => navigate(`/dashboard/admin/players/${user.id}?from=club&clubId=${clubId}&clubName=${encodeURIComponent(club?.name || '')}`)}
                                     >
                                       View Profile
                                     </Button>
