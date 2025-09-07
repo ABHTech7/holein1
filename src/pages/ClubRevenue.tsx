@@ -1,199 +1,169 @@
-import { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import useAuth from '@/hooks/useAuth';
-import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import StatsCard from '@/components/ui/stats-card';
-import SiteHeader from '@/components/layout/SiteHeader';
-import Section from '@/components/layout/Section';
-import { Trophy, Calendar, TrendingUp } from 'lucide-react';
-import { formatCurrency, formatDate } from '@/lib/formatters';
+import { useState, useEffect } from "react";
+import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { Calendar, TrendingUp, DollarSign, Download, Trophy } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/formatters";
+import { useAuth } from "@/hooks/useAuth";
+import SiteHeader from "@/components/layout/SiteHeader";
+import SiteFooter from "@/components/layout/SiteFooter";
+import Section from "@/components/layout/Section";
+import Container from "@/components/layout/Container";
+import StatsCard from "@/components/ui/stats-card";
+import ChartWrapper from "@/components/ui/chart-wrapper";
+import EmptyState from "@/components/ui/empty-state";
 
-interface Profile {
+interface RevenueEntry {
   id: string;
-  role: 'ADMIN' | 'CLUB' | 'PLAYER';
-  club_id?: string;
-  first_name?: string;
-  last_name?: string;
-  email: string;
-  phone?: string;
-}
-
-interface Club {
-  id: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-}
-
-interface Entry {
-  id: string;
-  competition_name: string;
   entry_date: string;
   entry_fee: number;
-  paid: boolean;
+  competition_name: string;
+  player_email: string;
+}
+
+interface DailyRevenue {
+  date: string;
+  revenue: number;
+  entries: number;
 }
 
 const ClubRevenue = () => {
-  const { user, loading: authLoading } = useAuth();
-  const { toast } = useToast();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [club, setClub] = useState<Club | null>(null);
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [editedProfile, setEditedProfile] = useState<Partial<Profile>>({});
+  const [dateRange, setDateRange] = useState('30');
+  const [revenueEntries, setRevenueEntries] = useState<RevenueEntry[]>([]);
+  const [dailyRevenue, setDailyRevenue] = useState<DailyRevenue[]>([]);
   const [stats, setStats] = useState({
-    totalRevenue: 0,
-    monthlyRevenue: 0,
+    dailyRevenue: 0,
+    monthToDate: 0,
+    yearToDate: 0,
     totalEntries: 0
   });
-  const [recentEntries, setRecentEntries] = useState<Entry[]>([]);
 
-  // Fetch user profile and club data
   useEffect(() => {
-    const fetchData = async () => {
-      if (!user) return;
+    if (profile?.club_id) {
+      fetchRevenueData();
+    }
+  }, [profile?.club_id, dateRange]);
 
-      try {
-        // Fetch profile
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, role, club_id, first_name, last_name, email, phone')
-          .eq('id', user.id)
-          .single();
-
-        if (profileError) throw profileError;
-        setProfile(profileData);
-        setEditedProfile({
-          first_name: profileData.first_name,
-          last_name: profileData.last_name,
-          email: profileData.email,
-          phone: profileData.phone
-        });
-
-        if (profileData.club_id) {
-          // Fetch club details
-          const { data: clubData, error: clubError } = await supabase
-            .from('clubs')
-            .select('id, name, email, phone, address')
-            .eq('id', profileData.club_id)
-            .single();
-
-          if (clubError) throw clubError;
-          setClub(clubData);
-
-          // Fetch revenue data
-          const now = new Date();
-          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-          const { data: entriesData } = await supabase
-            .from('entries')
-            .select(`
-              id,
-              entry_date,
-              paid,
-              competitions!inner(
-                name,
-                entry_fee,
-                club_id
-              )
-            `)
-            .eq('competitions.club_id', profileData.club_id)
-            .order('entry_date', { ascending: false });
-
-          if (entriesData) {
-            const totalRevenue = entriesData
-              .filter(e => e.paid)
-              .reduce((sum, e) => sum + e.competitions.entry_fee, 0);
-
-            const monthlyRevenue = entriesData
-              .filter(e => e.paid && new Date(e.entry_date) >= monthStart)
-              .reduce((sum, e) => sum + e.competitions.entry_fee, 0);
-
-            setStats({
-              totalRevenue,
-              monthlyRevenue,
-              totalEntries: entriesData.length
-            });
-
-            // Process recent entries
-            setRecentEntries(entriesData.slice(0, 10).map(entry => ({
-              id: entry.id,
-              competition_name: entry.competitions.name,
-              entry_date: entry.entry_date,
-              entry_fee: entry.competitions.entry_fee,
-              paid: entry.paid
-            })));
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load data',
-          variant: 'destructive',
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [user, toast]);
-
-  const handleSaveProfile = async () => {
-    if (!profile) return;
+  const fetchRevenueData = async () => {
+    if (!profile?.club_id) return;
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          first_name: editedProfile.first_name,
-          last_name: editedProfile.last_name,
-          phone: editedProfile.phone
-        })
-        .eq('id', profile.id);
+      setLoading(true);
+
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const yearStart = new Date(now.getFullYear(), 0, 1);
+      const rangeStart = new Date(now.getTime() - (parseInt(dateRange) * 24 * 60 * 60 * 1000));
+
+      // Fetch all paid entries for the club
+      const { data: entriesData, error } = await supabase
+        .from('entries')
+        .select(`
+          id,
+          entry_date,
+          paid,
+          competitions!inner(
+            name,
+            entry_fee,
+            club_id
+          ),
+          profiles!inner(
+            email
+          )
+        `)
+        .eq('competitions.club_id', profile.club_id)
+        .eq('paid', true)
+        .gte('entry_date', yearStart.toISOString())
+        .order('entry_date', { ascending: false });
 
       if (error) throw error;
 
-      setProfile({
-        ...profile,
-        ...editedProfile
+      const processedEntries = entriesData?.map((entry) => ({
+        id: entry.id,
+        entry_date: entry.entry_date,
+        entry_fee: entry.competitions.entry_fee,
+        competition_name: entry.competitions.name,
+        player_email: entry.profiles.email
+      })) || [];
+
+      setRevenueEntries(processedEntries);
+
+      // Calculate stats
+      const dailyRevenueCalc = processedEntries
+        .filter(e => new Date(e.entry_date) >= todayStart)
+        .reduce((sum, e) => sum + e.entry_fee, 0);
+
+      const monthToDateCalc = processedEntries
+        .filter(e => new Date(e.entry_date) >= monthStart)
+        .reduce((sum, e) => sum + e.entry_fee, 0);
+
+      const yearToDateCalc = processedEntries
+        .reduce((sum, e) => sum + e.entry_fee, 0);
+
+      setStats({
+        dailyRevenue: dailyRevenueCalc,
+        monthToDate: monthToDateCalc,
+        yearToDate: yearToDateCalc,
+        totalEntries: processedEntries.length
       });
-      setIsEditingProfile(false);
+
+      // Generate daily revenue chart data
+      const dailyRevenueMap = new Map<string, { revenue: number; entries: number; }>();
       
-      toast({
-        title: 'Profile Updated',
-        description: 'Your contact details have been updated successfully',
-      });
+      // Initialize all days in range with 0
+      for (let d = new Date(rangeStart); d <= now; d.setDate(d.getDate() + 1)) {
+        const dateKey = d.toISOString().split('T')[0];
+        dailyRevenueMap.set(dateKey, { revenue: 0, entries: 0 });
+      }
+
+      // Populate with actual data
+      processedEntries
+        .filter(e => new Date(e.entry_date) >= rangeStart)
+        .forEach(entry => {
+          const dateKey = entry.entry_date.split('T')[0];
+          const existing = dailyRevenueMap.get(dateKey) || { revenue: 0, entries: 0 };
+          dailyRevenueMap.set(dateKey, {
+            revenue: existing.revenue + entry.entry_fee,
+            entries: existing.entries + 1
+          });
+        });
+
+      const chartData = Array.from(dailyRevenueMap.entries())
+        .map(([date, data]) => ({
+          date,
+          revenue: data.revenue,
+          entries: data.entries
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      setDailyRevenue(chartData);
+
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('Error fetching revenue data:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to update profile',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to load revenue data.",
+        variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Loading state
-  if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleDownloadReport = () => {
+    // TODO: Implement CSV export
+    toast({
+      title: 'Coming Soon',
+      description: 'Revenue report download will be available soon',
+    });
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -201,154 +171,157 @@ const ClubRevenue = () => {
       
       <main className="flex-1">
         <Section spacing="lg">
-          <div className="max-w-4xl mx-auto space-y-8">
-            {/* Header */}
-            <div>
-              <h1 className="font-display text-3xl font-bold text-foreground">Club Dashboard</h1>
-              <p className="text-muted-foreground mt-1">
-                {club?.name} - Revenue Overview & Contact Details
-              </p>
-            </div>
-
-            {/* Revenue Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <StatsCard
-                title="Total Revenue"
-                value={formatCurrency(stats.totalRevenue)}
-                icon={Trophy}
-              />
-              <StatsCard
-                title="This Month"
-                value={formatCurrency(stats.monthlyRevenue)}
-                icon={Calendar}
-              />
-              <StatsCard
-                title="Total Entries"
-                value={stats.totalEntries}
-                icon={TrendingUp}
-              />
-            </div>
-
-            {/* Contact Details */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <CardTitle>Contact Details</CardTitle>
-                <Button
-                  variant={isEditingProfile ? "default" : "outline"}
-                  onClick={() => {
-                    if (isEditingProfile) {
-                      handleSaveProfile();
-                    } else {
-                      setIsEditingProfile(true);
-                    }
-                  }}
-                >
-                  {isEditingProfile ? 'Save Changes' : 'Edit Details'}
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="first_name">First Name</Label>
-                    <Input
-                      id="first_name"
-                      value={editedProfile.first_name || ''}
-                      disabled={!isEditingProfile}
-                      onChange={(e) => setEditedProfile(prev => ({ ...prev, first_name: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="last_name">Last Name</Label>
-                    <Input
-                      id="last_name"
-                      value={editedProfile.last_name || ''}
-                      disabled={!isEditingProfile}
-                      onChange={(e) => setEditedProfile(prev => ({ ...prev, last_name: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      value={editedProfile.email || ''}
-                      disabled={true} // Email cannot be changed
-                      className="bg-muted"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="phone">Phone</Label>
-                    <Input
-                      id="phone"
-                      value={editedProfile.phone || ''}
-                      disabled={!isEditingProfile}
-                      onChange={(e) => setEditedProfile(prev => ({ ...prev, phone: e.target.value }))}
-                    />
-                  </div>
+          <Container>
+            <div className="space-y-8">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h1 className="font-display text-3xl font-bold text-foreground">Revenue Dashboard</h1>
+                  <p className="text-muted-foreground mt-1">
+                    Track entry fee revenue across all your competitions
+                  </p>
                 </div>
-                {isEditingProfile && (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setEditedProfile({
-                          first_name: profile?.first_name,
-                          last_name: profile?.last_name,
-                          email: profile?.email,
-                          phone: profile?.phone
-                        });
-                        setIsEditingProfile(false);
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                
+                <div className="flex gap-3">
+                  <Select value={dateRange} onValueChange={setDateRange}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select period" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7">Last 7 days</SelectItem>
+                      <SelectItem value="30">Last 30 days</SelectItem>
+                      <SelectItem value="90">Last 90 days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button variant="outline" onClick={handleDownloadReport} className="gap-2">
+                    <Download className="w-4 h-4" />
+                    Download Report
+                  </Button>
+                </div>
+              </div>
 
-            {/* Recent Revenue */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Entry Revenue</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {recentEntries.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No entries yet</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Competition</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Entry Fee</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recentEntries.map((entry) => (
-                        <TableRow key={entry.id}>
-                          <TableCell className="font-medium">{entry.competition_name}</TableCell>
-                          <TableCell>{formatDate(entry.entry_date)}</TableCell>
-                          <TableCell>{formatCurrency(entry.entry_fee)}</TableCell>
-                          <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                              entry.paid 
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' 
-                                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
-                            }`}>
-                              {entry.paid ? 'Paid' : 'Pending'}
-                            </span>
-                          </TableCell>
+              {/* Revenue Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatsCard
+                  title="Today's Revenue"
+                  value={formatCurrency(stats.dailyRevenue)}
+                  icon={DollarSign}
+                />
+                <StatsCard
+                  title="Month to Date"
+                  value={formatCurrency(stats.monthToDate)}
+                  icon={Calendar}
+                />
+                <StatsCard
+                  title="Year to Date"
+                  value={formatCurrency(stats.yearToDate)}
+                  icon={TrendingUp}
+                />
+                <StatsCard
+                  title="Total Paid Entries"
+                  value={stats.totalEntries}
+                  icon={Trophy}
+                />
+              </div>
+
+              {/* Charts */}
+              <div className="grid lg:grid-cols-2 gap-8">
+                <ChartWrapper
+                  title="Daily Revenue Trend"
+                  description={`Revenue over the last ${dateRange} days`}
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={dailyRevenue}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke="hsl(var(--muted-foreground))"
+                        tickFormatter={(value) => formatDate(value, 'short')}
+                      />
+                      <YAxis stroke="hsl(var(--muted-foreground))" />
+                      <Line 
+                        type="monotone" 
+                        dataKey="revenue" 
+                        stroke="hsl(var(--primary))" 
+                        strokeWidth={3}
+                        dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartWrapper>
+
+                <ChartWrapper
+                  title="Daily Entry Volume"
+                  description={`Paid entries over the last ${dateRange} days`}
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={dailyRevenue}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke="hsl(var(--muted-foreground))"
+                        tickFormatter={(value) => formatDate(value, 'short')}
+                      />
+                      <YAxis stroke="hsl(var(--muted-foreground))" />
+                      <Bar 
+                        dataKey="entries" 
+                        fill="hsl(var(--secondary))"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartWrapper>
+              </div>
+
+              {/* Recent Revenue Entries */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Paid Entries</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {revenueEntries.length === 0 ? (
+                    <EmptyState
+                      title="No revenue entries yet"
+                      description="Paid entries will appear here when players complete payments"
+                      size="sm"
+                    />
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Competition</TableHead>
+                          <TableHead>Player</TableHead>
+                          <TableHead>Entry Fee</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                      </TableHeader>
+                      <TableBody>
+                        {revenueEntries.slice(0, 10).map((entry) => (
+                          <TableRow key={entry.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4 text-muted-foreground" />
+                                {formatDateTime(entry.entry_date)}
+                              </div>
+                            </TableCell>
+                            <TableCell>{entry.competition_name}</TableCell>
+                            <TableCell>{entry.player_email}</TableCell>
+                            <TableCell className="font-medium">
+                              {formatCurrency(entry.entry_fee)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </Container>
         </Section>
       </main>
+
+      <SiteFooter />
     </div>
   );
 };

@@ -35,7 +35,6 @@ import {
   getCompetitionStatusColor,
   copyToClipboard
 } from '@/lib/formatters';
-import ClubEntriesModal from '@/components/admin/ClubEntriesModal';
 
 interface Profile {
   id: string;
@@ -81,7 +80,6 @@ const ClubDashboardNew = () => {
   const [recentEntries, setRecentEntries] = useState<Entry[]>([]);
   const [entriesTrend, setEntriesTrend] = useState<any[]>([]);
   const [revenueTrend, setRevenueTrend] = useState<any[]>([]);
-  const [showEntriesModal, setShowEntriesModal] = useState(false);
 
   // Fetch user profile and check permissions
   useEffect(() => {
@@ -452,7 +450,7 @@ const ClubDashboardNew = () => {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => setShowEntriesModal(true)}
+                    onClick={() => navigate('/dashboard/club/entries')}
                     className="gap-2"
                   >
                     <Trophy className="w-4 h-4" />
@@ -482,7 +480,7 @@ const ClubDashboardNew = () => {
                         <TableRow 
                           key={entry.id}
                           className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => setShowEntriesModal(true)}
+                          onClick={() => navigate('/dashboard/club/entries')}
                         >
                           <TableCell>{obfuscateEmail(entry.player_email)}</TableCell>
                           <TableCell>{entry.competition_name}</TableCell>
@@ -504,13 +502,6 @@ const ClubDashboardNew = () => {
       </main>
 
       <SiteFooter />
-      
-      {/* Entries Modal */}
-      <ClubEntriesModal 
-        isOpen={showEntriesModal}
-        onClose={() => setShowEntriesModal(false)}
-        clubId={profile?.club_id || ''}
-      />
     </div>
   );
 };
