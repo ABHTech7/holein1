@@ -255,9 +255,8 @@ const ClubCompetitions = () => {
                         <TableHead>Hole</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Period</TableHead>
-                        <TableHead>Entries</TableHead>
                         <TableHead>Commission</TableHead>
-                        <TableHead>Actions</TableHead>
+                        <TableHead>View Entries</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -265,7 +264,12 @@ const ClubCompetitions = () => {
                         <TableRow key={competition.id}>
                           <TableCell>
                             <div>
-                              <div className="font-medium">{competition.name}</div>
+                              <button 
+                                className="font-medium text-left hover:text-primary cursor-pointer"
+                                onClick={() => navigate(`/competitions/${competition.id}`)}
+                              >
+                                {competition.name}
+                              </button>
                               {competition.description && (
                                 <div className="text-sm text-muted-foreground">
                                   {competition.description}
@@ -289,34 +293,17 @@ const ClubCompetitions = () => {
                               </div>
                             )}
                           </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Users className="w-4 h-4 text-muted-foreground" />
-                              {competition.entries_count}
-                            </div>
-                          </TableCell>
                           <TableCell>{formatCurrency(competition.commission_revenue)}</TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => navigate(`/competitions/${competition.id}`)}
-                                className="gap-1"
-                              >
-                                <Eye className="w-4 h-4" />
-                                View
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => navigate(`/dashboard/club/entries?competition=${competition.id}`)}
-                                className="gap-1"
-                              >
-                                <Users className="w-4 h-4" />
-                                Entries
-                              </Button>
-                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`/dashboard/club/entries?competition=${competition.id}`)}
+                              className="gap-1"
+                            >
+                              <Users className="w-4 h-4" />
+                              Entries ({competition.entries_count})
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}

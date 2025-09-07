@@ -47,12 +47,15 @@ const ClubEntries = () => {
   // Handle URL query parameters for competition filtering
   useEffect(() => {
     const competitionId = searchParams.get('competition');
-    if (competitionId) {
+    if (competitionId && competitions.length > 0) {
       // Find the competition name by ID when data is loaded
       const competition = competitions.find(c => c.id === competitionId);
       if (competition) {
         setCompetitionFilter(competition.name);
         setSelectedCompetitionName(competition.name);
+        console.log('Setting competition filter:', competition.name, 'for ID:', competitionId);
+      } else {
+        console.log('Competition not found for ID:', competitionId, 'in competitions:', competitions);
       }
     }
   }, [searchParams, competitions]);
@@ -119,6 +122,13 @@ const ClubEntries = () => {
         `)
         .eq('competitions.club_id', profile.club_id)
         .order('entry_date', { ascending: false });
+
+      console.log('ClubEntries query:', {
+        error,
+        dataLength: entriesData?.length || 0,
+        clubId: profile.club_id,
+        competitionIdParam: searchParams.get('competition')
+      });
 
       if (error) throw error;
 

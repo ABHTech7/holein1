@@ -21,7 +21,7 @@ import EmptyState from "@/components/ui/empty-state";
 interface RevenueEntry {
   id: string;
   entry_date: string;
-  entry_fee: number;
+  commission_amount: number;
   competition_name: string;
   player_email: string;
 }
@@ -74,6 +74,7 @@ const ClubRevenue = () => {
           competitions!inner(
             name,
             entry_fee,
+            commission_amount,
             club_id
           ),
           profiles(
@@ -90,33 +91,35 @@ const ClubRevenue = () => {
       const processedEntries = entriesData?.map((entry) => ({
         id: entry.id,
         entry_date: entry.entry_date,
-        entry_fee: entry.competitions.entry_fee,
+        commission_amount: entry.competitions.commission_amount || 0,
         competition_name: entry.competitions.name,
         player_email: entry.profiles?.email || 'unknown@email.com'
       })) || [];
 
       setRevenueEntries(processedEntries);
 
-      // Calculate stats
-      const dailyRevenueCalc = processedEntries
+      // Calculate commission stats (only for paid entries)
+      const paidEntries = processedEntries.filter(e => entriesData?.find(entry => entry.id === e.id)?.paid);
+      
+      const dailyRevenueCalc = paidEntries
         .filter(e => new Date(e.entry_date) >= todayStart)
-        .reduce((sum, e) => sum + e.entry_fee, 0);
+        .reduce((sum, e) => sum + e.commission_amount, 0);
 
-      const monthToDateCalc = processedEntries
+      const monthToDateCalc = paidEntries
         .filter(e => new Date(e.entry_date) >= monthStart)
-        .reduce((sum, e) => sum + e.entry_fee, 0);
+        .reduce((sum, e) => sum + e.commission_amount, 0);
 
-      const yearToDateCalc = processedEntries
-        .reduce((sum, e) => sum + e.entry_fee, 0);
+      const yearToDateCalc = paidEntries
+        .reduce((sum, e) => sum + e.commission_amount, 0);
 
       setStats({
         dailyRevenue: dailyRevenueCalc,
         monthToDate: monthToDateCalc,
         yearToDate: yearToDateCalc,
-        totalEntries: processedEntries.length
+        totalEntries: paidEntries.length
       });
 
-      // Generate daily revenue chart data
+      // Generate daily commission chart data (only paid entries)
       const dailyRevenueMap = new Map<string, { revenue: number; entries: number; }>();
       
       // Initialize all days in range with 0
@@ -125,14 +128,14 @@ const ClubRevenue = () => {
         dailyRevenueMap.set(dateKey, { revenue: 0, entries: 0 });
       }
 
-      // Populate with actual data
-      processedEntries
+      // Populate with actual commission data (paid entries only)
+      paidEntries
         .filter(e => new Date(e.entry_date) >= rangeStart)
         .forEach(entry => {
           const dateKey = entry.entry_date.split('T')[0];
           const existing = dailyRevenueMap.get(dateKey) || { revenue: 0, entries: 0 };
           dailyRevenueMap.set(dateKey, {
-            revenue: existing.revenue + entry.entry_fee,
+            revenue: existing.revenue + entry.commission_amount,
             entries: existing.entries + 1
           });
         });
@@ -188,9 +191,9 @@ const ClubRevenue = () => {
               {/* Header */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h1 className="font-display text-3xl font-bold text-foreground">Revenue Dashboard</h1>
+                  <h1 className="font-display text-3xl font-bold text-foreground">Commission Dashboard</h1>
                   <p className="text-muted-foreground mt-1">
-                    Track entry fee revenue across all your competitions
+                    Track your commission earnings from competition entries
                   </p>
                 </div>
                 
@@ -304,7 +307,7 @@ const ClubRevenue = () => {
                           <TableHead>Date</TableHead>
                           <TableHead>Competition</TableHead>
                           <TableHead>Player</TableHead>
-                          <TableHead>Entry Fee</TableHead>
+                          <TableHead>Commission</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -319,7 +322,7 @@ const ClubRevenue = () => {
                             <TableCell>{entry.competition_name}</TableCell>
                             <TableCell>{entry.player_email}</TableCell>
                             <TableCell className="font-medium">
-                              {formatCurrency(entry.entry_fee)}
+                              {formatCurrency(entry.commission_amount)}
                             </TableCell>
                           </TableRow>
                         ))}
