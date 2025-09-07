@@ -16,6 +16,7 @@ import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
 import { useAuth } from "@/hooks/useAuth";
 import { trackPlayerChanges } from "@/lib/auditTracker";
+import PlayerJourneyTimeline from "@/components/admin/PlayerJourneyTimeline";
 
 interface Player {
   id: string;
@@ -347,9 +348,10 @@ const PlayerDetailPage = () => {
           </div>
 
           <Tabs defaultValue="details" className="space-y-6">
-            <TabsList>
-              <TabsTrigger value="details">Player Details</TabsTrigger>
-              <TabsTrigger value="entries">Competition Entries</TabsTrigger>
+            <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full">
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="journey">Journey</TabsTrigger>
+              <TabsTrigger value="entries">Entries</TabsTrigger>
               <TabsTrigger value="notes">Notes</TabsTrigger>
             </TabsList>
 
@@ -422,6 +424,13 @@ const PlayerDetailPage = () => {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="journey">
+              <PlayerJourneyTimeline 
+                playerId={playerId!} 
+                playerData={player}
+              />
             </TabsContent>
 
             <TabsContent value="entries">

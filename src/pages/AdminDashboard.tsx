@@ -12,6 +12,8 @@ import StatsCard from "@/components/ui/stats-card";
 import ChartWrapper from "@/components/ui/chart-wrapper";
 import SiteSettingsModal from "@/components/admin/SiteSettingsModal";
 import NewUserModal from "@/components/admin/NewUserModal";
+import AdminQuickActions from "@/components/admin/AdminQuickActions";
+import PlayerJourneyFunnel from "@/components/admin/PlayerJourneyFunnel";
 import { Users, Calendar, Trophy, TrendingUp, Plus, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -280,9 +282,20 @@ const AdminDashboard = () => {
                   <Settings className="w-4 h-4" />
                   Settings
                 </Button>
+                <Button variant="outline" className="gap-2" onClick={() => navigate('/dashboard/admin/entries')}>
+                  <Trophy className="w-4 h-4" />
+                  <span className="hidden sm:inline">Entry Management</span>
+                  <span className="sm:hidden">Entries</span>
+                </Button>
+                <Button variant="outline" className="gap-2" onClick={() => navigate('/dashboard/admin/claims')}>
+                  <TrendingUp className="w-4 h-4" />
+                  <span className="hidden sm:inline">Claims Review</span>
+                  <span className="sm:hidden">Claims</span>
+                </Button>
                 <Button variant="outline" className="gap-2" onClick={handleUserManagement}>
                   <Plus className="w-4 h-4" />
-                  Manage Users
+                  <span className="hidden sm:inline">Manage Users</span>
+                  <span className="sm:hidden">Users</span>
                 </Button>
                 <Button className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2" onClick={handleAddUser}>
                   <Plus className="w-4 h-4" />
@@ -361,6 +374,24 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
 
+            {/* Quick Actions Grid - New Enhanced Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Quick Actions</h2>
+                <p className="text-sm text-muted-foreground">Fast access to key management areas</p>
+              </div>
+              <AdminQuickActions 
+                stats={{
+                  totalPlayers: stats.totalPlayers,
+                  pendingEntries: 0, // This would need to be calculated from entries data
+                  pendingClaims: 0,  // This would need to be calculated from claims data
+                  monthlyRevenue: stats.monthlyRevenue,
+                  activeCompetitions: stats.activeCompetitions,
+                  totalClubs: stats.totalClubs
+                }}
+              />
+            </div>
+
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {loading ? (
@@ -409,6 +440,9 @@ const AdminDashboard = () => {
             <div className="grid lg:grid-cols-1 gap-8">
               {/* Main Content Area */}
               <div className="space-y-8">
+                {/* Player Journey Funnel */}
+                <PlayerJourneyFunnel />
+                
                 {/* Membership Growth Chart */}
                 <ChartWrapper
                   title="New Player Registrations"

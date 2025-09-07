@@ -32,6 +32,8 @@ import RevenueBreakdown from "./pages/admin/RevenueBreakdown";
 import CompetitionDetail from "./pages/CompetitionDetail";
 import CompetitionDetailEnhanced from "./pages/CompetitionDetailEnhanced";
 import CompetitionEditPage from "./pages/admin/CompetitionEditPage";
+import EntriesPage from "./pages/admin/EntriesPage";
+import ClaimsPage from "./pages/admin/ClaimsPage";
 import CompetitionWizardPage from "./pages/CompetitionWizardPage";
 import Styleguide from "./pages/Styleguide";
 import ErrorPage from "./pages/ErrorPage";
@@ -176,6 +178,22 @@ const App = () => (
             element={
               <RoleGuard allowedRoles={['ADMIN']}>
                 <RevenueBreakdown />
+              </RoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/admin/entries" 
+            element={
+              <RoleGuard allowedRoles={['ADMIN']}>
+                <EntriesPage />
+              </RoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/admin/claims" 
+            element={
+              <RoleGuard allowedRoles={['ADMIN']}>
+                <ClaimsPage />
               </RoleGuard>
             } 
           />
