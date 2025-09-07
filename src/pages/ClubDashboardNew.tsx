@@ -415,7 +415,7 @@ const ClubDashboardNew = () => {
                   <Trophy className="w-4 h-4 text-muted-foreground" />
                 </div>
                 <span className="text-2xl font-bold text-foreground">
-                  {formatCurrency(stats.commissionToday)}
+                  {formatCurrency(Math.round(stats.commissionToday))}
                 </span>
               </Button>
               
@@ -429,7 +429,7 @@ const ClubDashboardNew = () => {
                   <TrendingUp className="w-4 h-4 text-muted-foreground" />
                 </div>
                 <span className="text-2xl font-bold text-foreground">
-                  {formatCurrency(stats.commissionMonth)}
+                  {formatCurrency(Math.round(stats.commissionMonth))}
                 </span>
               </Button>
               
@@ -443,7 +443,7 @@ const ClubDashboardNew = () => {
                   <Calendar className="w-4 h-4 text-muted-foreground" />
                 </div>
                 <span className="text-2xl font-bold text-foreground">
-                  {formatCurrency(stats.commissionYear)}
+                  {formatCurrency(Math.round(stats.commissionYear))}
                 </span>
               </Button>
             </div>
