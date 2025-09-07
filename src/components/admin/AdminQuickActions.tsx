@@ -6,7 +6,7 @@ import {
   Trophy, 
   Users, 
   AlertTriangle, 
-  DollarSign, 
+  PoundSterling, 
   FileText, 
   Building, 
   TrendingUp,
@@ -62,7 +62,7 @@ const AdminQuickActions = ({ stats }: QuickActionsProps) => {
     {
       title: "Revenue Overview",
       description: "Financial analytics and reports",
-      icon: DollarSign,
+      icon: PoundSterling,
       path: "/dashboard/admin/revenue",
       count: stats.monthlyRevenue,
       countLabel: "This Month",
