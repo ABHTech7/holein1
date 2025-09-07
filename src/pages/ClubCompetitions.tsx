@@ -185,22 +185,21 @@ const ClubCompetitions = () => {
       <main className="flex-1">
         <Section spacing="lg">
           <div className="max-w-7xl mx-auto space-y-8">
+            {/* Back Button */}
+            <Button
+              variant="outline"
+              onClick={() => navigate('/dashboard/club')}
+              className="flex items-center gap-2 mb-6"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Dashboard
+            </Button>
+
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate('/dashboard/club')}
-                  className="gap-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to Dashboard
-                </Button>
-                <div>
-                  <h1 className="font-display text-3xl font-bold text-foreground">Competitions</h1>
-                  <p className="text-muted-foreground mt-1">Manage your Hole in 1 Challenge competitions</p>
-                </div>
+              <div>
+                <h1 className="font-display text-3xl font-bold text-foreground">Competitions</h1>
+                <p className="text-muted-foreground mt-1">Manage your Hole in 1 Challenge competitions</p>
               </div>
               
               <Button onClick={() => navigate('/dashboard/club/competition/new')} className="gap-2">
