@@ -252,6 +252,7 @@ const AdminDashboard = () => {
   };
 
   const handleCompetitionsClick = () => {
+    console.log('Competition link clicked, navigating to:', '/dashboard/admin/competitions');
     navigate('/dashboard/admin/competitions');
   };
 
@@ -272,15 +273,15 @@ const AdminDashboard = () => {
         <Section spacing="lg">
           <div className="max-w-7xl mx-auto space-y-8">
             {/* Header */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h1 className="font-display text-3xl font-bold text-foreground">The Clubhouse HQ</h1>
-                <p className="text-muted-foreground mt-1">Keeping score, counting cash, and dodging sand traps.</p>
+                <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">The Clubhouse HQ</h1>
+                <p className="text-muted-foreground mt-1 text-sm md:text-base">Keeping score, counting cash, and dodging sand traps.</p>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-2 md:gap-3">
                 <Button variant="outline" className="gap-2" onClick={handleSettings}>
                   <Settings className="w-4 h-4" />
-                  Settings
+                  <span className="hidden sm:inline">Settings</span>
                 </Button>
                 <Button variant="outline" className="gap-2" onClick={() => navigate('/dashboard/admin/entries')}>
                   <Trophy className="w-4 h-4" />
@@ -299,7 +300,8 @@ const AdminDashboard = () => {
                 </Button>
                 <Button className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2" onClick={handleAddUser}>
                   <Plus className="w-4 h-4" />
-                  Add New User
+                  <span className="hidden md:inline">Add New User</span>
+                  <span className="md:hidden">Add User</span>
                 </Button>
               </div>
             </div>

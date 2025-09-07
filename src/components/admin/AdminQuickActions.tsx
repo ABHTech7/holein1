@@ -108,7 +108,10 @@ const AdminQuickActions = ({ stats }: QuickActionsProps) => {
           <Card 
             key={action.path}
             className={`${action.color} cursor-pointer transition-all duration-200 hover:shadow-md border`}
-            onClick={() => navigate(action.path)}
+            onClick={() => {
+              console.log('Quick action clicked:', action.title, action.path);
+              navigate(action.path);
+            }}
           >
             <CardContent className="p-4">
               <div className="flex items-start justify-between">
