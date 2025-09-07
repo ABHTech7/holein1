@@ -275,7 +275,37 @@ const ClubDashboardNew = () => {
   }, [profile?.club_id, toast]);
 
   const handleShareCompetition = async (competitionId: string) => {
-    const shareUrl = `${window.location.origin}/enter/${competitionId}`;
+    // First get the competition details
+    const { data: competition } = await supabase
+      .from('competitions')
+      .select('club_id, hole_number')
+      .eq('id', competitionId)
+      .single();
+    
+    if (!competition) {
+      const shareUrl = `${window.location.origin}/enter/${competitionId}`;
+      const success = await copyToClipboard(shareUrl);
+      
+      if (success) {
+        toast({
+          title: 'Link Copied!',
+          description: 'Competition entry link has been copied to clipboard.',
+        });
+      }
+      return;
+    }
+
+    // Get venue slug for new URL format
+    const { data: venue } = await supabase
+      .from('venues')
+      .select('slug')
+      .eq('club_id', competition.club_id)
+      .single();
+    
+    const shareUrl = venue 
+      ? `${window.location.origin}/enter/${venue.slug}/${competition.hole_number}`
+      : `${window.location.origin}/enter/${competitionId}`;
+    
     const success = await copyToClipboard(shareUrl);
     
     if (success) {

@@ -6,6 +6,8 @@ import useAuth from '@/hooks/useAuth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { ShareUrlDisplay } from "@/components/entry/ShareUrlDisplay";
+import { PreviewLink } from "@/components/entry/PreviewLink";
 import { format } from 'date-fns';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,7 +68,9 @@ interface Competition {
   prize_pool: number;
   is_year_round: boolean;
   archived: boolean;
+  club_id: string;
   clubs: {
+    id: string;
     name: string;
   };
 }
@@ -159,7 +163,7 @@ const CompetitionDetailEnhanced = () => {
           .from('competitions')
           .select(`
             *,
-            clubs:clubs(name)
+            clubs:clubs(id, name)
           `)
           .eq('id', id)
           .single();
@@ -247,7 +251,17 @@ const CompetitionDetailEnhanced = () => {
   const handleShareCompetition = async () => {
     if (!competition) return;
     
-    const shareUrl = `${window.location.origin}/enter/${competition.id}`;
+    // Get venue data to generate new URL format
+    const { data: venue } = await supabase
+      .from('venues')
+      .select('slug')
+      .eq('club_id', competition.club_id)
+      .single();
+    
+    const shareUrl = venue 
+      ? `${window.location.origin}/enter/${venue.slug}/${competition.hole_number}`
+      : `${window.location.origin}/enter/${competition.id}`;
+    
     const success = await copyToClipboard(shareUrl);
     
     if (success) {
@@ -722,26 +736,23 @@ const CompetitionDetailEnhanced = () => {
                     <p className="text-sm text-muted-foreground mb-2">
                       Use this link to promote your competition. Perfect for QR codes, social media, and direct sharing.
                     </p>
-                    <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
-                      <code className="flex-1 text-sm">
-                        {window.location.origin}/enter/{competition.id}
-                      </code>
-                      <Button size="sm" variant="outline" onClick={handleShareCompetition}>
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    </div>
+                    <ShareUrlDisplay 
+                      competitionId={competition.id}
+                      clubId={competition.club_id}
+                      holeNumber={competition.hole_number}
+                      onCopy={handleShareCompetition}
+                    />
                   </div>
                   <div className="flex flex-col gap-2">
                     <Button className="gap-2" onClick={handleShareCompetition}>
                       <Copy className="w-4 h-4" />
                       Copy Link
                     </Button>
-                    <Button variant="outline" className="gap-2" asChild>
-                      <a href={`/enter/${competition.id}`} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="w-4 h-4" />
-                        Preview
-                      </a>
-                    </Button>
+                    <PreviewLink 
+                      competitionId={competition.id}
+                      clubId={competition.club_id}
+                      holeNumber={competition.hole_number}
+                    />
                   </div>
                 </div>
               </CardContent>
