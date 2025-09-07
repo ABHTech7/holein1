@@ -179,12 +179,27 @@ const ClubDashboardNew = () => {
             new Date(e.entry_date) >= weekStart
           ).length;
 
+          console.log('Commission calculation data:', {
+            entriesData: entriesData?.length || 0,
+            paidEntriesCount: entriesData?.filter(e => e.paid).length || 0,
+            sampleEntry: entriesData?.[0],
+            todayStart: todayStart.toISOString(),
+            monthStart: monthStart.toISOString()
+          });
+
           // Calculate commission for paid entries only
           const paidEntries = entriesData.filter(e => e.paid);
           
           const commissionToday = paidEntries
-            .filter(e => new Date(e.entry_date) >= todayStart)
-            .reduce((sum, e) => sum + (e.competitions.commission_amount || 0), 0);
+            .filter(e => {
+              const entryDate = new Date(e.entry_date);
+              console.log('Today filter:', entryDate, '>=', todayStart, ':', entryDate >= todayStart);
+              return entryDate >= todayStart;
+            })
+            .reduce((sum, e) => {
+              console.log('Adding commission:', e.competitions.commission_amount);
+              return sum + (e.competitions.commission_amount || 0);
+            }, 0);
 
           const commissionMonth = paidEntries
             .filter(e => new Date(e.entry_date) >= monthStart)
@@ -193,6 +208,12 @@ const ClubDashboardNew = () => {
           const commissionYear = paidEntries
             .filter(e => new Date(e.entry_date) >= yearStart)
             .reduce((sum, e) => sum + (e.competitions.commission_amount || 0), 0);
+
+          console.log('Final commission calculations:', {
+            commissionToday,
+            commissionMonth,
+            commissionYear
+          });
 
           const liveCompetitions = processedCompetitions.filter(c => c.status === 'ACTIVE').length;
 
@@ -219,7 +240,13 @@ const ClubDashboardNew = () => {
 
         // Generate real trend data from actual entries instead of mock data
         const generateTrendData = () => {
-          if (!entriesData || entriesData.length === 0) {
+          console.log('Entries data for trend:', entriesData); // Debug log
+          
+          // Always try to use real data first, fall back to mock only if truly empty
+          const hasRealData = entriesData && entriesData.length > 0;
+          
+          if (!hasRealData) {
+            console.log('Using fallback mock data for trends');
             // Fallback to mock data if no real entries exist
             const weeks = [];
             const weekNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -243,6 +270,7 @@ const ClubDashboardNew = () => {
             return weeks;
           }
 
+          console.log('Using real data for trends');
           // Use real entry data to generate trend
           const dailyData = new Map();
           const weekNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -265,11 +293,18 @@ const ClubDashboardNew = () => {
             const entryDate = new Date(entry.entry_date);
             const dateKey = entryDate.toISOString().split('T')[0];
             
+            console.log('Processing entry:', {
+              date: dateKey,
+              paid: entry.paid,
+              commission_amount: entry.competitions.commission_amount,
+              entry_fee: entry.competitions.entry_fee
+            });
+            
             if (dailyData.has(dateKey) && entry.paid) {
               const dayData = dailyData.get(dateKey);
               dayData.entries += 1;
-              dayData.revenue += entry.competitions.entry_fee / 100; // Convert pence to pounds
-              dayData.commission += (entry.competitions.commission_amount || 0) / 100;
+              dayData.revenue += (entry.competitions.entry_fee || 0) / 100; // Convert pence to pounds
+              dayData.commission += (entry.competitions.commission_amount || 0) / 100; // Convert pence to pounds
             }
           });
 
