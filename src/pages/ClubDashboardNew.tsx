@@ -158,8 +158,10 @@ const ClubDashboardNew = () => {
         const yearStart = new Date(now.getFullYear(), 0, 1);
         const weekStart = new Date(todayStart.getTime() - (7 * 24 * 60 * 60 * 1000));
 
+        console.log('Debug: About to fetch entries for club:', profile.club_id);
+        
         // Fetch recent entries for stats calculation
-        const { data: entriesData } = await supabase
+        const { data: entriesData, error: entriesError } = await supabase
           .from('entries')
           .select(`
             id,
@@ -176,8 +178,19 @@ const ClubDashboardNew = () => {
             )
           `)
           .eq('competitions.club_id', profile.club_id)
-          .gte('entry_date', yearStart.toISOString())
           .order('entry_date', { ascending: false });
+
+        console.log('Entries query result:', {
+          error: entriesError,
+          dataLength: entriesData?.length || 0,
+          clubId: profile.club_id,
+          yearStart: yearStart.toISOString(),
+          firstEntry: entriesData?.[0]
+        });
+
+        if (entriesError) {
+          console.error('Entries query error:', entriesError);
+        }
 
         if (entriesData) {
           const entriesToday = entriesData.filter(e => 

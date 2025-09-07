@@ -45,8 +45,9 @@ interface Competition {
   start_date: string;
   end_date: string;
   entry_fee: number;
+  commission_amount: number;
   entries_count: number;
-  total_revenue: number;
+  commission_revenue: number;
   created_at: string;
 }
 
@@ -105,6 +106,7 @@ const ClubCompetitions = () => {
             start_date,
             end_date,
             entry_fee,
+            commission_amount,
             created_at,
             entries:entries(count)
           `)
@@ -114,11 +116,11 @@ const ClubCompetitions = () => {
 
         if (error) throw error;
 
-        // Process competitions data with entry counts and revenue
+        // Process competitions data with entry counts and commission
         const processedCompetitions = competitionsData?.map(comp => ({
           ...comp,
           entries_count: comp.entries[0]?.count || 0,
-          total_revenue: (comp.entries[0]?.count || 0) * (comp.entry_fee || 0)
+          commission_revenue: (comp.entries[0]?.count || 0) * (comp.commission_amount || 0)
         })) || [];
 
         setCompetitions(processedCompetitions);
@@ -253,9 +255,8 @@ const ClubCompetitions = () => {
                         <TableHead>Hole</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Period</TableHead>
-                        <TableHead>Entry Fee</TableHead>
                         <TableHead>Entries</TableHead>
-                        <TableHead>Revenue</TableHead>
+                        <TableHead>Commission</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -288,20 +289,19 @@ const ClubCompetitions = () => {
                               </div>
                             )}
                           </TableCell>
-                          <TableCell>{formatCurrency(competition.entry_fee)}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <Users className="w-4 h-4 text-muted-foreground" />
                               {competition.entries_count}
                             </div>
                           </TableCell>
-                          <TableCell>{formatCurrency(competition.total_revenue)}</TableCell>
+                          <TableCell>{formatCurrency(competition.commission_revenue)}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => navigate(`/competition/${competition.id}`)}
+                                onClick={() => navigate(`/competitions/${competition.id}`)}
                                 className="gap-1"
                               >
                                 <Eye className="w-4 h-4" />
