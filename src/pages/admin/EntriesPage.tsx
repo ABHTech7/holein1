@@ -153,13 +153,21 @@ const EntriesPage = () => {
     return 'No name provided';
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string, outcome_self: string | null) => {
+    // Check outcome_self first for auto_miss
+    if (outcome_self === 'auto_miss') return 'destructive';
+    
     switch (status.toLowerCase()) {
       case 'completed': return 'default';
       case 'pending': return 'secondary';
       case 'expired': return 'destructive';
       default: return 'outline';
     }
+  };
+
+  const getStatusDisplay = (status: string, outcome_self: string | null) => {
+    if (outcome_self === 'auto_miss') return 'Auto Missed';
+    return status || 'pending';
   };
 
   const getAttemptWindow = (entry: Entry) => {
@@ -262,7 +270,8 @@ const EntriesPage = () => {
                       <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="expired">Expired</SelectItem>
+                       <SelectItem value="expired">Expired</SelectItem>
+                       <SelectItem value="auto_miss">Auto Missed</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={paymentFilter} onValueChange={setPaymentFilter}>
@@ -331,7 +340,12 @@ const EntriesPage = () => {
                             <TableRow key={entry.id} className="cursor-pointer hover:bg-muted/50">
                               <TableCell className="font-medium">
                                 <div>
-                                  <div className="font-medium">{getPlayerName(entry.player)}</div>
+                                  <button
+                                    onClick={() => navigate(`/dashboard/admin/players/${entry.player.id}`)}
+                                    className="font-medium hover:text-primary hover:underline focus:outline-none focus:text-primary text-left"
+                                  >
+                                    {getPlayerName(entry.player)}
+                                  </button>
                                   <div className="text-xs text-muted-foreground md:hidden">
                                     {entry.competition.name}
                                   </div>
@@ -344,9 +358,9 @@ const EntriesPage = () => {
                                   {formatDate(entry.entry_date, 'short')}
                                 </div>
                               </TableCell>
-                              <TableCell>
-                                <Badge variant={getStatusColor(entry.status)}>
-                                  {entry.status || 'pending'}
+                               <TableCell>
+                                <Badge variant={getStatusColor(entry.status, entry.outcome_self)}>
+                                  {getStatusDisplay(entry.status, entry.outcome_self)}
                                 </Badge>
                               </TableCell>
                               <TableCell>

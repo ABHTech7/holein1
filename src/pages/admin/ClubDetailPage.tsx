@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Building, Mail, Phone, MapPin, Trophy, FileText, PoundSterling, Plus, Save, Calendar, ArrowLeft, Edit2, Check, X, Upload, Shield, Trash2 } from "lucide-react";
+import { Building, Mail, Phone, MapPin, Trophy, FileText, PoundSterling, Plus, Save, Calendar, ArrowLeft, Edit2, Check, X, Upload, Shield, Trash2, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate, formatCurrency } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
@@ -83,6 +83,8 @@ const ClubDetailPage = () => {
   const [tempCommissionRate, setTempCommissionRate] = useState<string>("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingContract, setUploadingContract] = useState(false);
+  const [clubUsers, setClubUsers] = useState<any[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   // Form data for editing
   const [formData, setFormData] = useState({
@@ -183,6 +185,9 @@ const ClubDetailPage = () => {
       
       setNotes(formattedNotes);
 
+      // Fetch club users
+      await fetchClubUsers();
+
     } catch (error) {
       console.error('Error fetching club details:', error);
       toast({
@@ -192,6 +197,31 @@ const ClubDetailPage = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchClubUsers = async () => {
+    if (!clubId) return;
+    
+    try {
+      setLoadingUsers(true);
+      const { data: users, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('club_id', clubId)
+        .eq('role', 'CLUB');
+
+      if (error) throw error;
+      setClubUsers(users || []);
+    } catch (error) {
+      console.error('Error fetching club users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load club users.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingUsers(false);
     }
   };
 
@@ -864,6 +894,7 @@ const ClubDetailPage = () => {
               <TabsTrigger value="competitions">Competitions</TabsTrigger>
               <TabsTrigger value="commission">Commission & Payments</TabsTrigger>
               <TabsTrigger value="banking">Bank Details</TabsTrigger>
+              <TabsTrigger value="users">Club Users</TabsTrigger>
               <TabsTrigger value="notes">Notes</TabsTrigger>
             </TabsList>
 
@@ -1251,6 +1282,115 @@ const ClubDetailPage = () => {
 
             <TabsContent value="banking">
               <ClubBankDetailsSection clubId={clubId!} />
+            </TabsContent>
+
+            <TabsContent value="users">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Club Users & Management
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {loadingUsers ? (
+                    <div className="space-y-3">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="flex items-center space-x-4 p-3 border rounded">
+                          <Skeleton className="h-4 w-48" />
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-sm text-muted-foreground mb-4">
+                        Users with club management access for {club?.name}
+                      </div>
+                      
+                      {clubUsers.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                          <div className="text-lg font-medium">No club users found</div>
+                          <div className="text-sm">No users are currently assigned to manage this club</div>
+                        </div>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Name</TableHead>
+                              <TableHead>Email</TableHead>
+                              <TableHead>Phone</TableHead>
+                              <TableHead>Member Since</TableHead>
+                              <TableHead>Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {clubUsers.map((user) => (
+                              <TableRow key={user.id}>
+                                <TableCell className="font-medium">
+                                  {user.first_name || user.last_name 
+                                    ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
+                                    : 'No name provided'
+                                  }
+                                </TableCell>
+                                <TableCell>{user.email}</TableCell>
+                                <TableCell>{user.phone || 'Not provided'}</TableCell>
+                                <TableCell>{formatDate(user.created_at, 'short')}</TableCell>
+                                <TableCell>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => navigate(`/dashboard/admin/players/${user.id}`)}
+                                    >
+                                      View Profile
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        // Remove user from club
+                                        const removeUser = async () => {
+                                          try {
+                                            const { error } = await supabase
+                                              .from('profiles')
+                                              .update({ club_id: null, role: 'PLAYER' })
+                                              .eq('id', user.id);
+                                            
+                                            if (error) throw error;
+                                            
+                                            await fetchClubUsers();
+                                            toast({
+                                              title: "Success",
+                                              description: "User removed from club management.",
+                                            });
+                                          } catch (error) {
+                                            console.error('Error removing user:', error);
+                                            toast({
+                                              title: "Error",
+                                              description: "Failed to remove user from club.",
+                                              variant: "destructive"
+                                            });
+                                          }
+                                        };
+                                        removeUser();
+                                      }}
+                                    >
+                                      Remove Access
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="notes">
