@@ -743,15 +743,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
       }
-      get_public_club_info: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          created_at: string
-          id: string
-          name: string
-          website: string
-        }[]
-      }
     }
     Enums: {
       claim_status: "PENDING" | "VERIFIED" | "REJECTED"
