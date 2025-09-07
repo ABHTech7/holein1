@@ -9,6 +9,7 @@ interface EntryHeroProps {
   entryFee: number;
   imageUrl?: string;
   venueName: string;
+  heroImageUrl?: string | null;
 }
 
 export const EntryHero = ({ 
@@ -17,8 +18,10 @@ export const EntryHero = ({
   prize, 
   entryFee, 
   imageUrl = "/img/entry-hero.jpg",
-  venueName 
+  venueName,
+  heroImageUrl
 }: EntryHeroProps) => {
+  const displayImageUrl = heroImageUrl || imageUrl;
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-secondary/5">
       <div className="container mx-auto px-4 py-12">
@@ -71,7 +74,7 @@ export const EntryHero = ({
           <div className="relative">
             <div className="aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl">
               <img 
-                src={imageUrl}
+                src={displayImageUrl}
                 alt={`${holeName} at ${venueName}`}
                 className="w-full h-full object-cover"
                 loading="eager"

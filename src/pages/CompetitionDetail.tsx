@@ -48,6 +48,7 @@ interface Competition {
   entry_fee: number;
   prize_pool: number;
   archived: boolean;
+  hero_image_url?: string | null;
   club_id: string;
   clubs: {
     id: string;

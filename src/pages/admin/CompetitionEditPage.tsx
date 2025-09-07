@@ -23,7 +23,9 @@ import {
   X,
   Calendar as CalendarIcon,
   Archive,
-  Trash2
+  Trash2,
+  Upload,
+  Image as ImageIcon
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -43,6 +45,7 @@ interface Competition {
   is_year_round: boolean;
   archived: boolean;
   club_id: string;
+  hero_image_url: string | null;
   clubs: {
     name: string;
   };
@@ -85,6 +88,9 @@ const CompetitionEditPage = () => {
   const [competition, setCompetition] = useState<Competition | null>(null);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [heroImageFile, setHeroImageFile] = useState<File | null>(null);
+  const [heroImagePreview, setHeroImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   
   const form = useForm<EditFormData>({
     resolver: zodResolver(editFormSchema),
@@ -108,6 +114,11 @@ const CompetitionEditPage = () => {
         if (error) throw error;
 
         setCompetition(data);
+        
+        // Set hero image preview if exists
+        if (data.hero_image_url) {
+          setHeroImagePreview(data.hero_image_url);
+        }
         
         // Set form defaults
         form.reset({
@@ -137,11 +148,92 @@ const CompetitionEditPage = () => {
     fetchCompetition();
   }, [id, user, form, toast, navigate]);
 
+  const handleImageUpload = async (file: File): Promise<string | null> => {
+    try {
+      setUploadingImage(true);
+      
+      // Create unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${competition!.id}-${Date.now()}.${fileExt}`;
+      
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('competition-heroes')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('competition-heroes')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: 'Upload Error',
+        description: 'Failed to upload hero image',
+        variant: 'destructive',
+      });
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Invalid File',
+        description: 'Please select an image file',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File Too Large',
+        description: 'Please select an image smaller than 5MB',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setHeroImageFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setHeroImagePreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const onSubmit = async (data: EditFormData) => {
     if (!competition) return;
 
     setSaving(true);
     try {
+      let heroImageUrl = competition.hero_image_url;
+      
+      // Upload new hero image if selected
+      if (heroImageFile) {
+        const uploadedUrl = await handleImageUpload(heroImageFile);
+        if (uploadedUrl) {
+          heroImageUrl = uploadedUrl;
+        }
+      }
+
       // Convert entry fee back to cents and commission to pence
       const entry_fee_cents = Math.round(data.entry_fee * 100);
       const prize_pool_cents = data.prize_pool ? Math.round(data.prize_pool * 100) : null;
@@ -176,6 +268,7 @@ const CompetitionEditPage = () => {
           prize_pool: prize_pool_cents,
           commission_amount: commission_amount_pence,
           status: newStatus,
+          hero_image_url: heroImageUrl,
           updated_at: new Date().toISOString(),
         })
         .eq('id', competition.id);
@@ -380,16 +473,75 @@ const CompetitionEditPage = () => {
                     </div>
                   </div>
 
-                  {/* Description */}
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      {...form.register('description')}
-                      placeholder="Enter competition description"
-                      rows={3}
-                    />
-                  </div>
+                   {/* Description */}
+                   <div className="space-y-2">
+                     <Label htmlFor="description">Description</Label>
+                     <Textarea
+                       id="description"
+                       {...form.register('description')}
+                       placeholder="Enter competition description"
+                       rows={3}
+                     />
+                   </div>
+
+                   {/* Hero Image Upload */}
+                   <div className="space-y-2">
+                     <Label htmlFor="hero_image">Hero Image</Label>
+                     <div className="space-y-4">
+                       {heroImagePreview && (
+                         <div className="relative">
+                           <img 
+                             src={heroImagePreview} 
+                             alt="Hero preview" 
+                             className="w-full h-48 object-cover rounded-lg border"
+                           />
+                           <Button
+                             type="button"
+                             variant="ghost"
+                             size="sm"
+                             className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white"
+                             onClick={() => {
+                               setHeroImagePreview(null);
+                               setHeroImageFile(null);
+                             }}
+                           >
+                             <X className="w-4 h-4" />
+                           </Button>
+                         </div>
+                       )}
+                       <div className="flex items-center gap-4">
+                         <Input
+                           id="hero_image"
+                           type="file"
+                           accept="image/*"
+                           onChange={handleImageChange}
+                           className="hidden"
+                         />
+                         <Button
+                           type="button"
+                           variant="outline"
+                           onClick={() => document.getElementById('hero_image')?.click()}
+                           disabled={uploadingImage}
+                           className="gap-2"
+                         >
+                           {uploadingImage ? (
+                             <>
+                               <Upload className="w-4 h-4 animate-spin" />
+                               Uploading...
+                             </>
+                           ) : (
+                             <>
+                               <ImageIcon className="w-4 h-4" />
+                               {heroImagePreview ? 'Change Image' : 'Upload Hero Image'}
+                             </>
+                           )}
+                         </Button>
+                       </div>
+                       <p className="text-sm text-muted-foreground">
+                         Upload a hero image for the competition entry page. Recommended size: 800x600px or larger. Max file size: 5MB.
+                       </p>
+                     </div>
+                   </div>
 
                   {/* Year-round competition toggle */}
                   <div className="flex items-center space-x-2">

@@ -69,6 +69,7 @@ interface Competition {
   is_year_round: boolean;
   archived: boolean;
   club_id: string;
+  hero_image_url?: string | null;
   clubs: {
     id: string;
     name: string;

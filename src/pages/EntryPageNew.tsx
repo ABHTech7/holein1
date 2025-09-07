@@ -25,6 +25,7 @@ interface VenueCompetition {
   club_name: string;
   venue_name: string;
   venue_slug: string;
+  hero_image_url: string | null;
 }
 
 const EntryPageNew = () => {
@@ -96,7 +97,8 @@ const EntryPageNew = () => {
           status: comp.status,
           club_name: venue.clubs.name,
           venue_name: venue.name,
-          venue_slug: venue.slug
+          venue_slug: venue.slug,
+          hero_image_url: comp.hero_image_url
         });
 
         // Check for cooldown if user is logged in
@@ -264,6 +266,7 @@ const EntryPageNew = () => {
           prize={competition.prize_pool || 0}
           entryFee={competition.entry_fee}
           venueName={competition.venue_name}
+          heroImageUrl={competition.hero_image_url}
         />
 
         <div className="py-12">

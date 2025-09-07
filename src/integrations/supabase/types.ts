@@ -267,6 +267,7 @@ export type Database = {
           description: string | null
           end_date: string | null
           entry_fee: number | null
+          hero_image_url: string | null
           hole_number: number
           id: string
           is_year_round: boolean
@@ -285,6 +286,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           entry_fee?: number | null
+          hero_image_url?: string | null
           hole_number?: number
           id?: string
           is_year_round?: boolean
@@ -303,6 +305,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           entry_fee?: number | null
+          hero_image_url?: string | null
           hole_number?: number
           id?: string
           is_year_round?: boolean
