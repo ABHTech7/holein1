@@ -72,7 +72,9 @@ const ClubDashboardNew = () => {
   const [stats, setStats] = useState({
     entriesToday: 0,
     entriesThisWeek: 0,
-    revenue: 0,
+    commissionToday: 0,
+    commissionMonth: 0,
+    commissionYear: 0,
     liveCompetitions: 0,
     playerMix: { members: 0, visitors: 100 }
   });
@@ -143,6 +145,8 @@ const ClubDashboardNew = () => {
         // Calculate stats
         const now = new Date();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const yearStart = new Date(now.getFullYear(), 0, 1);
         const weekStart = new Date(todayStart.getTime() - (7 * 24 * 60 * 60 * 1000));
 
         // Fetch recent entries for stats calculation
@@ -154,6 +158,7 @@ const ClubDashboardNew = () => {
             paid,
             competitions!inner(
               entry_fee,
+              commission_amount,
               name,
               club_id
             ),
@@ -162,27 +167,41 @@ const ClubDashboardNew = () => {
             )
           `)
           .eq('competitions.club_id', profile.club_id)
-          .gte('entry_date', weekStart.toISOString())
-          .order('entry_date', { ascending: false })
-          .limit(50);
+          .gte('entry_date', yearStart.toISOString())
+          .order('entry_date', { ascending: false });
 
         if (entriesData) {
           const entriesToday = entriesData.filter(e => 
             new Date(e.entry_date) >= todayStart
           ).length;
 
-          const entriesThisWeek = entriesData.length;
+          const entriesThisWeek = entriesData.filter(e => 
+            new Date(e.entry_date) >= weekStart
+          ).length;
 
-          const revenue = entriesData
-            .filter(e => e.paid)
-            .reduce((sum, e) => sum + e.competitions.entry_fee, 0);
+          // Calculate commission for paid entries only
+          const paidEntries = entriesData.filter(e => e.paid);
+          
+          const commissionToday = paidEntries
+            .filter(e => new Date(e.entry_date) >= todayStart)
+            .reduce((sum, e) => sum + (e.competitions.commission_amount || 0), 0);
+
+          const commissionMonth = paidEntries
+            .filter(e => new Date(e.entry_date) >= monthStart)
+            .reduce((sum, e) => sum + (e.competitions.commission_amount || 0), 0);
+
+          const commissionYear = paidEntries
+            .filter(e => new Date(e.entry_date) >= yearStart)
+            .reduce((sum, e) => sum + (e.competitions.commission_amount || 0), 0);
 
           const liveCompetitions = processedCompetitions.filter(c => c.status === 'ACTIVE').length;
 
           setStats({
             entriesToday,
             entriesThisWeek,
-            revenue,
+            commissionToday,
+            commissionMonth,
+            commissionYear,
             liveCompetitions,
             playerMix: { members: 0, visitors: 100 } // Stub - assume all visitors for now
           });
@@ -318,24 +337,59 @@ const ClubDashboardNew = () => {
                 title="Entries Today"
                 value={stats.entriesToday}
                 icon={Calendar}
-              />
-              <StatsCard
-                title="Entries This Week"
-                value={stats.entriesThisWeek}
-                icon={TrendingUp}
-                trend={{ value: 12, isPositive: true }}
-              />
-              <StatsCard
-                title="Revenue"
-                value={formatCurrency(stats.revenue)}
-                description={`Last ${dateRange} days`}
-                icon={Trophy}
+                onClick={() => navigate('/dashboard/club/entries')}
+                className="cursor-pointer hover:shadow-md transition-shadow"
               />
               <StatsCard
                 title="Live Competitions"
                 value={stats.liveCompetitions}
                 icon={Users}
               />
+            </div>
+
+            {/* Commission Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/dashboard/club/revenue')}
+                className="h-auto p-6 flex flex-col items-start space-y-2 hover:bg-accent transition-colors"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <span className="text-sm font-medium text-muted-foreground">Commission Today</span>
+                  <Trophy className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <span className="text-2xl font-bold text-foreground">
+                  {formatCurrency(stats.commissionToday)}
+                </span>
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={() => navigate('/dashboard/club/revenue')}
+                className="h-auto p-6 flex flex-col items-start space-y-2 hover:bg-accent transition-colors"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <span className="text-sm font-medium text-muted-foreground">Commission This Month</span>
+                  <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <span className="text-2xl font-bold text-foreground">
+                  {formatCurrency(stats.commissionMonth)}
+                </span>
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={() => navigate('/dashboard/club/revenue')}
+                className="h-auto p-6 flex flex-col items-start space-y-2 hover:bg-accent transition-colors"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <span className="text-sm font-medium text-muted-foreground">Commission Year to Date</span>
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <span className="text-2xl font-bold text-foreground">
+                  {formatCurrency(stats.commissionYear)}
+                </span>
+              </Button>
             </div>
 
             <div className="grid lg:grid-cols-2 gap-8">
