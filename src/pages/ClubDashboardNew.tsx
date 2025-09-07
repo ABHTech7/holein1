@@ -315,7 +315,13 @@ const ClubDashboardNew = () => {
 
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-3">
-              <Button className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2">
+              <Button 
+                onClick={() => toast({
+                  title: 'Coming Soon',
+                  description: 'Competition setup wizard will be available soon',
+                })}
+                className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2"
+              >
                 <Plus className="w-4 h-4" />
                 Set Up New Challenge
               </Button>
@@ -323,7 +329,14 @@ const ClubDashboardNew = () => {
                 <Download className="w-4 h-4" />
                 Download Report (CSV)
               </Button>
-              <Button variant="outline" onClick={() => navigate('/dashboard/club/support')} className="gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => toast({
+                  title: 'Coming Soon',
+                  description: 'Direct support messaging will be available soon',
+                })}
+                className="gap-2"
+              >
                 <Mail className="w-4 h-4" />
                 Contact Support
               </Button>
