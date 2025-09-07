@@ -125,6 +125,24 @@ export const useAuth = () => {
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     
+    // If session not found, clear local state anyway (happens when demo data is refreshed)
+    if (error && error.message.includes('Session not found')) {
+      // Force clear local auth state
+      setAuthState({
+        user: null,
+        session: null,
+        profile: null,
+        loading: false,
+      });
+      
+      toast({
+        title: "Signed out",
+        description: "You have been signed out successfully."
+      });
+      
+      return { error: null };
+    }
+    
     if (error) {
       toast({
         title: "Sign out failed",
