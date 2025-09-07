@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import useAuth from '@/hooks/useAuth';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar } from 'recharts';
+
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import EmptyState from '@/components/ui/empty-state';
 import StatsCard from '@/components/ui/stats-card';
-import ChartWrapper from '@/components/ui/chart-wrapper';
+
 import SiteHeader from '@/components/layout/SiteHeader';
 import SiteFooter from '@/components/layout/SiteFooter';
 import Section from '@/components/layout/Section';
@@ -80,8 +80,6 @@ const ClubDashboardNew = () => {
   });
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [recentEntries, setRecentEntries] = useState<Entry[]>([]);
-  const [entriesTrend, setEntriesTrend] = useState<any[]>([]);
-  const [revenueTrend, setRevenueTrend] = useState<any[]>([]);
 
   // Fetch user profile and check permissions
   useEffect(() => {
@@ -238,82 +236,6 @@ const ClubDashboardNew = () => {
           })));
         }
 
-        // Generate real trend data from actual entries instead of mock data
-        const generateTrendData = () => {
-          console.log('Entries data for trend:', entriesData); // Debug log
-          
-          // Always try to use real data first, fall back to mock only if truly empty
-          const hasRealData = entriesData && entriesData.length > 0;
-          
-          if (!hasRealData) {
-            console.log('Using fallback mock data for trends');
-            // Fallback to mock data if no real entries exist
-            const weeks = [];
-            const weekNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            
-            for (let i = 29; i >= 0; i--) {
-              const date = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000));
-              const dayOfWeek = date.getDay();
-              const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-              
-              const baseEntries = isWeekend ? 8 + Math.floor(Math.random() * 15) : 2 + Math.floor(Math.random() * 8);
-              const totalRevenue = baseEntries * 20; // Average £20 per entry
-              
-              weeks.push({
-                week: weekNames[dayOfWeek],
-                date: date.toISOString().split('T')[0],
-                entries: baseEntries,
-                revenue: totalRevenue,
-                commission: Math.round(totalRevenue * 0.15 * 100) / 100
-              });
-            }
-            return weeks;
-          }
-
-          console.log('Using real data for trends');
-          // Use real entry data to generate trend
-          const dailyData = new Map();
-          const weekNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-          
-          // Initialize last 30 days with zero values
-          for (let i = 29; i >= 0; i--) {
-            const date = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000));
-            const dateKey = date.toISOString().split('T')[0];
-            dailyData.set(dateKey, {
-              week: weekNames[date.getDay()],
-              date: dateKey,
-              entries: 0,
-              revenue: 0,
-              commission: 0
-            });
-          }
-
-          // Populate with real entry data
-          entriesData.forEach(entry => {
-            const entryDate = new Date(entry.entry_date);
-            const dateKey = entryDate.toISOString().split('T')[0];
-            
-            console.log('Processing entry:', {
-              date: dateKey,
-              paid: entry.paid,
-              commission_amount: entry.competitions.commission_amount,
-              entry_fee: entry.competitions.entry_fee
-            });
-            
-            if (dailyData.has(dateKey) && entry.paid) {
-              const dayData = dailyData.get(dateKey);
-              dayData.entries += 1;
-              dayData.revenue += (entry.competitions.entry_fee || 0) / 100; // Convert pence to pounds
-              dayData.commission += (entry.competitions.commission_amount || 0) / 100; // Convert pence to pounds
-            }
-          });
-
-          return Array.from(dailyData.values());
-        };
-
-        const trendData = generateTrendData();
-        setEntriesTrend(trendData);
-        setRevenueTrend(trendData);
 
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -483,45 +405,6 @@ const ClubDashboardNew = () => {
               </Button>
             </div>
 
-            <div className="grid lg:grid-cols-2 gap-8">
-              {/* Charts */}
-              <ChartWrapper
-                title="Entries Trend"
-                description="Competition entries over the last 30 days"
-              >
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={entriesTrend}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="week" stroke="hsl(var(--muted-foreground))" />
-                    <YAxis stroke="hsl(var(--muted-foreground))" />
-                    <Line 
-                      type="monotone" 
-                      dataKey="entries" 
-                      stroke="hsl(var(--primary))" 
-                      strokeWidth={3}
-                      dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartWrapper>
-
-              <ChartWrapper
-                title="Revenue Trend"
-                description="Entry fee revenue over the last 30 days"
-              >
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={revenueTrend}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="week" stroke="hsl(var(--muted-foreground))" />
-                    <YAxis stroke="hsl(var(--muted-foreground))" />
-                    <Bar 
-                      dataKey="revenue" 
-                      fill="hsl(var(--secondary))"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartWrapper>
-            </div>
 
           </div>
         </Section>
