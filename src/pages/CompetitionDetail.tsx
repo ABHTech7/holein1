@@ -27,8 +27,7 @@ import {
   formatDate, 
   formatDateTime, 
   obfuscateEmail, 
-  getCompetitionStatusColor,
-  copyToClipboard
+  getCompetitionStatusColor
 } from '@/lib/formatters';
 
 interface Profile {
@@ -172,34 +171,11 @@ const CompetitionDetail = () => {
     fetchCompetition();
   }, [id, profile, toast]);
 
-  const handleShareCompetition = async () => {
-    if (!competition) return;
-    
-    // Get venue data for new URL format
-    const { data: venue } = await supabase
-      .from('venues')
-      .select('slug')
-      .eq('club_id', competition.clubs?.id)
-      .single();
-    
-    const shareUrl = venue 
-      ? `${window.location.origin}/enter/${venue.slug}/${competition.hole_number}`
-      : `${window.location.origin}/enter/${competition.id}`;
-    
-    const success = await copyToClipboard(shareUrl);
-    
-    if (success) {
-      toast({
-        title: 'Share Link Copied!',
-        description: 'Use this URL in your external QR code generator',
-      });
-    } else {
-      toast({
-        title: 'Copy Failed',
-        description: 'Please manually copy the share link',
-        variant: 'destructive',
-      });
-    }
+  const handleShareSuccess = () => {
+    toast({
+      title: 'Share Link Copied!',
+      description: 'Use this URL in your external QR code generator',
+    });
   };
 
   // Loading state
@@ -415,19 +391,15 @@ const CompetitionDetail = () => {
                       Use this link to promote your competition. Perfect for QR codes, social media, and direct sharing.
                     </p>
                     <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
-                      <ShareUrlDisplay 
-                        competitionId={competition.id}
-                        clubId={competition.club_id}
-                        holeNumber={competition.hole_number}
-                        onCopy={handleShareCompetition}
-                      />
+                    <ShareUrlDisplay 
+                      competitionId={competition.id}
+                      clubId={competition.club_id}
+                      holeNumber={competition.hole_number}
+                      onCopy={handleShareSuccess}
+                    />
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <Button className="gap-2" onClick={handleShareCompetition}>
-                      <Copy className="w-4 h-4" />
-                      Copy Link
-                    </Button>
                     <PreviewLink 
                       competitionId={competition.id}
                       clubId={competition.club_id}

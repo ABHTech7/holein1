@@ -89,43 +89,44 @@ export const getCompetitionStatusColor = (status: string) => {
 };
 
 export const copyToClipboard = async (text: string): Promise<boolean> => {
+  console.log('Attempting to copy:', text);
+  
   try {
     if (!navigator.clipboard) {
-      // Fallback for browsers that don't support navigator.clipboard
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      textArea.style.top = '-999999px';
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      const result = document.execCommand('copy');
-      document.body.removeChild(textArea);
-      return result;
+      console.log('navigator.clipboard not available, using fallback');
+      return copyFallback(text);
     }
     
+    console.log('Using navigator.clipboard');
     await navigator.clipboard.writeText(text);
+    console.log('Copy successful with navigator.clipboard');
     return true;
   } catch (error) {
-    console.error('Failed to copy to clipboard:', error);
+    console.error('navigator.clipboard failed:', error);
+    console.log('Trying fallback method');
+    return copyFallback(text);
+  }
+};
+
+const copyFallback = (text: string): boolean => {
+  try {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    textArea.style.opacity = '0';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    textArea.setSelectionRange(0, 99999); // For mobile devices
     
-    // Fallback method
-    try {
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      textArea.style.top = '-999999px';
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      const result = document.execCommand('copy');
-      document.body.removeChild(textArea);
-      return result;
-    } catch (fallbackError) {
-      console.error('Fallback copy method also failed:', fallbackError);
-      return false;
-    }
+    const result = document.execCommand('copy');
+    console.log('Fallback copy result:', result);
+    document.body.removeChild(textArea);
+    return result;
+  } catch (fallbackError) {
+    console.error('Fallback copy method failed:', fallbackError);
+    return false;
   }
 };
