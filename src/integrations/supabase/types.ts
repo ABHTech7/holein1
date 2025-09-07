@@ -743,6 +743,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      get_safe_clubs_data: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          id: string
+          logo_url: string
+          name: string
+          website: string
+        }[]
+      }
     }
     Enums: {
       claim_status: "PENDING" | "VERIFIED" | "REJECTED"
