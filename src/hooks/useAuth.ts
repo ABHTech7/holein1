@@ -159,6 +159,13 @@ export const useAuth = () => {
     signUp,
     signIn,
     signOut,
+    refreshProfile: () => {
+      if (authState.user?.id) {
+        fetchProfile(authState.user.id).then(profile => {
+          setAuthState(prev => ({ ...prev, profile }));
+        });
+      }
+    }
   };
 };
 

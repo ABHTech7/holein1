@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import useAuth from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { formatDateTime } from "@/lib/formatters";
+import { PlayerGreeting } from "@/components/ui/player-greeting";
 
 interface Entry {
   id: string;
@@ -153,6 +154,15 @@ const PlayerEntries = () => {
           <Container>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
+                {/* Player Greeting */}
+                {user && profile?.first_name && (
+                  <PlayerGreeting 
+                    firstName={profile.first_name} 
+                    variant="hero"
+                    className="mb-2"
+                  />
+                )}
+                
                 <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-2">
                   My Competition Entries
                 </h1>

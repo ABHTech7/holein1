@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   XCircle
 } from "lucide-react";
+import { PlayerGreeting } from "@/components/ui/player-greeting";
 
 interface EntryData {
   id: string;
@@ -32,7 +33,7 @@ interface EntryData {
 const EntryConfirmation = () => {
   const { entryId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [entry, setEntry] = useState<EntryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
@@ -278,6 +279,16 @@ const EntryConfirmation = () => {
                     <Trophy className="w-8 h-8 text-primary" />
                   </div>
                 </div>
+                
+                {/* Personalized Greeting */}
+                {user && profile?.first_name && (
+                  <PlayerGreeting 
+                    firstName={profile.first_name} 
+                    variant="card"
+                    className="mb-2"
+                  />
+                )}
+                
                 <CardTitle className="text-2xl font-['Montserrat'] text-primary">
                   Entry Confirmed!
                 </CardTitle>

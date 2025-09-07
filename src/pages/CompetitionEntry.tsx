@@ -15,6 +15,7 @@ import { Hero, HeroTitle, HeroSubtitle } from "@/components/ui/hero";
 import { supabase } from "@/integrations/supabase/client";
 import useAuth from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { PlayerGreeting } from "@/components/ui/player-greeting";
 import entryHero from "/img/entry-hero.jpg";
 
 interface CompetitionWithClub {
@@ -45,7 +46,7 @@ interface FormData {
 const CompetitionEntry = () => {
   const { competitionId } = useParams();
   const navigate = useNavigate();
-  const { user, signUp } = useAuth();
+  const { user, profile, signUp } = useAuth();
   const [competition, setCompetition] = useState<CompetitionWithClub | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -310,6 +311,16 @@ const CompetitionEntry = () => {
             <Container>
               <div className="text-center">
                 <CheckCircle2 className="w-16 h-16 text-primary mx-auto mb-6" />
+                
+                {/* Success Greeting */}
+                {user && profile?.first_name && (
+                  <PlayerGreeting 
+                    firstName={profile.first_name} 
+                    variant="hero"
+                    className="mb-4"
+                  />
+                )}
+                
                 <HeroTitle>Thanks for entering!</HeroTitle>
                 <HeroSubtitle className="max-w-2xl">
                   You've successfully entered {competition.name}. 
@@ -348,11 +359,20 @@ const CompetitionEntry = () => {
         <Hero>
           <Container>
             <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <div>
-                <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
-                  {competition.clubs.name}
-                </Badge>
-                <HeroTitle>{competition.name}</HeroTitle>
+            <div>
+              {/* Player Greeting */}
+              {user && profile?.first_name && (
+                <PlayerGreeting 
+                  firstName={profile.first_name} 
+                  variant="hero"
+                  className="mb-4"
+                />
+              )}
+              
+              <Badge className="mb-4 bg-primary/10 text-primary border-primary/20">
+                {competition.clubs.name}
+              </Badge>
+              <HeroTitle>{competition.name}</HeroTitle>
                 <HeroSubtitle className="mb-6">
                   {competition.description || "Join this exciting hole-in-one challenge"}
                 </HeroSubtitle>

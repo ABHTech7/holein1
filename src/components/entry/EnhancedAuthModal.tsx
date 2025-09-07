@@ -53,7 +53,8 @@ export const EnhancedAuthModal = ({
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: 'name email'
         }
       });
       
@@ -75,7 +76,8 @@ export const EnhancedAuthModal = ({
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: 'openid email profile'
         }
       });
       

@@ -1,74 +1,82 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 import Container from "@/components/layout/Container";
+import { Hero, HeroTitle, HeroSubtitle } from "@/components/ui/hero";
+import { PlayerGreeting } from "@/components/ui/player-greeting";
 import { 
   Trophy, 
   Target, 
   Calendar, 
   Clock, 
-  PoundSterling, 
-  Play,
-  Eye,
-  MapPin,
+  PoundSterling,
   TrendingUp,
-  Award
+  Bell,
+  Play
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import useAuth from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { formatDateTime } from "@/lib/formatters";
 
-interface DashboardData {
-  recentEntries: Array<{
-    id: string;
-    entry_date: string;
-    status: string;
-    outcome_self: string | null;
-    competition: {
-      id: string;
-      name: string;
-      hole_number: number;
-      entry_fee: number;
-      club: { name: string; };
-    };
-  }>;
-  activeCompetitions: Array<{
+// Data structures
+interface DashboardEntry {
+  id: string;
+  entry_date: string;
+  attempt_window_end: string | null;
+  outcome_self: string | null;
+  competition: {
     id: string;
     name: string;
-    hole_number: number;
     entry_fee: number;
-    prize_pool: number | null;
-    start_date: string;
-    end_date: string | null;
-    club_id: string;
-    club: { name: string; };
-    venue: { slug: string; };
-  }>;
-  stats: {
-    totalEntries: number;
-    activeEntries: number;
-    completedEntries: number;
-    totalSpent: number;
-    winCount: number;
-    winRate: number;
+    clubs: {
+      name: string;
+    };
   };
-  upcomingDeadlines: Array<{
-    entryId: string;
-    competitionName: string;
-    attemptWindowEnd: string;
-  }>;
+}
+
+interface ActiveCompetition {
+  id: string;
+  name: string;
+  entry_fee: number;
+  end_date: string | null;
+  is_year_round: boolean;
+  clubs: {
+    name: string;
+  };
+}
+
+interface DashboardStats {
+  totalEntries: number;
+  wins: number;
+  winRate: number;
+  totalSpent: number;
+}
+
+interface UpcomingDeadline {
+  id: string;
+  competition_name: string;
+  venue_name: string;
+  attempt_window_end: string;
+  time_remaining: number;
+}
+
+interface DashboardData {
+  recentEntries: DashboardEntry[];
+  activeCompetitions: ActiveCompetition[];
+  stats: DashboardStats;
+  upcomingDeadlines: UpcomingDeadline[];
 }
 
 const PlayerDashboard = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -76,6 +84,7 @@ const PlayerDashboard = () => {
       navigate('/auth');
       return;
     }
+    
     fetchDashboardData();
   }, [user, navigate]);
 
@@ -89,17 +98,13 @@ const PlayerDashboard = () => {
         .select(`
           id,
           entry_date,
-          status,
-          outcome_self,
-          paid,
           attempt_window_end,
+          outcome_self,
           competition:competitions(
             id,
             name,
-            hole_number,
             entry_fee,
-            club:clubs(name),
-            venues!inner(slug)
+            clubs:clubs(name)
           )
         `)
         .eq('player_id', user.id)
@@ -108,107 +113,57 @@ const PlayerDashboard = () => {
 
       if (entriesError) throw entriesError;
 
-      // Fetch active competitions nearby (simplified - could use geolocation)
+      // Fetch active competitions (simplified)
       const { data: competitions, error: competitionsError } = await supabase
         .from('competitions')
         .select(`
           id,
           name,
-          hole_number,
           entry_fee,
-          prize_pool,
-          start_date,
           end_date,
-          club_id,
-          club:clubs(name)
+          is_year_round,
+          clubs:clubs(name)
         `)
         .eq('status', 'ACTIVE')
-        .eq('archived', false)
-        .order('created_at', { ascending: false })
-        .limit(6);
-
-
-      // Get venue slugs for each competition
-      const competitionsWithVenues = [];
-      if (competitions) {
-        for (const comp of competitions) {
-          const { data: venue } = await supabase
-            .from('venues')
-            .select('slug')
-            .eq('club_id', comp.club_id)
-            .single();
-          
-          competitionsWithVenues.push({
-            ...comp,
-            venue: { slug: venue?.slug || '' }
-          });
-        }
-      }
+        .limit(4);
 
       if (competitionsError) throw competitionsError;
 
-      // Get all user entries for stats calculation
-      const { data: allEntries, error: allEntriesError } = await supabase
-        .from('entries')
-        .select(`
-          id,
-          paid,
-          outcome_self,
-          competition:competitions(entry_fee),
-          claims!left(status)
-        `)
-        .eq('player_id', user.id);
-
-      if (allEntriesError) throw allEntriesError;
-
       // Calculate stats
-      const totalEntries = allEntries?.length || 0;
-      const paidEntries = allEntries?.filter(e => e.paid) || [];
-      const completedEntries = allEntries?.filter(e => e.outcome_self) || [];
-      const totalSpent = paidEntries.reduce((sum, entry) => 
-        sum + (entry.competition?.entry_fee || 0), 0);
-      
-      // Count wins (entries with approved claims)
-      const winCount = allEntries?.filter(entry => 
-        entry.claims?.some((claim: any) => claim.status === 'APPROVED')
-      ).length || 0;
-      
-      const winRate = completedEntries.length > 0 ? 
-        Math.round((winCount / completedEntries.length) * 100) : 0;
+      const allEntries = entries || [];
+      const stats: DashboardStats = {
+        totalEntries: allEntries.length,
+        wins: allEntries.filter(entry => entry.outcome_self === 'win').length,
+        winRate: allEntries.length > 0 ? 
+          (allEntries.filter(entry => entry.outcome_self === 'win').length / allEntries.length) * 100 : 0,
+        totalSpent: allEntries.reduce((sum, entry) => sum + (entry.competition?.entry_fee || 0), 0)
+      };
 
-      // Find upcoming deadlines (entries with attempt windows ending soon)
-      const upcomingDeadlines = entries
-        ?.filter(entry => 
-          entry.attempt_window_end && 
-          new Date(entry.attempt_window_end) > new Date() &&
-          !entry.outcome_self
-        )
+      // Mock upcoming deadlines (would need to enhance entries schema for real data)
+      const upcomingDeadlines: UpcomingDeadline[] = allEntries
+        .filter(entry => entry.attempt_window_end && new Date(entry.attempt_window_end) > new Date())
         .map(entry => ({
-          entryId: entry.id,
-          competitionName: entry.competition?.name || 'Unknown',
-          attemptWindowEnd: entry.attempt_window_end
+          id: entry.id,
+          competition_name: entry.competition?.name || 'Unknown',
+          venue_name: entry.competition?.clubs?.name || 'Unknown Venue',
+          attempt_window_end: entry.attempt_window_end!,
+          time_remaining: new Date(entry.attempt_window_end!).getTime() - new Date().getTime()
         }))
-        .slice(0, 3) || [];
+        .sort((a, b) => a.time_remaining - b.time_remaining)
+        .slice(0, 3);
 
-      setData({
-        recentEntries: entries || [],
-        activeCompetitions: competitionsWithVenues || [],
-        stats: {
-          totalEntries,
-          activeEntries: paidEntries.filter(e => !e.outcome_self).length,
-          completedEntries: completedEntries.length,
-          totalSpent,
-          winCount,
-          winRate
-        },
+      setDashboardData({
+        recentEntries: allEntries,
+        activeCompetitions: competitions || [],
+        stats,
         upcomingDeadlines
       });
 
     } catch (error: any) {
       console.error('Error fetching dashboard data:', error);
       toast({
-        title: "Error Loading Dashboard",
-        description: "Unable to load dashboard data. Please try again.",
+        title: "Error loading dashboard",
+        description: "Unable to load your dashboard data. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -216,27 +171,23 @@ const PlayerDashboard = () => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amountMinor: number) => {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
       currency: 'GBP'
-    }).format(amount);
+    }).format(amountMinor / 100);
   };
 
-  const formatTimeRemaining = (endTime: string) => {
-    const end = new Date(endTime);
-    const now = new Date();
-    const remaining = Math.max(0, end.getTime() - now.getTime());
+  const formatTimeRemaining = (ms: number) => {
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
     
-    const minutes = Math.floor(remaining / 60000);
-    const seconds = Math.floor((remaining % 60000) / 1000);
-    
-    if (minutes > 60) {
-      const hours = Math.floor(minutes / 60);
-      return `${hours}h ${minutes % 60}m`;
+    if (hours > 24) {
+      const days = Math.floor(hours / 24);
+      return `${days}d ${hours % 24}h`;
     }
-    
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
   };
 
   if (loading) {
@@ -254,118 +205,159 @@ const PlayerDashboard = () => {
     );
   }
 
+  if (!dashboardData) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <SiteHeader />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Dashboard Unavailable</h2>
+            <p className="text-muted-foreground mb-4">Unable to load your dashboard data</p>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
+          </div>
+        </main>
+        <SiteFooter />
+      </div>
+    );  
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <SiteHeader />
       
       <main className="flex-1">
-        {/* Welcome Section */}
-        <Section spacing="lg" className="bg-gradient-to-br from-primary/5 to-primary/10">
+        {/* Hero Section with Personalized Greeting */}
+        <Hero>
           <Container>
-            <div className="text-center mb-8">
-              <h1 className="font-display text-4xl md:text-5xl font-bold text-foreground mb-4">
-                Welcome back, {profile?.first_name || 'Golfer'}!
-              </h1>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Track your progress, discover new challenges, and chase that perfect shot
-              </p>
-            </div>
+            <div className="text-center">
+              {/* Dynamic Player Greeting */}
+              {user && profile?.first_name && (
+                <PlayerGreeting 
+                  firstName={profile.first_name} 
+                  variant="hero"
+                  className="mb-4"
+                />
+              )}
+              
+              <HeroTitle>Your Golf Journey</HeroTitle>
+              <HeroSubtitle className="max-w-2xl mx-auto">
+                Track your progress, view active challenges, and chase that perfect shot
+              </HeroSubtitle>
+              
+              {/* Quick Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 max-w-4xl mx-auto">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <Trophy className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Total Entries</p>
+                        <p className="text-2xl font-bold text-foreground">{dashboardData.stats.totalEntries}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center">
+                        <Target className="w-5 h-5 text-accent" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Wins</p>
+                        <p className="text-2xl font-bold text-foreground">{dashboardData.stats.wins}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
+                        <TrendingUp className="w-5 h-5 text-green-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Win Rate</p>
+                        <p className="text-2xl font-bold text-foreground">{dashboardData.stats.winRate.toFixed(1)}%</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                        <PoundSterling className="w-5 h-5 text-blue-500" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Invested</p>
+                        <p className="text-2xl font-bold text-foreground">{formatCurrency(dashboardData.stats.totalSpent)}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-white/20">
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex flex-col items-center text-center space-y-2">
-                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                      <Trophy className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-2xl md:text-3xl font-bold text-foreground">{data?.stats.totalEntries || 0}</p>
-                      <p className="text-sm text-muted-foreground">Total Entries</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-white/20">
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex flex-col items-center text-center space-y-2">
-                    <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center">
-                      <Award className="w-6 h-6 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-2xl md:text-3xl font-bold text-foreground">{data?.stats.winCount || 0}</p>
-                      <p className="text-sm text-muted-foreground">Wins</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-white/20">
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex flex-col items-center text-center space-y-2">
-                    <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center">
-                      <TrendingUp className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-2xl md:text-3xl font-bold text-foreground">{data?.stats.winRate || 0}%</p>
-                      <p className="text-sm text-muted-foreground">Win Rate</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border-white/20">
-                <CardContent className="p-4 md:p-6">
-                  <div className="flex flex-col items-center text-center space-y-2">
-                    <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center">
-                      <PoundSterling className="w-6 h-6 text-amber-600" />
-                    </div>
-                    <div>
-                      <p className="text-2xl md:text-3xl font-bold text-foreground">{formatCurrency(data?.stats.totalSpent || 0)}</p>
-                      <p className="text-sm text-muted-foreground">Invested</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+                <Button asChild size="lg" className="bg-gradient-primary hover:opacity-90">
+                  <Link to="/competitions">
+                    <Play className="w-4 h-4 mr-2" />
+                    Enter New Competition
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                  <Link to="/players/entries">View All Entries</Link>
+                </Button>
+              </div>
             </div>
           </Container>
-        </Section>
+        </Hero>
 
         {/* Main Dashboard Content */}
         <Section spacing="lg">
           <Container>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Left Column - Recent Activity & Deadlines */}
-              <div className="lg:col-span-2 space-y-8">
-                {/* Upcoming Deadlines */}
-                {data?.upcomingDeadlines && data.upcomingDeadlines.length > 0 && (
-                  <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* Left Column: Urgent & Recent */}
+              <div className="space-y-8">
+                {/* Urgent: Active Attempts */}
+                {dashboardData.upcomingDeadlines.length > 0 && (
+                  <Card className="shadow-medium border-amber-200 dark:border-amber-800">
                     <CardHeader>
-                      <CardTitle className="flex items-center space-x-2 text-amber-800 dark:text-amber-200">
-                        <Clock className="w-5 h-5" />
+                      <CardTitle className="flex items-center space-x-2 text-amber-600 dark:text-amber-400">
+                        <Bell className="w-5 h-5" />
                         <span>Urgent: Active Attempts</span>
                       </CardTitle>
+                      <CardDescription>Complete these attempts before time runs out</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {data.upcomingDeadlines.map((deadline) => (
-                          <div key={deadline.entryId} className="flex items-center justify-between p-3 bg-white/80 dark:bg-gray-800/80 rounded-lg">
+                        {dashboardData.upcomingDeadlines.map((deadline) => (
+                          <div
+                            key={deadline.id}
+                            className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800"
+                          >
                             <div>
-                              <p className="font-medium text-amber-900 dark:text-amber-100">{deadline.competitionName}</p>
-                              <p className="text-sm text-amber-700 dark:text-amber-300">
-                                Time remaining: {formatTimeRemaining(deadline.attemptWindowEnd)}
-                              </p>
+                              <p className="font-medium text-foreground">{deadline.competition_name}</p>
+                              <p className="text-sm text-muted-foreground">{deadline.venue_name}</p>
                             </div>
-                            <Button 
-                              size="sm" 
-                              asChild
-                              className="bg-amber-600 hover:bg-amber-700 text-white"
-                            >
-                              <Link to={`/entry/${deadline.entryId}/confirmation`}>
-                                Complete Now
-                              </Link>
-                            </Button>
+                            <div className="text-right">
+                              <Badge variant="outline" className="border-amber-300 text-amber-700 dark:text-amber-400">
+                                {formatTimeRemaining(deadline.time_remaining)} left
+                              </Badge>
+                              <Button 
+                                asChild 
+                                size="sm" 
+                                className="mt-2 w-full bg-amber-600 hover:bg-amber-700"
+                              >
+                                <Link to={`/entry/${deadline.id}/confirmation`}>Complete Now</Link>
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -374,123 +366,104 @@ const PlayerDashboard = () => {
                 )}
 
                 {/* Recent Entries */}
-                <Card>
+                <Card className="shadow-medium">
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
-                      <Trophy className="w-5 h-5 text-primary" />
+                      <Calendar className="w-5 h-5 text-accent" />
                       <span>Recent Entries</span>
                     </CardTitle>
+                    <CardDescription>Your latest competition activities</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {data?.recentEntries && data.recentEntries.length > 0 ? (
-                      <div className="space-y-4">
-                        {data.recentEntries.map((entry) => (
-                          <div key={entry.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/20 transition-colors">
-                            <div className="flex-1">
-                              <h4 className="font-medium">{entry.competition?.name}</h4>
-                              <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
-                                <span className="flex items-center space-x-1">
-                                  <MapPin className="w-3 h-3" />
-                                  <span>{entry.competition?.club?.name}</span>
-                                </span>
-                                <span>Hole {entry.competition?.hole_number}</span>
-                                <span>{formatDateTime(entry.entry_date)}</span>
-                              </div>
+                    {dashboardData.recentEntries.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Target className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-muted-foreground">No entries yet</p>
+                        <Button asChild className="mt-4" size="sm">
+                          <Link to="/competitions">Enter Your First Competition</Link>
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {dashboardData.recentEntries.map((entry) => (
+                          <div key={entry.id} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div>
+                              <p className="font-medium">{entry.competition.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {entry.competition.clubs.name} • {formatDateTime(entry.entry_date)}
+                              </p>
                             </div>
-                            <div className="flex items-center space-x-3">
-                              {entry.outcome_self ? (
-                                <Badge 
-                                  variant={entry.outcome_self === 'win' ? 'default' : 'secondary'}
-                                  className={entry.outcome_self === 'win' ? 'bg-green-500 hover:bg-green-600' : ''}
-                                >
-                                  {entry.outcome_self === 'win' ? 'Win Claimed' : 'Missed'}
-                                </Badge>
-                              ) : (
+                            <div className="flex items-center space-x-2">
+                              {entry.outcome_self === 'win' && (
+                                <Badge className="bg-accent text-accent-foreground">Won! 🏆</Badge>
+                              )}
+                              {entry.outcome_self === 'miss' && (
+                                <Badge variant="secondary">Missed</Badge>
+                              )}
+                              {!entry.outcome_self && (
                                 <Badge variant="outline">In Progress</Badge>
                               )}
-                              <Button size="sm" variant="outline" asChild>
-                                <Link to={`/entry/${entry.id}/confirmation`}>
-                                  <Eye className="w-4 h-4 mr-1" />
-                                  View
-                                </Link>
-                              </Button>
                             </div>
                           </div>
                         ))}
-                        <div className="pt-4 border-t">
-                          <Button variant="outline" asChild className="w-full">
-                            <Link to="/entries">View All Entries</Link>
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground mb-4">No entries yet. Ready to take your first shot?</p>
-                        <Button asChild className="bg-gradient-primary hover:opacity-90">
-                          <Link to="/">Browse Competitions</Link>
-                        </Button>
                       </div>
                     )}
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Right Column - Active Competitions */}
-              <div className="space-y-8">
-                <Card>
+              {/* Right Column: Active Competitions */}
+              <div>
+                <Card className="shadow-medium">
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
-                      <Play className="w-5 h-5 text-primary" />
+                      <Trophy className="w-5 h-5 text-primary" />
                       <span>Active Competitions</span>
                     </CardTitle>
+                    <CardDescription>Available competitions you can enter</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {data?.activeCompetitions && data.activeCompetitions.length > 0 ? (
-                      <div className="space-y-4">
-                        {data.activeCompetitions.map((competition) => (
-                          <div key={competition.id} className="p-4 border rounded-lg hover:bg-muted/20 transition-colors">
-                            <h4 className="font-medium mb-2">{competition.name}</h4>
-                            <div className="space-y-2 text-sm text-muted-foreground">
-                              <div className="flex items-center justify-between">
-                                <span className="flex items-center space-x-1">
-                                  <MapPin className="w-3 h-3" />
-                                  <span>{competition.club?.name}</span>
-                                </span>
-                                <span>Hole {competition.hole_number}</span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span>Entry: {formatCurrency(competition.entry_fee)}</span>
-                                {competition.prize_pool && (
-                                  <span className="text-green-600 font-medium">
-                                    Prize: {formatCurrency(competition.prize_pool)}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <Button 
-                              size="sm" 
-                              className="w-full mt-3 bg-gradient-primary hover:opacity-90" 
-                              asChild
-                            >
-                              <Link to={`/enter/${competition.venue?.slug}/${competition.hole_number}`}>
-                                Enter Now
-                              </Link>
-                            </Button>
-                          </div>
-                        ))}
-                        <div className="pt-4 border-t">
-                          <Button variant="outline" asChild className="w-full">
-                            <Link to="/">Browse All Competitions</Link>
-                          </Button>
-                        </div>
+                    {dashboardData.activeCompetitions.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Trophy className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-muted-foreground">No active competitions</p>
                       </div>
                     ) : (
-                      <div className="text-center py-8">
-                        <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground mb-4">No active competitions found</p>
-                        <Button variant="outline" asChild>
-                          <Link to="/">Explore Competitions</Link>
+                      <div className="space-y-4">
+                        {dashboardData.activeCompetitions.map((competition) => (
+                          <Card key={competition.id} className="border">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h4 className="font-semibold mb-1">{competition.name}</h4>
+                                  <p className="text-sm text-muted-foreground mb-2">
+                                    {competition.clubs.name}
+                                  </p>
+                                  <div className="flex items-center space-x-4 text-sm">
+                                    <span className="flex items-center space-x-1">
+                                      <PoundSterling className="w-3 h-3" />
+                                      <span>{formatCurrency(competition.entry_fee)}</span>
+                                    </span>
+                                    {competition.is_year_round ? (
+                                      <Badge variant="outline">Year-round</Badge>
+                                    ) : (
+                                      <Badge variant="outline">
+                                        <Clock className="w-3 h-3 mr-1" />
+                                        Limited time
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                                <Button asChild size="sm">
+                                  <Link to={`/enter/${competition.id}`}>Enter</Link>
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                        
+                        <Button asChild variant="outline" className="w-full">
+                          <Link to="/competitions">View All Competitions</Link>
                         </Button>
                       </div>
                     )}
