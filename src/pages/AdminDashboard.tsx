@@ -13,7 +13,6 @@ import ChartWrapper from "@/components/ui/chart-wrapper";
 import SiteSettingsModal from "@/components/admin/SiteSettingsModal";
 import NewUserModal from "@/components/admin/NewUserModal";
 import AdminQuickActions from "@/components/admin/AdminQuickActions";
-import PlayerJourneyFunnel from "@/components/admin/PlayerJourneyFunnel";
 import { Users, Calendar, Trophy, TrendingUp, Plus, Settings, PoundSterling } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -442,9 +441,6 @@ const AdminDashboard = () => {
             <div className="grid lg:grid-cols-1 gap-8">
               {/* Main Content Area */}
               <div className="space-y-8">
-                {/* Player Journey Funnel */}
-                <PlayerJourneyFunnel />
-                
                 {/* Membership Growth Chart */}
                 <ChartWrapper
                   title="New Player Registrations"
