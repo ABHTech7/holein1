@@ -91,39 +91,69 @@ export const getCompetitionStatusColor = (status: string) => {
 export const copyToClipboard = async (text: string): Promise<boolean> => {
   console.log('Attempting to copy:', text);
   
-  try {
-    if (!navigator.clipboard) {
-      console.log('navigator.clipboard not available, using fallback');
-      return copyFallback(text);
+  // First try modern clipboard API
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      console.log('Using navigator.clipboard');
+      await navigator.clipboard.writeText(text);
+      console.log('Copy successful with navigator.clipboard');
+      return true;
+    } catch (error) {
+      console.error('navigator.clipboard failed:', error);
     }
-    
-    console.log('Using navigator.clipboard');
-    await navigator.clipboard.writeText(text);
-    console.log('Copy successful with navigator.clipboard');
-    return true;
-  } catch (error) {
-    console.error('navigator.clipboard failed:', error);
-    console.log('Trying fallback method');
-    return copyFallback(text);
   }
+  
+  // Fallback method
+  console.log('Using fallback copy method');
+  return copyFallback(text);
 };
 
 const copyFallback = (text: string): boolean => {
   try {
+    // Create a temporary input element that's visible
     const textArea = document.createElement('textarea');
     textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-999999px';
-    textArea.style.top = '-999999px';
-    textArea.style.opacity = '0';
+    
+    // Make it visible but off-screen
+    textArea.style.position = 'absolute';
+    textArea.style.left = '-9999px';
+    textArea.style.top = '0';
+    textArea.style.width = '1px';
+    textArea.style.height = '1px';
+    textArea.style.border = 'none';
+    textArea.style.outline = 'none';
+    textArea.style.boxShadow = 'none';
+    textArea.style.background = 'transparent';
+    
     document.body.appendChild(textArea);
+    
+    // Focus and select
     textArea.focus();
     textArea.select();
-    textArea.setSelectionRange(0, 99999); // For mobile devices
+    textArea.setSelectionRange(0, text.length);
     
-    const result = document.execCommand('copy');
-    console.log('Fallback copy result:', result);
+    // Try to copy
+    let result = false;
+    try {
+      result = document.execCommand('copy');
+      console.log('document.execCommand copy result:', result);
+    } catch (err) {
+      console.error('document.execCommand failed:', err);
+    }
+    
+    // Clean up
     document.body.removeChild(textArea);
+    
+    // If document.execCommand failed, try one more approach
+    if (!result && navigator.clipboard) {
+      try {
+        navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        console.error('Final clipboard attempt failed:', err);
+      }
+    }
+    
     return result;
   } catch (fallbackError) {
     console.error('Fallback copy method failed:', fallbackError);
