@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Generate the new entry URL format for a competition
- * Format: /enter/{venue_slug}/{hole_number}
+ * Format: /enter/{club_slug}/{hole_number}
  */
 export const generateEntryUrl = async (competitionId: string, clubId?: string, holeNumber?: number): Promise<string | null> => {
   try {
@@ -23,19 +23,20 @@ export const generateEntryUrl = async (competitionId: string, clubId?: string, h
       holeNumber = competition.hole_number;
     }
 
-    // Get the venue slug for this club
-    const { data: venue, error: venueError } = await supabase
-      .from('venues')
-      .select('slug')
-      .eq('club_id', clubId)
+    // Get the club name to generate slug
+    const { data: club, error: clubError } = await supabase
+      .from('clubs')
+      .select('name')
+      .eq('id', clubId)
       .single();
     
-    if (venueError || !venue) {
-      console.error('Error fetching venue for URL generation:', venueError);
+    if (clubError || !club) {
+      console.error('Error fetching club for URL generation:', clubError);
       return `/enter/${competitionId}`; // Fallback to old format
     }
 
-    return `/enter/${venue.slug}/${holeNumber}`;
+    const clubSlug = createClubSlug(club.name);
+    return `/enter/${clubSlug}/${holeNumber}`;
   } catch (error) {
     console.error('Error generating entry URL:', error);
     return `/enter/${competitionId}`; // Fallback to old format
@@ -45,14 +46,14 @@ export const generateEntryUrl = async (competitionId: string, clubId?: string, h
 /**
  * Generate entry URL synchronously if we have all the data
  */
-export const generateEntryUrlSync = (venueSlug: string, holeNumber: number): string => {
-  return `/enter/${venueSlug}/${holeNumber}`;
+export const generateEntryUrlSync = (clubSlug: string, holeNumber: number): string => {
+  return `/enter/${clubSlug}/${holeNumber}`;
 };
 
 /**
- * Create venue slug from club name
+ * Create club slug from club name
  */
-export const createVenueSlug = (clubName: string): string => {
+export const createClubSlug = (clubName: string): string => {
   return clubName
     .toLowerCase()
     .replace(/'/g, '')

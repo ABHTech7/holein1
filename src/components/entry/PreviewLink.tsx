@@ -15,18 +15,25 @@ export const PreviewLink = ({ competitionId, clubId, holeNumber }: PreviewLinkPr
   useEffect(() => {
     const generateUrl = async () => {
       try {
-        // Force fresh data fetch
-        const { data: venue, error } = await supabase
-          .from('venues')
-          .select('slug, clubs!inner(name)')
-          .eq('club_id', clubId)
+        // Get club name directly
+        const { data: club, error } = await supabase
+          .from('clubs')
+          .select('name')
+          .eq('id', clubId)
           .single();
         
-        if (venue && !error) {
-          console.log('Preview link using venue:', venue.slug, 'for club:', venue.clubs.name);
-          setPreviewUrl(`/enter/${venue.slug}/${holeNumber}`);
+        if (club && !error) {
+          const clubSlug = club.name
+            .toLowerCase()
+            .replace(/'/g, '')
+            .replace(/&/g, 'and')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+          
+          console.log('Preview link using club:', club.name, 'slug:', clubSlug);
+          setPreviewUrl(`/enter/${clubSlug}/${holeNumber}`);
         } else {
-          console.error('Error fetching venue for preview:', error);
+          console.error('Error fetching club for preview:', error);
           // Fallback to old URL format
           setPreviewUrl(`/enter/${competitionId}`);
         }

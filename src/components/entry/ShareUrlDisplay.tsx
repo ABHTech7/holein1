@@ -20,14 +20,21 @@ export const ShareUrlDisplay = ({ competitionId, clubId, holeNumber, onCopy }: S
       if (!clubId) return;
       
       try {
-        const { data: venue } = await supabase
-          .from('venues')
-          .select('slug')
-          .eq('club_id', clubId)
+        const { data: club } = await supabase
+          .from('clubs')
+          .select('name')
+          .eq('id', clubId)
           .single();
         
-        if (venue) {
-          setShareUrl(`${window.location.origin}/enter/${venue.slug}/${holeNumber}`);
+        if (club) {
+          const clubSlug = club.name
+            .toLowerCase()
+            .replace(/'/g, '')
+            .replace(/&/g, 'and')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+          
+          setShareUrl(`${window.location.origin}/enter/${clubSlug}/${holeNumber}`);
         }
       } catch (error) {
         console.error('Error generating new URL format:', error);
