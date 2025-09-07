@@ -46,6 +46,7 @@ import Accessibility from "./pages/policies/Accessibility";
 
 // Legacy pages for compatibility
 import Index from "./pages/Index";
+import ClubCompetitions from "./pages/ClubCompetitions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -193,6 +194,14 @@ const App = () => (
             element={
               <RoleGuard allowedRoles={['CLUB']}>
                 <ClubEntries />
+              </RoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/club/competitions" 
+            element={
+              <RoleGuard allowedRoles={['CLUB']}>
+                <ClubCompetitions />
               </RoleGuard>
             } 
           />

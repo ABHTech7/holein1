@@ -386,6 +386,8 @@ const ClubDashboardNew = () => {
                 title="Live Competitions"
                 value={stats.liveCompetitions}
                 icon={Users}
+                onClick={() => navigate('/dashboard/club/competitions')}
+                className="cursor-pointer hover:shadow-md transition-shadow"
               />
             </div>
 
