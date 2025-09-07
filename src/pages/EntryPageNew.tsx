@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import useAuth from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { analytics } from "@/lib/analytics";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Container from "@/components/layout/Container";
@@ -10,7 +11,8 @@ import { EntryHero } from "@/components/entry/EntryHero";
 import { TrustBanner } from "@/components/entry/TrustBanner";
 import { RuleSummary } from "@/components/entry/RuleSummary";
 import { EnterNowCTA } from "@/components/entry/EnterNowCTA";
-import { AuthModal } from "@/components/entry/AuthModal";
+import { EnhancedAuthModal } from "@/components/entry/EnhancedAuthModal";
+import { MiniProfileForm } from "@/components/entry/MiniProfileForm";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle, Clock } from "lucide-react";
 
@@ -36,6 +38,7 @@ const EntryPageNew = () => {
   const [loading, setLoading] = useState(true);
   const [entering, setEntering] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [showProfileForm, setShowProfileForm] = useState(false);
   const [cooldownEnd, setCooldownEnd] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -113,6 +116,9 @@ const EntryPageNew = () => {
           await checkCooldown(user.id, comp.id);
         }
 
+        // Track entry view
+        analytics.entryViewed(comp.id, venue.name, comp.hole_number);
+
       } catch (error) {
         console.error('Error fetching competition:', error);
         toast({
@@ -158,7 +164,54 @@ const EntryPageNew = () => {
     if (!user) {
       setAuthModalOpen(true);
     } else {
-      // Proceed with entry
+      // Check if profile is complete
+      checkProfileAndProceed();
+    }
+  };
+
+  const checkProfileAndProceed = async () => {
+    if (!user) return;
+
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('age_years, handicap, phone_e164')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+
+      // Check if profile is complete
+      if (!profile.age_years || !profile.handicap || !profile.phone_e164) {
+        analytics.profileFormShown(user.id);
+        setShowProfileForm(true);
+      } else {
+        // Profile complete, proceed with entry
+        handleEntry(user.id);
+      }
+    } catch (error: any) {
+      console.error('Profile check error:', error);
+      toast({
+        title: "Profile check failed",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleAuthSuccess = (userId: string) => {
+    // After auth success, check profile completeness
+    setTimeout(() => {
+      checkProfileAndProceed();
+    }, 500);
+  };
+
+  const handleProfileComplete = () => {
+    if (user) {
+      analytics.profileCompleted(user.id);
+    }
+    setShowProfileForm(false);
+    if (user) {
       handleEntry(user.id);
     }
   };
@@ -178,16 +231,22 @@ const EntryPageNew = () => {
     setEntering(true);
 
     try {
-      // Create entry with payment pending
+      // Create entry with proper attempt window
+      const now = new Date();
+      const attemptWindowEnd = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes from now
+      
       const { data: entry, error: entryError } = await supabase
         .from('entries')
         .insert({
           competition_id: competition.id,
           player_id: userId,
           paid: false,
+          status: 'pending',
           amount_minor: competition.entry_fee,
           terms_version: "1.0",
-          terms_accepted_at: new Date().toISOString()
+          terms_accepted_at: now.toISOString(),
+          attempt_window_start: now.toISOString(),
+          attempt_window_end: attemptWindowEnd.toISOString()
         })
         .select()
         .single();
@@ -197,13 +256,24 @@ const EntryPageNew = () => {
       }
 
       // TODO: Integrate with Stripe payment
-      // For now, redirect to confirmation
+      // For now, update entry as paid and redirect to confirmation
+      const { error: updateError } = await supabase
+        .from('entries')
+        .update({ 
+          paid: true,
+          status: 'paid',
+          payment_date: now.toISOString()
+        })
+        .eq('id', entry.id);
+
+      if (updateError) throw updateError;
+
       toast({
-        title: "Entry created!",
-        description: "Your entry has been created. Payment integration coming soon.",
+        title: "Entry confirmed!",
+        description: "You have 15 minutes to complete your attempt",
       });
 
-      // Navigate to confirmation (we'll create this route)
+      // Navigate to confirmation
       navigate(`/entry/${entry.id}/confirmation`);
 
     } catch (error: any) {
@@ -318,12 +388,28 @@ const EntryPageNew = () => {
 
       <SiteFooter />
 
-      {/* Auth Modal */}
-      <AuthModal
+      {/* Enhanced Auth Modal */}
+      <EnhancedAuthModal
         open={authModalOpen}
         onOpenChange={setAuthModalOpen}
-        onSuccess={handleEntry}
+        onSuccess={handleAuthSuccess}
+        redirectUrl={`/enter/${venueSlug}/${holeNumber}`}
       />
+
+      {/* Mini Profile Form Modal */}
+      {showProfileForm && user && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <MiniProfileForm
+            userId={user.id}
+            userEmail={user.email || ''}
+            onComplete={handleProfileComplete}
+            onSkip={() => {
+              setShowProfileForm(false);
+              if (user) handleEntry(user.id);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 };

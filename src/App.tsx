@@ -10,8 +10,10 @@ import ClubSignup from "./pages/ClubSignup";
 import PlayerLogin from "./pages/PlayerLogin";
 import PlayerEntries from "./pages/PlayerEntries";
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import CompetitionEntry from "./pages/CompetitionEntry";
 import EntryPageNew from "./pages/EntryPageNew";
+import EntryConfirmation from "./pages/EntryConfirmation";
 import DeveloperDemo from "./pages/DeveloperDemo";
 import AdminDashboard from "./pages/AdminDashboard";
 import ClubDashboard from "./pages/ClubDashboard";
@@ -73,8 +75,10 @@ const App = () => (
             } 
           />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/dev/demo" element={<DeveloperDemo />} />
           <Route path="/enter/:venueSlug/:holeNumber" element={<EntryPageNew />} />
+          <Route path="/entry/:entryId/confirmation" element={<EntryConfirmation />} />
           <Route path="/enter/:competitionId" element={<CompetitionEntry />} />
           <Route path="/competitions/:id" element={<CompetitionDetail />} />
           

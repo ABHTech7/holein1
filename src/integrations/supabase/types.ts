@@ -347,6 +347,7 @@ export type Database = {
           payment_date: string | null
           player_id: string
           score: number | null
+          status: string | null
           terms_accepted_at: string | null
           terms_version: string | null
           updated_at: string
@@ -371,6 +372,7 @@ export type Database = {
           payment_date?: string | null
           player_id: string
           score?: number | null
+          status?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string
@@ -395,6 +397,7 @@ export type Database = {
           payment_date?: string | null
           player_id?: string
           score?: number | null
+          status?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string
@@ -510,6 +513,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age_years: number | null
           club_id: string | null
           consent_marketing: boolean | null
           created_at: string
@@ -524,10 +528,12 @@ export type Database = {
           location_longitude: number | null
           location_timestamp: string | null
           phone: string | null
+          phone_e164: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
         Insert: {
+          age_years?: number | null
           club_id?: string | null
           consent_marketing?: boolean | null
           created_at?: string
@@ -542,10 +548,12 @@ export type Database = {
           location_longitude?: number | null
           location_timestamp?: string | null
           phone?: string | null
+          phone_e164?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
         Update: {
+          age_years?: number | null
           club_id?: string | null
           consent_marketing?: boolean | null
           created_at?: string
@@ -560,6 +568,7 @@ export type Database = {
           location_longitude?: number | null
           location_timestamp?: string | null
           phone?: string | null
+          phone_e164?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
