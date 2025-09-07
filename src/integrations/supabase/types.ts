@@ -184,13 +184,6 @@ export type Database = {
             referencedRelation: "clubs"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "club_payments_club_id_fkey"
-            columns: ["club_id"]
-            isOneToOne: false
-            referencedRelation: "clubs_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       clubs: {
@@ -329,13 +322,6 @@ export type Database = {
             columns: ["club_id"]
             isOneToOne: false
             referencedRelation: "clubs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "competitions_club_id_fkey"
-            columns: ["club_id"]
-            isOneToOne: false
-            referencedRelation: "clubs_public"
             referencedColumns: ["id"]
           },
         ]
@@ -484,13 +470,6 @@ export type Database = {
             referencedRelation: "clubs"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "leads_club_id_fkey"
-            columns: ["club_id"]
-            isOneToOne: false
-            referencedRelation: "clubs_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       notes: {
@@ -601,14 +580,37 @@ export type Database = {
             referencedRelation: "clubs"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "profiles_club_id_fkey"
-            columns: ["club_id"]
-            isOneToOne: false
-            referencedRelation: "clubs_public"
-            referencedColumns: ["id"]
-          },
         ]
+      }
+      security_logs: {
+        Row: {
+          created_at: string | null
+          details: Json | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          details?: Json | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          details?: Json | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       venues: {
         Row: {
@@ -641,13 +643,6 @@ export type Database = {
             columns: ["club_id"]
             isOneToOne: false
             referencedRelation: "clubs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "venues_club_id_fkey"
-            columns: ["club_id"]
-            isOneToOne: false
-            referencedRelation: "clubs_public"
             referencedColumns: ["id"]
           },
         ]
@@ -708,27 +703,7 @@ export type Database = {
       }
     }
     Views: {
-      clubs_public: {
-        Row: {
-          created_at: string | null
-          id: string | null
-          name: string | null
-          website: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string | null
-          name?: string | null
-          website?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string | null
-          name?: string | null
-          website?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       get_competition_status: {
@@ -752,6 +727,10 @@ export type Database = {
           name: string
           website: string
         }[]
+      }
+      get_user_role_safe: {
+        Args: { user_uuid: string }
+        Returns: Database["public"]["Enums"]["user_role"]
       }
       update_expired_entries: {
         Args: Record<PropertyKey, never>

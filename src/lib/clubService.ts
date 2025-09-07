@@ -18,16 +18,12 @@ export interface SafeClubData {
 export class ClubService {
   /**
    * Get clubs data safely - only returns non-sensitive information for public access
-   * Sensitive data (email, phone, address, banking details) is filtered out
+   * Uses secure database function that filters sensitive data
    */
   static async getSafeClubsData(): Promise<SafeClubData[]> {
     try {
-      // Only select safe, non-sensitive columns
-      const { data, error } = await supabase
-        .from('clubs')
-        .select('id, name, website, logo_url, created_at')
-        .eq('active', true)
-        .eq('archived', false);
+      // Use the secure database function that only returns safe data
+      const { data, error } = await supabase.rpc('get_safe_clubs_data');
 
       if (error) {
         console.error('Error fetching safe club data:', error);
