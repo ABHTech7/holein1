@@ -129,7 +129,7 @@ const ClubEntries = () => {
         completed_at: entry.completed_at,
         player_email: entry.profiles?.email || 'unknown@email.com',
         player_name: entry.profiles?.first_name && entry.profiles?.last_name 
-          ? `${entry.profiles.first_name} ${entry.profiles.last_name}`.trim()
+          ? `${entry.profiles?.first_name} ${entry.profiles?.last_name}`.trim()
           : entry.profiles?.email || 'Unknown User',
         competition_name: entry.competitions.name,
         competition_hole_number: entry.competitions.hole_number,

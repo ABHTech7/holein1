@@ -70,7 +70,7 @@ const ClubEntriesModal = ({ isOpen, onClose, clubId }: ClubEntriesModalProps) =>
     try {
       setLoading(true);
 
-      const { data: entriesData, error } = await supabase
+        const { data: entriesData, error } = await supabase
         .from('entries')
         .select(`
           id,
@@ -84,7 +84,7 @@ const ClubEntriesModal = ({ isOpen, onClose, clubId }: ClubEntriesModalProps) =>
             entry_fee,
             club_id
           ),
-          profiles!inner(
+          profiles(
             email,
             first_name,
             last_name
@@ -100,8 +100,10 @@ const ClubEntriesModal = ({ isOpen, onClose, clubId }: ClubEntriesModalProps) =>
         entry_date: entry.entry_date,
         paid: entry.paid,
         completed_at: entry.completed_at,
-        player_email: entry.profiles.email,
-        player_name: `${entry.profiles.first_name || ''} ${entry.profiles.last_name || ''}`.trim() || entry.profiles.email,
+        player_email: entry.profiles?.email || 'unknown@email.com',
+        player_name: entry.profiles?.first_name && entry.profiles?.last_name 
+          ? `${entry.profiles?.first_name} ${entry.profiles?.last_name}`.trim()
+          : entry.profiles?.email || 'Unknown User',
         competition_name: entry.competitions.name,
         competition_hole_number: entry.competitions.hole_number,
         competition_status: entry.competitions.status,

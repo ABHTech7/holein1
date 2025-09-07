@@ -65,7 +65,7 @@ const ClubRevenue = () => {
       const rangeStart = new Date(now.getTime() - (parseInt(dateRange) * 24 * 60 * 60 * 1000));
 
       // Fetch all paid entries for the club
-      const { data: entriesData, error } = await supabase
+        const { data: entriesData, error } = await supabase
         .from('entries')
         .select(`
           id,
@@ -76,7 +76,7 @@ const ClubRevenue = () => {
             entry_fee,
             club_id
           ),
-          profiles!inner(
+          profiles(
             email
           )
         `)
@@ -92,7 +92,7 @@ const ClubRevenue = () => {
         entry_date: entry.entry_date,
         entry_fee: entry.competitions.entry_fee,
         competition_name: entry.competitions.name,
-        player_email: entry.profiles.email
+        player_email: entry.profiles?.email || 'unknown@email.com'
       })) || [];
 
       setRevenueEntries(processedEntries);

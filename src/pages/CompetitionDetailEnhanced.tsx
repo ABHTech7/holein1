@@ -785,10 +785,10 @@ const CompetitionDetailEnhanced = () => {
                               <TableCell>
                                 <div>
                                    <p className="font-medium">
-                                     {entry.profiles?.first_name && entry.profiles?.last_name 
-                                       ? `${entry.profiles.first_name} ${entry.profiles.last_name}`
-                                       : entry.profiles?.email ? obfuscateEmail(entry.profiles.email) : 'Unknown User'
-                                     }
+                                      {entry.profiles?.first_name && entry.profiles?.last_name 
+                                        ? `${entry.profiles?.first_name} ${entry.profiles?.last_name}`
+                                        : entry.profiles?.email ? obfuscateEmail(entry.profiles.email) : 'Unknown User'
+                                      }
                                    </p>
                                    <p className="text-sm text-muted-foreground">
                                      {entry.profiles?.email ? obfuscateEmail(entry.profiles.email) : 'No email'}
