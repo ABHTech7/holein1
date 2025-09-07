@@ -14,7 +14,7 @@ import SiteSettingsModal from "@/components/admin/SiteSettingsModal";
 import NewUserModal from "@/components/admin/NewUserModal";
 import AdminQuickActions from "@/components/admin/AdminQuickActions";
 import PlayerJourneyFunnel from "@/components/admin/PlayerJourneyFunnel";
-import { Users, Calendar, Trophy, TrendingUp, Plus, Settings } from "lucide-react";
+import { Users, Calendar, Trophy, TrendingUp, Plus, Settings, PoundSterling } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate, formatRelativeTime } from "@/lib/formatters";
@@ -313,7 +313,7 @@ const AdminDashboard = () => {
             >
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary" />
+                  <PoundSterling className="w-5 h-5 text-primary" />
                   Show Me the Money
                   <span className="text-sm font-normal text-muted-foreground ml-auto">Click to view breakdown</span>
                 </CardTitle>
