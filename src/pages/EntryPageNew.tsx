@@ -43,7 +43,7 @@ const EntryPageNew = () => {
       if (!venueSlug || !holeNumber) return;
 
       try {
-        // First get the venue
+        // First get the venue with fresh club data
         const { data: venue, error: venueError } = await supabase
           .from('venues')
           .select(`
@@ -51,7 +51,11 @@ const EntryPageNew = () => {
             name,
             slug,
             club_id,
-            clubs (name)
+            clubs (
+              id,
+              name,
+              logo_url
+            )
           `)
           .eq('slug', venueSlug)
           .single();
@@ -66,7 +70,7 @@ const EntryPageNew = () => {
           return;
         }
 
-        // Then get the competition for this venue and hole
+        // Then get the competition for this venue and hole with fresh data
         const { data: competitions, error: compError } = await supabase
           .from('competitions')
           .select('*')

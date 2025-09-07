@@ -98,11 +98,11 @@ const ClubDashboard = () => {
                 ) : (
                   <>
                     {clubData?.logo_url ? (
-                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-background flex items-center justify-center border border-border/20">
                         <img 
                           src={clubData.logo_url} 
                           alt={`${clubName} logo`} 
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain"
                         />
                       </div>
                     ) : (

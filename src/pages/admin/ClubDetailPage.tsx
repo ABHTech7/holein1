@@ -756,11 +756,11 @@ const ClubDetailPage = () => {
               </Button>
               <div className="flex items-center gap-4">
                 {club.logo_url && (
-                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-background flex items-center justify-center border border-border/20">
                     <img 
                       src={club.logo_url} 
                       alt={`${club.name} logo`} 
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   </div>
                 )}
@@ -881,11 +881,11 @@ const ClubDetailPage = () => {
                     <Label>Club Logo</Label>
                     <div className="flex items-center gap-4">
                       {club.logo_url ? (
-                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-background flex items-center justify-center border border-border/20">
                           <img 
                             src={club.logo_url} 
                             alt={`${club.name} logo`} 
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-contain"
                           />
                         </div>
                       ) : (
