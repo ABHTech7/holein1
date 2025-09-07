@@ -60,7 +60,7 @@ const CompetitionsPage = () => {
         .from('competitions')
         .select(`
           *,
-          clubs!inner(name)
+          clubs(name)
         `)
         .eq('archived', showArchived)
         .order('created_at', { ascending: false });
@@ -105,7 +105,7 @@ const CompetitionsPage = () => {
 
           return {
             ...competition,
-            club_name: competition.clubs.name,
+            club_name: competition.clubs?.name || 'Unknown Club',
             total_entries: totalEntries,
             total_revenue: totalRevenue,
             status: dynamicStatus, // Use calculated status instead of database status
