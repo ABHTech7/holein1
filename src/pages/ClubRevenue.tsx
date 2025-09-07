@@ -243,7 +243,7 @@ const ClubRevenue = () => {
               {/* Charts */}
               <div className="grid lg:grid-cols-2 gap-8">
                 <ChartWrapper
-                  title="Daily Revenue Trend"
+                  title="Commission Review"
                   description={`Revenue over the last ${dateRange} days`}
                 >
                   <ResponsiveContainer width="100%" height={300}>
@@ -254,7 +254,10 @@ const ClubRevenue = () => {
                         stroke="hsl(var(--muted-foreground))"
                         tickFormatter={(value) => formatDate(value, 'short')}
                       />
-                      <YAxis stroke="hsl(var(--muted-foreground))" />
+                      <YAxis 
+                        stroke="hsl(var(--muted-foreground))" 
+                        tickFormatter={(value) => formatCurrency(value)}
+                      />
                       <Line 
                         type="monotone" 
                         dataKey="revenue" 
