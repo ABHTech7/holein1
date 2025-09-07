@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { Calendar, TrendingUp, DollarSign, Download, Trophy } from "lucide-react";
+import { Calendar, TrendingUp, DollarSign, Download, Trophy, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/formatters";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
@@ -33,6 +34,7 @@ interface DailyRevenue {
 
 const ClubRevenue = () => {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('30');
   const [revenueEntries, setRevenueEntries] = useState<RevenueEntry[]>([]);
@@ -173,6 +175,16 @@ const ClubRevenue = () => {
         <Section spacing="lg">
           <Container>
             <div className="space-y-8">
+              {/* Back Button */}
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/dashboard/club')}
+                className="mb-4 gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Dashboard
+              </Button>
+
               {/* Header */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>

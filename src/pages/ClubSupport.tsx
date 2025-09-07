@@ -1,7 +1,8 @@
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Phone, Mail, HelpCircle } from "lucide-react";
+import { MessageSquare, Phone, Mail, HelpCircle, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
@@ -9,6 +10,7 @@ import Container from "@/components/layout/Container";
 
 const ClubSupport = () => {
   const { profile } = useAuth();
+  const navigate = useNavigate();
 
   const handleMessageTeam = () => {
     const subject = "Support Request from Hole in 1 Challenge";
@@ -39,6 +41,16 @@ ${profile?.first_name || ''} ${profile?.last_name || ''}`;
         <Section spacing="lg">
           <Container>
             <div className="max-w-4xl mx-auto space-y-8">
+              {/* Back Button */}
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/dashboard/club')}
+                className="mb-4 gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to Dashboard
+              </Button>
+
               {/* Header */}
               <div className="text-center">
                 <h1 className="font-display text-3xl font-bold text-foreground">Support & Help</h1>
