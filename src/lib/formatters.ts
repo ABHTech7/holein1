@@ -90,10 +90,42 @@ export const getCompetitionStatusColor = (status: string) => {
 
 export const copyToClipboard = async (text: string): Promise<boolean> => {
   try {
+    if (!navigator.clipboard) {
+      // Fallback for browsers that don't support navigator.clipboard
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const result = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return result;
+    }
+    
     await navigator.clipboard.writeText(text);
     return true;
   } catch (error) {
     console.error('Failed to copy to clipboard:', error);
-    return false;
+    
+    // Fallback method
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const result = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return result;
+    } catch (fallbackError) {
+      console.error('Fallback copy method also failed:', fallbackError);
+      return false;
+    }
   }
 };

@@ -43,7 +43,7 @@ const EntryPageNew = () => {
       if (!venueSlug || !holeNumber) return;
 
       try {
-        // First get the venue with fresh club data
+        // First get the venue with fresh club data (disable cache)
         const { data: venue, error: venueError } = await supabase
           .from('venues')
           .select(`
@@ -51,7 +51,7 @@ const EntryPageNew = () => {
             name,
             slug,
             club_id,
-            clubs (
+            clubs!inner (
               id,
               name,
               logo_url
@@ -61,6 +61,7 @@ const EntryPageNew = () => {
           .single();
 
         if (venueError || !venue) {
+          console.error('Venue error:', venueError);
           toast({
             title: "Venue not found",
             description: "The venue you're looking for doesn't exist.",
@@ -81,6 +82,7 @@ const EntryPageNew = () => {
           .limit(1);
 
         if (compError || !competitions || competitions.length === 0) {
+          console.error('Competition error:', compError);
           toast({
             title: "Competition not found",
             description: `No active competition found for hole ${holeNumber} at ${venue.name}.`,
@@ -91,6 +93,7 @@ const EntryPageNew = () => {
         }
 
         const comp = competitions[0];
+        console.log('Setting competition with club name:', venue.clubs.name);
         setCompetition({
           id: comp.id,
           name: comp.name,
