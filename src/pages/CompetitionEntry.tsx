@@ -22,11 +22,12 @@ interface CompetitionWithClub {
   name: string;
   description: string | null;
   start_date: string;
-  end_date: string;
+  end_date: string | null;
   entry_fee: number | null;
   prize_pool: number | null;
   hole_number: number;
   status: 'SCHEDULED' | 'ACTIVE' | 'ENDED';
+  is_year_round: boolean;
   rules: any;
   clubs: {
     name: string;
@@ -96,8 +97,19 @@ const CompetitionEntry = () => {
     
     const now = new Date();
     const startDate = new Date(competition.start_date);
+    
+    // Handle year-round competitions
+    if (competition.is_year_round) {
+      return now >= startDate ? 'ACTIVE' : 'SCHEDULED';
+    }
+    
+    // Handle regular competitions with end dates
+    if (!competition.end_date) {
+      return 'ENDED'; // No end date and not year-round = ended
+    }
+    
     const endDate = new Date(competition.end_date);
-
+    
     if (now < startDate) return 'SCHEDULED';
     if (now > endDate) return 'ENDED';
     return 'ACTIVE';
@@ -131,15 +143,23 @@ const CompetitionEntry = () => {
     }
     
     if (status === 'ACTIVE') {
-      const endDate = new Date(competition.end_date);
-      const now = new Date();
-      const diff = endDate.getTime() - now.getTime();
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      // For year-round competitions, show ongoing status
+      if (competition.is_year_round) {
+        return 'Ongoing';
+      }
       
-      if (days > 0) return `${days} days left`;
-      if (hours > 0) return `${hours} hours left`;
-      return 'Ending soon';
+      // For regular competitions, show time remaining
+      if (competition.end_date) {
+        const endDate = new Date(competition.end_date);
+        const now = new Date();
+        const diff = endDate.getTime() - now.getTime();
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        
+        if (days > 0) return `${days} days left`;
+        if (hours > 0) return `${hours} hours left`;
+        return 'Ending soon';
+      }
     }
     
     return 'Competition ended';
@@ -394,13 +414,15 @@ const CompetitionEntry = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <Calendar className="w-4 h-4 text-muted-foreground" />
-                      <div className="text-sm">
-                        <div className="font-medium">Start: {formatDateTime(competition.start_date)}</div>
-                        <div className="text-muted-foreground">End: {formatDateTime(competition.end_date)}</div>
-                      </div>
-                    </div>
+                     <div className="flex items-center gap-3">
+                       <Calendar className="w-4 h-4 text-muted-foreground" />
+                       <div className="text-sm">
+                         <div className="font-medium">Start: {formatDateTime(competition.start_date)}</div>
+                         <div className="text-muted-foreground">
+                           End: {competition.is_year_round || !competition.end_date ? 'Ongoing (Year-round)' : formatDateTime(competition.end_date)}
+                         </div>
+                       </div>
+                     </div>
                     
                     <div className="flex items-center gap-3">
                       <MapPin className="w-4 h-4 text-muted-foreground" />
@@ -459,9 +481,12 @@ const CompetitionEntry = () => {
                   {currentStatus === 'ENDED' && (
                     <div className="text-center py-8">
                       <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground mb-4">
-                        This competition ended on {formatDateTime(competition.end_date)}
-                      </p>
+                       <p className="text-muted-foreground mb-4">
+                         {competition.is_year_round || !competition.end_date 
+                           ? 'This competition is no longer accepting entries'
+                           : `This competition ended on ${formatDateTime(competition.end_date)}`
+                         }
+                       </p>
                       <Button 
                         variant="outline"
                         onClick={() => navigate('/')}

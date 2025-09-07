@@ -18,7 +18,8 @@ import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/formatters';
 import { useAuth } from '@/hooks/useAuth';
-import React from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
+import React, { useEffect } from 'react';
 
 const stepSchemas = [
   // Step 1: Basics
@@ -30,9 +31,18 @@ const stepSchemas = [
   // Step 2: Schedule
   z.object({
     start_date: z.date({ required_error: 'Start date is required' }),
-    end_date: z.date({ required_error: 'End date is required' }),
-  }).refine((data) => data.start_date < data.end_date, {
-    message: 'End date must be after start date',
+    end_date: z.date().optional(),
+    is_year_round: z.boolean().default(false),
+  }).refine((data) => {
+    if (!data.is_year_round && !data.end_date) {
+      return false;
+    }
+    if (data.end_date && data.end_date <= data.start_date) {
+      return false;
+    }
+    return true;
+  }, {
+    message: 'End date is required for time-limited competitions and must be after start date',
     path: ['end_date'],
   }),
   // Step 3: Pricing
@@ -50,12 +60,21 @@ const fullSchema = z.object({
   hole_number: z.number().min(1, 'Hole must be 1-18').max(18, 'Hole must be 1-18'),
   description: z.string().min(1, 'Prize description is required').max(500, 'Description too long'),
   start_date: z.date({ required_error: 'Start date is required' }),
-  end_date: z.date({ required_error: 'End date is required' }),
+  end_date: z.date().optional(),
+  is_year_round: z.boolean().default(false),
   entry_fee: z.number().min(0, 'Entry fee cannot be negative'),
   commission_rate: z.number().min(0, 'Commission rate cannot be negative'),
   visibility_notes: z.string().max(200, 'Notes too long').optional(),
-}).refine((data) => data.start_date < data.end_date, {
-  message: 'End date must be after start date',
+}).refine((data) => {
+  if (!data.is_year_round && !data.end_date) {
+    return false;
+  }
+  if (data.end_date && data.end_date <= data.start_date) {
+    return false;
+  }
+  return true;
+}, {
+  message: 'End date is required for time-limited competitions and must be after start date',
   path: ['end_date'],
 });
 
@@ -86,6 +105,7 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
       description: prefillData?.description || '',
       start_date: prefillData?.start_date || new Date(),
       end_date: prefillData?.end_date || new Date(Date.now() + 86400000), // +1 day
+      is_year_round: prefillData?.is_year_round || false,
       entry_fee: prefillData?.entry_fee || 0,
       commission_rate: prefillData?.commission_rate || 0,
       visibility_notes: prefillData?.visibility_notes || '',
@@ -96,7 +116,7 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
   const watchedValues = form.watch();
 
   // Fetch user role and clubs on component mount
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchUserRoleAndClubs = async () => {
       if (user) {
         const { data: profile } = await supabase
@@ -134,7 +154,7 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
     try {
       const { data: existingCompetitions, error } = await supabase
         .from('competitions')
-        .select('id, name, start_date, end_date')
+        .select('id, name, start_date, end_date, is_year_round')
         .eq('club_id', targetClubId)
         .eq('hole_number', holeNumber)
         .in('status', ['SCHEDULED', 'ACTIVE']);
@@ -143,13 +163,25 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
 
       const overlapping = existingCompetitions?.find(comp => {
         const compStart = new Date(comp.start_date);
-        const compEnd = new Date(comp.end_date);
-        return (startDate <= compEnd && endDate >= compStart);
+        
+        // If the existing competition is year-round, it overlaps with everything after its start
+        if (comp.is_year_round) {
+          return startDate >= compStart;
+        }
+        
+        // If the existing competition has an end date, check normal overlap
+        if (comp.end_date) {
+          const compEnd = new Date(comp.end_date);
+          return (startDate <= compEnd && endDate >= compStart);
+        }
+        
+        return false;
       });
 
       if (overlapping) {
+        const endText = overlapping.is_year_round ? 'ongoing' : format(new Date(overlapping.end_date), 'PPp');
         setOverlapWarning(
-          `Warning: This overlaps with "${overlapping.name}" (${format(new Date(overlapping.start_date), 'PPp')} - ${format(new Date(overlapping.end_date), 'PPp')})`
+          `Warning: This overlaps with "${overlapping.name}" (${format(new Date(overlapping.start_date), 'PPp')} - ${endText})`
         );
         return true;
       }
@@ -183,7 +215,7 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
     if (step === 1) {
       fieldsToValidate = ['name', 'hole_number', 'description'];
     } else if (step === 2) {
-      fieldsToValidate = ['start_date', 'end_date'];
+      fieldsToValidate = ['start_date', 'end_date', 'is_year_round'];
     } else if (step === 3) {
       fieldsToValidate = ['entry_fee', 'commission_rate', 'visibility_notes'];
     }
@@ -203,8 +235,8 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
       return false;
     }
 
-    // Check for schedule overlaps in step 2
-    if (step === 2) {
+    // Check for schedule overlaps in step 2 - only if not year-round and has end date
+    if (step === 2 && !watchedValues.is_year_round && watchedValues.end_date) {
       const hasOverlap = await checkForOverlaps(
         watchedValues.hole_number,
         watchedValues.start_date,
@@ -234,9 +266,21 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
-      // Determine status based on current time
+      // Determine status based on current time and year-round flag
       const now = new Date();
-      const status = (now >= data.start_date && now <= data.end_date) ? 'ACTIVE' : 'SCHEDULED';
+      let status: 'SCHEDULED' | 'ACTIVE' | 'ENDED' = 'SCHEDULED';
+      
+      if (data.is_year_round) {
+        status = now >= data.start_date ? 'ACTIVE' : 'SCHEDULED';
+      } else if (data.end_date) {
+        if (now < data.start_date) {
+          status = 'SCHEDULED';
+        } else if (now >= data.start_date && now <= data.end_date) {
+          status = 'ACTIVE';
+        } else {
+          status = 'ENDED';
+        }
+      }
 
       // Convert entry fee to cents
       const entry_fee_cents = Math.round(data.entry_fee * 100);
@@ -251,7 +295,8 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
           hole_number: data.hole_number,
           description: data.description,
           start_date: data.start_date.toISOString(),
-          end_date: data.end_date.toISOString(),
+          end_date: data.is_year_round ? null : data.end_date?.toISOString() || null,
+          is_year_round: data.is_year_round,
           entry_fee: entry_fee_cents,
           commission_rate: commission_rate_pence,
           status,
@@ -394,35 +439,53 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
               )}
             </div>
 
-            <div>
-              <Label>End Date & Time</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !watchedValues.end_date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {watchedValues.end_date ? format(watchedValues.end_date, "PPp") : "Pick end date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={watchedValues.end_date}
-                    onSelect={(date) => form.setValue('end_date', date || new Date())}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
-              {form.formState.errors.end_date && (
-                <p className="text-sm text-destructive mt-1">{form.formState.errors.end_date.message}</p>
-              )}
+            <div className="flex items-center space-x-2 mb-4">
+              <Checkbox
+                id="is_year_round"
+                checked={watchedValues.is_year_round}
+                onCheckedChange={(checked) => {
+                  form.setValue('is_year_round', !!checked);
+                  if (checked) {
+                    form.setValue('end_date', undefined);
+                  }
+                }}
+              />
+              <Label htmlFor="is_year_round" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Year-round competition (no end date)
+              </Label>
             </div>
+
+            {!watchedValues.is_year_round && (
+              <div>
+                <Label>End Date & Time</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !watchedValues.end_date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {watchedValues.end_date ? format(watchedValues.end_date, "PPp") : "Pick end date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={watchedValues.end_date}
+                      onSelect={(date) => form.setValue('end_date', date || new Date())}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                {form.formState.errors.end_date && (
+                  <p className="text-sm text-destructive mt-1">{form.formState.errors.end_date.message}</p>
+                )}
+              </div>
+            )}
           </div>
         );
 
@@ -524,7 +587,9 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
                 </div>
                 <div>
                   <p className="text-muted-foreground">End</p>
-                  <p className="font-medium">{format(watchedValues.end_date, "PPp")}</p>
+                  <p className="font-medium">
+                    {watchedValues.is_year_round ? 'Ongoing (Year-round)' : format(watchedValues.end_date, "PPp")}
+                  </p>
                 </div>
               </div>
 

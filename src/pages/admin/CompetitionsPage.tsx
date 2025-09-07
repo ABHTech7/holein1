@@ -18,7 +18,7 @@ interface Competition {
   name: string;
   description: string | null;
   start_date: string;
-  end_date: string;
+  end_date: string | null;
   entry_fee: number;
   status: string;
   club_id: string;
@@ -27,6 +27,7 @@ interface Competition {
   total_revenue: number;
   created_at: string;
   archived: boolean;
+  is_year_round: boolean;
 }
 
 const CompetitionsPage = () => {
@@ -82,11 +83,32 @@ const CompetitionsPage = () => {
           const paidEntries = entries?.filter(entry => entry.paid).length || 0;
           const totalRevenue = paidEntries * (parseFloat(competition.entry_fee?.toString() || '0'));
 
+          // Calculate dynamic status using the database function approach
+          const now = new Date();
+          const startDate = new Date(competition.start_date);
+          const endDate = competition.end_date ? new Date(competition.end_date) : null;
+          
+          let dynamicStatus: string;
+          if (competition.is_year_round) {
+            dynamicStatus = startDate <= now ? 'ACTIVE' : 'SCHEDULED';
+          } else if (endDate) {
+            if (now < startDate) {
+              dynamicStatus = 'SCHEDULED';
+            } else if (now >= startDate && now <= endDate) {
+              dynamicStatus = 'ACTIVE';
+            } else {
+              dynamicStatus = 'ENDED';
+            }
+          } else {
+            dynamicStatus = 'ENDED';
+          }
+
           return {
             ...competition,
             club_name: competition.clubs.name,
             total_entries: totalEntries,
-            total_revenue: totalRevenue
+            total_revenue: totalRevenue,
+            status: dynamicStatus, // Use calculated status instead of database status
           };
         })
       );
@@ -114,7 +136,7 @@ const CompetitionsPage = () => {
         return 'default';
       case 'SCHEDULED':
         return 'secondary';
-      case 'COMPLETED':
+      case 'ENDED':
         return 'outline';
       default:
         return 'outline';
@@ -231,7 +253,7 @@ const CompetitionsPage = () => {
                             </button>
                           </TableCell>
                           <TableCell>{competition.club_name}</TableCell>
-                          <TableCell>
+                           <TableCell>
                             <div className="space-y-1 text-sm">
                               <div className="flex items-center gap-1">
                                 <Calendar className="w-3 h-3 text-muted-foreground" />
@@ -239,8 +261,13 @@ const CompetitionsPage = () => {
                               </div>
                               <div className="flex items-center gap-1">
                                 <Calendar className="w-3 h-3 text-muted-foreground" />
-                                <span>End: {formatDate(competition.end_date, 'short')}</span>
+                                <span>
+                                  End: {competition.is_year_round || !competition.end_date ? 'Ongoing' : formatDate(competition.end_date, 'short')}
+                                </span>
                               </div>
+                              {competition.is_year_round && (
+                                <div className="text-xs text-primary font-medium">Year-round</div>
+                              )}
                             </div>
                           </TableCell>
                            <TableCell>
