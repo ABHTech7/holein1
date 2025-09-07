@@ -80,6 +80,7 @@ const ClubDashboardNew = () => {
   });
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [recentEntries, setRecentEntries] = useState<Entry[]>([]);
+  const [clubData, setClubData] = useState<any>(null);
 
   // Fetch user profile and check permissions
   useEffect(() => {
@@ -116,6 +117,16 @@ const ClubDashboardNew = () => {
       if (!profile?.club_id) return;
 
       try {
+        // Fetch club data first
+        const { data: club, error: clubError } = await supabase
+          .from('clubs')
+          .select('*')
+          .eq('id', profile.club_id)
+          .single();
+
+        if (clubError) throw clubError;
+        setClubData(club);
+
         // Fetch competitions for this club
         const { data: competitionsData } = await supabase
           .from('competitions')
@@ -296,23 +307,41 @@ const ClubDashboardNew = () => {
         <Section spacing="lg">
           <div className="max-w-7xl mx-auto space-y-8">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex flex-col gap-4">
               <div>
                 <h1 className="font-display text-3xl font-bold text-foreground">Club Dashboard</h1>
                 <p className="text-muted-foreground mt-1">Manage your Hole in 1 Challenge competitions</p>
               </div>
               
+              {/* Club Info */}
+              {clubData && (
+                <div className="flex items-center gap-3">
+                  {clubData.logo_url && (
+                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                      <img 
+                        src={clubData.logo_url} 
+                        alt={`${clubData.name} logo`} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <h2 className="text-xl font-semibold text-foreground">{clubData.name}</h2>
+                </div>
+              )}
+              
               {/* Date Range Filter */}
-              <Select value={dateRange} onValueChange={setDateRange}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select period" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7">Last 7 days</SelectItem>
-                  <SelectItem value="30">Last 30 days</SelectItem>
-                  <SelectItem value="custom">Custom range</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex justify-end">
+                <Select value={dateRange} onValueChange={setDateRange}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select period" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">Last 7 days</SelectItem>
+                    <SelectItem value="30">Last 30 days</SelectItem>
+                    <SelectItem value="custom">Custom range</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Quick Actions */}
