@@ -325,6 +325,9 @@ export type Database = {
       }
       entries: {
         Row: {
+          amount_minor: number | null
+          attempt_window_end: string | null
+          attempt_window_start: string | null
           competition_id: string
           completed_at: string | null
           created_at: string
@@ -334,13 +337,21 @@ export type Database = {
           location_latitude: number | null
           location_longitude: number | null
           location_timestamp: string | null
+          outcome_official: string | null
+          outcome_reported_at: string | null
+          outcome_self: string | null
           paid: boolean
           payment_date: string | null
           player_id: string
           score: number | null
+          terms_accepted_at: string | null
+          terms_version: string | null
           updated_at: string
         }
         Insert: {
+          amount_minor?: number | null
+          attempt_window_end?: string | null
+          attempt_window_start?: string | null
           competition_id: string
           completed_at?: string | null
           created_at?: string
@@ -350,13 +361,21 @@ export type Database = {
           location_latitude?: number | null
           location_longitude?: number | null
           location_timestamp?: string | null
+          outcome_official?: string | null
+          outcome_reported_at?: string | null
+          outcome_self?: string | null
           paid?: boolean
           payment_date?: string | null
           player_id: string
           score?: number | null
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string
         }
         Update: {
+          amount_minor?: number | null
+          attempt_window_end?: string | null
+          attempt_window_start?: string | null
           competition_id?: string
           completed_at?: string | null
           created_at?: string
@@ -366,10 +385,15 @@ export type Database = {
           location_latitude?: number | null
           location_longitude?: number | null
           location_timestamp?: string | null
+          outcome_official?: string | null
+          outcome_reported_at?: string | null
+          outcome_self?: string | null
           paid?: boolean
           payment_date?: string | null
           player_id?: string
           score?: number | null
+          terms_accepted_at?: string | null
+          terms_version?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -484,9 +508,12 @@ export type Database = {
       profiles: {
         Row: {
           club_id: string | null
+          consent_marketing: boolean | null
           created_at: string
+          dob: string | null
           email: string
           first_name: string | null
+          handicap: number | null
           id: string
           last_name: string | null
           location_accuracy: number | null
@@ -499,9 +526,12 @@ export type Database = {
         }
         Insert: {
           club_id?: string | null
+          consent_marketing?: boolean | null
           created_at?: string
+          dob?: string | null
           email: string
           first_name?: string | null
+          handicap?: number | null
           id: string
           last_name?: string | null
           location_accuracy?: number | null
@@ -514,9 +544,12 @@ export type Database = {
         }
         Update: {
           club_id?: string | null
+          consent_marketing?: boolean | null
           created_at?: string
+          dob?: string | null
           email?: string
           first_name?: string | null
+          handicap?: number | null
           id?: string
           last_name?: string | null
           location_accuracy?: number | null
@@ -533,6 +566,95 @@ export type Database = {
             columns: ["club_id"]
             isOneToOne: false
             referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venues: {
+        Row: {
+          club_id: string | null
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          club_id?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          club_id?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venues_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      verifications: {
+        Row: {
+          created_at: string
+          entry_id: string | null
+          id: string
+          staff_code: string | null
+          status: string | null
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+          video_url: string | null
+          witnesses: Json
+        }
+        Insert: {
+          created_at?: string
+          entry_id?: string | null
+          id?: string
+          staff_code?: string | null
+          status?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          video_url?: string | null
+          witnesses: Json
+        }
+        Update: {
+          created_at?: string
+          entry_id?: string | null
+          id?: string
+          staff_code?: string | null
+          status?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          video_url?: string | null
+          witnesses?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verifications_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verifications_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

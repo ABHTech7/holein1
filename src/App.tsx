@@ -11,6 +11,7 @@ import PlayerLogin from "./pages/PlayerLogin";
 import PlayerEntries from "./pages/PlayerEntries";
 import Auth from "./pages/Auth";
 import CompetitionEntry from "./pages/CompetitionEntry";
+import EntryPageNew from "./pages/EntryPageNew";
 import DeveloperDemo from "./pages/DeveloperDemo";
 import AdminDashboard from "./pages/AdminDashboard";
 import ClubDashboard from "./pages/ClubDashboard";
@@ -74,6 +75,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dev/demo" element={<DeveloperDemo />} />
           <Route path="/enter/:competitionId" element={<CompetitionEntry />} />
+          <Route path="/enter/:venueSlug/:holeNumber" element={<EntryPageNew />} />
           <Route path="/competitions/:id" element={<CompetitionDetail />} />
           
           {/* Dashboard Routes */}
