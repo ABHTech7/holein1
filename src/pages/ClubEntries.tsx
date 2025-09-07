@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate, formatDateTime, obfuscateEmail } from "@/lib/formatters";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
@@ -34,13 +34,28 @@ interface Entry {
 const ClubEntries = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [competitionFilter, setCompetitionFilter] = useState("all");
   const [filteredEntries, setFilteredEntries] = useState<Entry[]>([]);
-  const [competitions, setCompetitions] = useState<string[]>([]);
+  const [competitions, setCompetitions] = useState<{id: string, name: string}[]>([]);
+  const [selectedCompetitionName, setSelectedCompetitionName] = useState<string>("");
+
+  // Handle URL query parameters for competition filtering
+  useEffect(() => {
+    const competitionId = searchParams.get('competition');
+    if (competitionId) {
+      // Find the competition name by ID when data is loaded
+      const competition = competitions.find(c => c.id === competitionId);
+      if (competition) {
+        setCompetitionFilter(competition.name);
+        setSelectedCompetitionName(competition.name);
+      }
+    }
+  }, [searchParams, competitions]);
 
   useEffect(() => {
     if (profile?.club_id) {
@@ -87,7 +102,9 @@ const ClubEntries = () => {
           entry_date,
           paid,
           completed_at,
+          competition_id,
           competitions!inner(
+            id,
             name,
             hole_number,
             status,
@@ -120,8 +137,18 @@ const ClubEntries = () => {
 
       setEntries(processedEntries);
 
-      // Extract unique competition names
-      const uniqueCompetitions = [...new Set(processedEntries.map(entry => entry.competition_name))];
+      // Extract unique competitions with IDs and names
+      const uniqueCompetitions = entriesData?.reduce((acc, entry) => {
+        const existing = acc.find(c => c.id === entry.competitions.id);
+        if (!existing) {
+          acc.push({
+            id: entry.competitions.id,
+            name: entry.competitions.name
+          });
+        }
+        return acc;
+      }, [] as {id: string, name: string}[]) || [];
+      
       setCompetitions(uniqueCompetitions);
 
     } catch (error) {
@@ -164,14 +191,22 @@ const ClubEntries = () => {
           <Container>
             <div className="space-y-8">
               {/* Back Button */}
-              <Button
-                variant="outline"
-                onClick={() => navigate('/dashboard/club')}
-                className="flex items-center gap-2 mb-6"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Dashboard
-              </Button>
+              <div className="flex items-center gap-4 mb-6">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(selectedCompetitionName ? '/dashboard/club/competitions' : '/dashboard/club')}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  {selectedCompetitionName ? 'Back to Competitions' : 'Back to Dashboard'}
+                </Button>
+                
+                {selectedCompetitionName && (
+                  <Badge variant="secondary" className="text-sm">
+                    Filtered by: {selectedCompetitionName}
+                  </Badge>
+                )}
+              </div>
 
               {/* Header */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -225,12 +260,12 @@ const ClubEntries = () => {
                       <SelectTrigger>
                         <SelectValue placeholder="Filter by competition" />
                       </SelectTrigger>
-                      <SelectContent>
+                        <SelectContent>
                         <SelectItem value="all">All Competitions</SelectItem>
                         {competitions.map((comp) => (
-                          <SelectItem key={comp} value={comp}>{comp}</SelectItem>
+                          <SelectItem key={comp.id} value={comp.name}>{comp.name}</SelectItem>
                         ))}
-                      </SelectContent>
+                        </SelectContent>
                     </Select>
 
                     <div className="text-sm text-muted-foreground flex items-center">
