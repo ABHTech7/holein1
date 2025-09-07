@@ -753,6 +753,10 @@ export type Database = {
           website: string
         }[]
       }
+      update_expired_entries: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
     }
     Enums: {
       claim_status: "PENDING" | "VERIFIED" | "REJECTED"
