@@ -217,15 +217,28 @@ const ClubDashboardNew = () => {
           })));
         }
 
-        // Generate trend data (mock for now - would need actual historical data)
+        // Generate trend data with more realistic patterns
         const generateTrendData = () => {
           const weeks = [];
-          for (let i = 7; i >= 0; i--) {
-            const weekStart = new Date(now.getTime() - (i * 7 * 24 * 60 * 60 * 1000));
+          const weekNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+          
+          // Generate data for the last 30 days (daily)
+          for (let i = 29; i >= 0; i--) {
+            const date = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000));
+            const dayOfWeek = date.getDay();
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+            
+            // Weekend spike pattern for golf
+            const baseEntries = isWeekend ? 15 + Math.floor(Math.random() * 25) : 3 + Math.floor(Math.random() * 12);
+            const entryFee = 25; // £25 entry fee
+            const commissionRate = 0.15; // 15% commission
+            
             weeks.push({
-              week: `Week ${8-i}`,
-              entries: Math.floor(Math.random() * 20) + 5,
-              revenue: Math.floor(Math.random() * 1000) + 200
+              week: weekNames[dayOfWeek],
+              date: date.toISOString().split('T')[0],
+              entries: baseEntries,
+              revenue: baseEntries * entryFee,
+              commission: Math.round(baseEntries * entryFee * commissionRate * 100) / 100
             });
           }
           return weeks;
@@ -443,125 +456,6 @@ const ClubDashboardNew = () => {
               </ChartWrapper>
             </div>
 
-            {/* Competitions Table */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Competitions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {competitions.length === 0 ? (
-                  <EmptyState
-                    title="No competitions yet"
-                    description="Set up your first Hole in 1 Challenge to get started"
-                    action={{
-                      label: "Set Up New Challenge",
-                      onClick: () => navigate('/dashboard/club/competitions/new')
-                    }}
-                  />
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Hole #</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Period</TableHead>
-                        <TableHead>Entries</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {competitions.map((competition) => (
-                        <TableRow 
-                          key={competition.id} 
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => navigate(`/dashboard/club/competitions/${competition.id}`)}
-                        >
-                          <TableCell className="font-medium">{competition.name}</TableCell>
-                          <TableCell>{competition.hole_number}</TableCell>
-                          <TableCell>
-                            <Badge className={getCompetitionStatusColor(competition.status)}>
-                              {competition.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {formatDate(competition.start_date)} - {formatDate(competition.end_date)}
-                          </TableCell>
-                          <TableCell>{competition.entries_count}</TableCell>
-                          <TableCell>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleShareCompetition(competition.id)}
-                              className="gap-1"
-                            >
-                              <Share2 className="w-3 h-3" />
-                              Share
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Recent Entries */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                <CardTitle>Recent Entries</CardTitle>
-                {recentEntries.length > 0 && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate('/dashboard/club/entries')}
-                    className="gap-2"
-                  >
-                    <Trophy className="w-4 h-4" />
-                    View All Entries
-                  </Button>
-                )}
-              </CardHeader>
-              <CardContent>
-                {recentEntries.length === 0 ? (
-                  <EmptyState
-                    title="No entries yet"
-                    description="Entries will appear here when players join your competitions"
-                    size="sm"
-                  />
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Player</TableHead>
-                        <TableHead>Competition</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Payment Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recentEntries.map((entry) => (
-                        <TableRow 
-                          key={entry.id}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => navigate('/dashboard/club/entries')}
-                        >
-                          <TableCell>{obfuscateEmail(entry.player_email)}</TableCell>
-                          <TableCell>{entry.competition_name}</TableCell>
-                          <TableCell>{formatDateTime(entry.entry_date)}</TableCell>
-                          <TableCell>
-                            <Badge variant={entry.paid ? "default" : "secondary"}>
-                              {entry.entry_fee === 0 ? "FREE" : entry.paid ? "PAID" : "PENDING"}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
           </div>
         </Section>
       </main>
