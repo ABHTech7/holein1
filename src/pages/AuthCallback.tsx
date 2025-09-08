@@ -58,11 +58,19 @@ const AuthCallback = () => {
           }
 
           setStatus('success');
-          setMessage(`Welcome ${data.user?.first_name}! Redirecting to your competition...`);
+          setMessage(`Welcome ${data.user?.first_name}! Taking you to your golf challenge...`);
           
-          // Simple direct redirect to competition URL
-          const redirectUrl = data.competition_url || searchParams.get('redirect') || '/';
-          window.location.href = redirectUrl;
+          // Redirect to entry confirmation page if we have an entry ID
+          if (data.entry_id) {
+            const redirectUrl = `/entry/${data.entry_id}/confirmation`;
+            console.log("Redirecting to entry confirmation:", redirectUrl);
+            window.location.href = redirectUrl;
+          } else {
+            // Fallback to competition URL
+            const redirectUrl = data.competition_url || searchParams.get('redirect') || '/';
+            console.log("Fallback redirect:", redirectUrl);
+            window.location.href = redirectUrl;
+          }
 
         } else {
           // Handle standard Supabase auth callback

@@ -213,6 +213,123 @@ const handler = async (req: Request): Promise<Response> => {
       // Don't fail the request for profile errors, just log them
     }
 
+    // Parse competition URL to extract club and competition slugs
+    const competitionUrl = tokenData.competition_url;
+    console.log("Parsing competition URL:", competitionUrl);
+    
+    let competitionId = null;
+    
+    // Handle different URL formats
+    if (competitionUrl.includes('/competition/')) {
+      // New format: /competition/{clubSlug}/{competitionSlug}
+      const urlParts = competitionUrl.split('/');
+      const clubSlug = urlParts[2];
+      const competitionSlug = urlParts[3];
+      
+      console.log("Extracted slugs - Club:", clubSlug, "Competition:", competitionSlug);
+      
+      // Look up competition using slugs - we need to find the club first
+      const { data: clubs, error: clubError } = await supabaseAdmin
+        .from('clubs')
+        .select('id, name')
+        .eq('archived', false)
+        .eq('active', true);
+      
+      if (clubError || !clubs) {
+        console.error("Error fetching clubs:", clubError);
+        throw new Error("Failed to find competition");
+      }
+      
+      // Find club by slug
+      const matchingClub = clubs.find(club => {
+        const clubSlugGenerated = club.name
+          .toLowerCase()
+          .trim()
+          .replace(/'/g, '')
+          .replace(/&/g, 'and')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+        return clubSlugGenerated === clubSlug;
+      });
+      
+      if (!matchingClub) {
+        console.error("Club not found for slug:", clubSlug);
+        throw new Error("Competition not found");
+      }
+      
+      console.log("Found club:", matchingClub.name, matchingClub.id);
+      
+      // Now find competition by slug and club
+      const { data: competitions, error: competitionError } = await supabaseAdmin
+        .from('competitions')
+        .select('id, name')
+        .eq('club_id', matchingClub.id)
+        .eq('archived', false)
+        .in('status', ['ACTIVE', 'SCHEDULED']);
+      
+      if (competitionError || !competitions) {
+        console.error("Error fetching competitions:", competitionError);
+        throw new Error("Failed to find competition");
+      }
+      
+      // Find competition by slug
+      const matchingCompetition = competitions.find(comp => {
+        const compSlugGenerated = comp.name
+          .toLowerCase()
+          .trim()
+          .replace(/'/g, '')
+          .replace(/&/g, 'and')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+        return compSlugGenerated === competitionSlug;
+      });
+      
+      if (!matchingCompetition) {
+        console.error("Competition not found for slug:", competitionSlug);
+        throw new Error("Competition not found");
+      }
+      
+      competitionId = matchingCompetition.id;
+      console.log("Found competition:", matchingCompetition.name, competitionId);
+      
+    } else if (competitionUrl.includes('/enter/')) {
+      // Legacy format: extract competition ID directly
+      const urlParts = competitionUrl.split('/');
+      competitionId = urlParts[urlParts.length - 1];
+      console.log("Using legacy competition ID:", competitionId);
+    } else {
+      console.error("Unknown competition URL format:", competitionUrl);
+      throw new Error("Invalid competition URL format");
+    }
+    
+    // Create entry for the user
+    const now = new Date();
+    const attemptWindowEnd = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes from now
+    
+    console.log("Creating entry for user:", user.id, "competition:", competitionId);
+    
+    const { data: entry, error: entryError } = await supabaseAdmin
+      .from('entries')
+      .insert({
+        competition_id: competitionId,
+        player_id: user.id,
+        paid: false,
+        status: 'pending',
+        terms_version: "1.0",
+        terms_accepted_at: now.toISOString(),
+        attempt_window_start: now.toISOString(),
+        attempt_window_end: attemptWindowEnd.toISOString()
+      })
+      .select('id')
+      .single();
+    
+    if (entryError || !entry) {
+      console.error("Error creating entry:", entryError);
+      throw new Error("Failed to create competition entry");
+    }
+    
+    console.log("Entry created successfully:", entry.id);
+
     // Mark the token as used
     const { error: markUsedError } = await supabaseAdmin
       .from('magic_link_tokens')
@@ -235,6 +352,7 @@ const handler = async (req: Request): Promise<Response> => {
         last_name: tokenData.last_name,
         role: 'PLAYER'
       },
+      entry_id: entry.id,
       competition_url: tokenData.competition_url
     }), {
       status: 200,
