@@ -19,7 +19,8 @@ import {
   X, 
   CheckCircle2,
   AlertCircle,
-  Users
+  Users,
+  Video
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -43,6 +44,7 @@ const WinClaimForm = ({
 }: WinClaimFormProps) => {
   const [submitting, setSubmitting] = useState(false);
   const [photos, setPhotos] = useState<File[]>([]);
+  const [videos, setVideos] = useState<File[]>([]);
   const [witnessName, setWitnessName] = useState("");
   const [witnessContact, setWitnessContact] = useState("");
   const [notes, setNotes] = useState("");
@@ -62,8 +64,26 @@ const WinClaimForm = ({
     setPhotos(prev => [...prev, ...files]);
   };
 
+  const handleVideoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (videos.length + files.length > 1) {
+      toast({
+        title: "Too many videos",
+        description: "Maximum 1 video allowed",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setVideos(prev => [...prev, ...files]);
+  };
+
   const removePhoto = (index: number) => {
     setPhotos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeVideo = (index: number) => {
+    setVideos(prev => prev.filter((_, i) => i !== index));
   };
 
   const uploadPhotos = async (claimId: string) => {
@@ -91,6 +111,33 @@ const WinClaimForm = ({
     }
     
     return photoUrls;
+  };
+
+  const uploadVideos = async (claimId: string) => {
+    const videoUrls = [];
+    
+    for (const [index, video] of videos.entries()) {
+      const fileExt = video.name.split('.').pop();
+      const fileName = `claim-video-${claimId}-${index + 1}.${fileExt}`;
+      const filePath = `claims/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('shot-videos')
+        .upload(filePath, video);
+
+      if (uploadError) {
+        console.error('Video upload error:', uploadError);
+        continue; // Don't fail the whole submission for video issues
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('shot-videos')
+        .getPublicUrl(filePath);
+      
+      videoUrls.push(publicUrl);
+    }
+    
+    return videoUrls;
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -135,18 +182,32 @@ const WinClaimForm = ({
 
       if (claimError) throw claimError;
 
-      // Upload photos if any
+      // Upload photos and videos if any
       let photoUrls: string[] = [];
+      let videoUrls: string[] = [];
+      
       if (photos.length > 0) {
         photoUrls = await uploadPhotos(claim.id);
+      }
+      
+      if (videos.length > 0) {
+        videoUrls = await uploadVideos(claim.id);
+      }
         
-        // Update claim with photo URLs
-        if (photoUrls.length > 0) {
-          await supabase
-            .from('claims')
-            .update({ photo_urls: photoUrls })
-            .eq('id', claim.id);
+      // Update claim with media URLs
+      if (photoUrls.length > 0 || videoUrls.length > 0) {
+        const updateData: any = {};
+        if (photoUrls.length > 0) updateData.photo_urls = photoUrls;
+        // Store video URLs in notes for now, as claims table doesn't have video_urls column
+        if (videoUrls.length > 0) {
+          updateData.notes = notes.trim() + (notes.trim() ? '\n\n' : '') + 
+            `Video evidence: ${videoUrls.join(', ')}`;
         }
+        
+        await supabase
+          .from('claims')
+          .update(updateData)
+          .eq('id', claim.id);
       }
 
       toast({
@@ -241,52 +302,102 @@ const WinClaimForm = ({
               </div>
             </div>
 
-            {/* Photo Evidence */}
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2 mb-3">
-                <Camera className="w-5 h-5 text-primary" />
-                <h3 className="text-lg font-semibold">Photo Evidence</h3>
-                <Badge variant="outline" className="text-xs">Optional</Badge>
+            {/* Media Evidence */}
+            <div className="space-y-6">
+              {/* Photo Evidence */}
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Camera className="w-5 h-5 text-primary" />
+                  <h3 className="text-lg font-semibold">Photo Evidence</h3>
+                  <Badge variant="outline" className="text-xs">Optional</Badge>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {photos.map((photo, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={URL.createObjectURL(photo)}
+                        alt={`Photo evidence ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg border"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        className="absolute top-2 right-2 w-6 h-6 p-0"
+                        onClick={() => removePhoto(index)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  
+                  {photos.length < 3 && (
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-muted-foreground/25 rounded-lg cursor-pointer hover:bg-muted/20 transition-colors">
+                      <Upload className="w-8 h-8 text-muted-foreground mb-2" />
+                      <span className="text-sm text-muted-foreground">Add Photo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+                
+                <p className="text-xs text-muted-foreground">
+                  Upload up to 3 photos showing the ball in or near the hole, your position, or other evidence
+                </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {photos.map((photo, index) => (
-                  <div key={index} className="relative">
-                    <img
-                      src={URL.createObjectURL(photo)}
-                      alt={`Evidence ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg border"
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="destructive"
-                      className="absolute top-2 right-2 w-6 h-6 p-0"
-                      onClick={() => removePhoto(index)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
+              {/* Video Evidence */}
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Video className="w-5 h-5 text-primary" />
+                  <h3 className="text-lg font-semibold">Video Evidence</h3>
+                  <Badge variant="outline" className="text-xs">Optional</Badge>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  {videos.map((video, index) => (
+                    <div key={index} className="relative">
+                      <video
+                        src={URL.createObjectURL(video)}
+                        controls
+                        className="w-full h-48 object-cover rounded-lg border"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        className="absolute top-2 right-2 w-6 h-6 p-0"
+                        onClick={() => removeVideo(index)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  
+                  {videos.length < 1 && (
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-muted-foreground/25 rounded-lg cursor-pointer hover:bg-muted/20 transition-colors">
+                      <Video className="w-8 h-8 text-muted-foreground mb-2" />
+                      <span className="text-sm text-muted-foreground">Add Video</span>
+                      <input
+                        type="file"
+                        accept="video/*"
+                        onChange={handleVideoUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
                 
-                {photos.length < 3 && (
-                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-muted-foreground/25 rounded-lg cursor-pointer hover:bg-muted/20 transition-colors">
-                    <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-                    <span className="text-sm text-muted-foreground">Add Photo</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handlePhotoUpload}
-                      className="hidden"
-                    />
-                  </label>
-                )}
+                <p className="text-xs text-muted-foreground">
+                  Upload 1 video showing your shot attempt (max 30 seconds recommended)
+                </p>
               </div>
-              
-              <p className="text-xs text-muted-foreground">
-                Upload up to 3 photos showing the ball in or near the hole, your position, or other evidence
-              </p>
             </div>
 
             {/* Additional Notes */}

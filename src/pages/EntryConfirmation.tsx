@@ -18,6 +18,7 @@ import {
   XCircle
 } from "lucide-react";
 import { PlayerGreeting } from "@/components/ui/player-greeting";
+import { AttemptFlow } from "@/components/entry/AttemptFlow";
 
 interface EntryData {
   id: string;
@@ -333,7 +334,7 @@ const EntryConfirmation = () => {
                   </div>
                 )}
 
-                {/* Outcome Buttons or Status */}
+                {/* Outcome Section */}
                 {hasReportedOutcome ? (
                   <div className="text-center p-6 rounded-xl border">
                     <div className="flex justify-center mb-4">
@@ -353,35 +354,22 @@ const EntryConfirmation = () => {
                     </Badge>
                   </div>
                 ) : !isTimeUp ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                      <AlertTriangle className="w-5 h-5 text-amber-600" />
-                      <p className="text-sm text-amber-800 dark:text-amber-200">
-                        Auto-miss after 15 minutes if no outcome reported
-                      </p>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 gap-3">
-                      <Button
-                        onClick={handleReportWin}
-                        disabled={submitting}
-                        className="h-12 text-base font-medium rounded-xl bg-green-600 hover:bg-green-700"
-                      >
-                        <Trophy className="w-5 h-5 mr-2" />
-                        Report Win
-                      </Button>
-                      
-                      <Button
-                        onClick={handleReportMiss}
-                        disabled={submitting}
-                        variant="outline"
-                        className="h-12 text-base font-medium rounded-xl"
-                      >
-                        <Target className="w-5 h-5 mr-2" />
-                        I Missed
-                      </Button>
-                    </div>
-                  </div>
+                  <AttemptFlow
+                    entryId={entry.id}
+                    competitionName={entry.competition_name}
+                    holeNumber={entry.hole_number}
+                    venueName={entry.venue_name}
+                    timeRemaining={timeRemaining}
+                    onOutcomeReported={(outcome) => {
+                      setEntry(prev => prev ? { ...prev, outcome_self: outcome } : null);
+                      toast({
+                        title: outcome === 'win' ? 'Win reported!' : 'Outcome recorded',
+                        description: outcome === 'win' ? 
+                          'Your win claim has been submitted for verification' :
+                          'Thanks for reporting your result'
+                      });
+                    }}
+                  />
                 ) : null}
               </CardContent>
             </Card>

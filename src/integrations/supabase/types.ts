@@ -440,6 +440,7 @@ export type Database = {
           terms_accepted_at: string | null
           terms_version: string | null
           updated_at: string
+          video_evidence_url: string | null
         }
         Insert: {
           amount_minor?: number | null
@@ -465,6 +466,7 @@ export type Database = {
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string
+          video_evidence_url?: string | null
         }
         Update: {
           amount_minor?: number | null
@@ -490,6 +492,7 @@ export type Database = {
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string
+          video_evidence_url?: string | null
         }
         Relationships: [
           {
