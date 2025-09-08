@@ -65,7 +65,27 @@ const AuthCallback = () => {
           // Profile information was already collected in the auth modal,
           // so we can redirect directly to the competition
           const redirectParam = searchParams.get('redirect');
-          const redirectUrl = data.competition_url || redirectParam || '/';
+          
+          // Handle competition URL - extract path from external domains
+          let redirectUrl = '/';
+          if (data.competition_url) {
+            try {
+              const url = new URL(data.competition_url);
+              // If it's an external domain, extract just the pathname
+              if (!url.hostname.includes(window.location.hostname)) {
+                redirectUrl = url.pathname;
+              } else {
+                redirectUrl = data.competition_url;
+              }
+            } catch (error) {
+              console.error('Invalid competition URL:', data.competition_url);
+              redirectUrl = redirectParam || '/';
+            }
+          } else {
+            redirectUrl = redirectParam || '/';
+          }
+          
+          console.log('Redirecting to:', redirectUrl);
           setTimeout(() => {
             navigate(redirectUrl);
           }, 2000);
