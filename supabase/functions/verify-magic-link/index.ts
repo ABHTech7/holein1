@@ -303,8 +303,8 @@ const handler = async (req: Request): Promise<Response> => {
     }
     
     // Create entry for the user
-    const now = new Date();
-    const attemptWindowEnd = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes from now
+    const entryTime = new Date();
+    const attemptWindowEnd = new Date(entryTime.getTime() + 15 * 60 * 1000); // 15 minutes from now
     
     console.log("Creating entry for user:", user.id, "competition:", competitionId);
     
@@ -316,8 +316,8 @@ const handler = async (req: Request): Promise<Response> => {
         paid: false,
         status: 'pending',
         terms_version: "1.0",
-        terms_accepted_at: now.toISOString(),
-        attempt_window_start: now.toISOString(),
+        terms_accepted_at: entryTime.toISOString(),
+        attempt_window_start: entryTime.toISOString(),
         attempt_window_end: attemptWindowEnd.toISOString()
       })
       .select('id')
