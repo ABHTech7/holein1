@@ -223,8 +223,16 @@ const handler = async (req: Request): Promise<Response> => {
     if (competitionUrl.includes('/competition/')) {
       // New format: /competition/{clubSlug}/{competitionSlug}
       const urlParts = competitionUrl.split('/');
-      const clubSlug = urlParts[2];
-      const competitionSlug = urlParts[3];
+      
+      // URL format: https://domain.com/competition/{clubSlug}/{competitionSlug}
+      // urlParts: ['https:', '', 'domain.com', 'competition', 'clubSlug', 'competitionSlug']
+      if (urlParts.length < 6) {
+        console.error("Invalid competition URL format:", competitionUrl);
+        throw new Error("Invalid competition URL format");
+      }
+      
+      const clubSlug = urlParts[4];
+      const competitionSlug = urlParts[5];
       
       console.log("Extracted slugs - Club:", clubSlug, "Competition:", competitionSlug);
       
