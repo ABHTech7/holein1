@@ -22,6 +22,8 @@ interface Entry {
   id: string;
   entry_date: string;
   paid: boolean;
+  status: string;
+  outcome_self: string | null;
   completed_at: string | null;
   player_email: string;
   player_name: string;
@@ -76,7 +78,8 @@ const ClubEntries = () => {
                            (statusFilter === "paid" && entry.paid) ||
                            (statusFilter === "unpaid" && !entry.paid && entry.entry_fee > 0) ||
                            (statusFilter === "free" && entry.entry_fee === 0) ||
-                           (statusFilter === "completed" && entry.completed_at);
+                           (statusFilter === "completed" && (entry.outcome_self || entry.status === 'expired')) ||
+                           (statusFilter === "active" && entry.paid && !entry.outcome_self && entry.status !== 'expired');
 
       const matchesCompetition = competitionFilter === "all" || 
                                 entry.competition_id === competitionFilter ||
@@ -100,9 +103,12 @@ const ClubEntries = () => {
           id,
           entry_date,
           paid,
+          status,
+          outcome_self,
           completed_at,
           competition_id,
-          competitions(
+          player_id,
+          competitions!inner(
             id,
             name,
             hole_number,
@@ -110,7 +116,8 @@ const ClubEntries = () => {
             entry_fee,
             club_id
           ),
-          profiles(
+          profiles!inner(
+            id,
             email,
             first_name,
             last_name
@@ -132,11 +139,13 @@ const ClubEntries = () => {
         id: entry.id,
         entry_date: entry.entry_date,
         paid: entry.paid,
+        status: entry.status || 'pending',
+        outcome_self: entry.outcome_self,
         completed_at: entry.completed_at,
         player_email: entry.profiles?.email || 'unknown@email.com',
         player_name: entry.profiles?.first_name && entry.profiles?.last_name 
           ? `${entry.profiles?.first_name} ${entry.profiles?.last_name}`.trim()
-          : entry.profiles?.email || 'Unknown User',
+          : entry.profiles?.first_name || entry.profiles?.email || 'Unknown User',
         competition_id: entry.competitions.id,
         competition_name: entry.competitions.name,
         competition_hole_number: entry.competitions.hole_number,
@@ -194,9 +203,35 @@ const ClubEntries = () => {
     return { label: "PENDING", variant: "secondary" as const };
   };
 
-  const getCompletionStatus = (entry: Entry) => {
-    if (entry.completed_at) return { label: "COMPLETED", variant: "default" as const };
-    return { label: "IN PROGRESS", variant: "outline" as const };
+  const getEntryStatus = (entry: Entry) => {
+    // Check outcome first (most specific)
+    if (entry.outcome_self === 'win') {
+      return { label: "WIN CLAIMED", variant: "default" as const, color: "text-green-600" };
+    }
+    if (entry.outcome_self === 'miss') {
+      return { label: "MISSED", variant: "secondary" as const, color: "text-gray-600" };
+    }
+    if (entry.outcome_self === 'auto_miss') {
+      return { label: "AUTO-MISSED", variant: "destructive" as const, color: "text-red-600" };
+    }
+    
+    // Check database status
+    if (entry.status === 'expired') {
+      return { label: "EXPIRED", variant: "destructive" as const, color: "text-red-600" };
+    }
+    if (entry.status === 'paid') {
+      return { label: "ACTIVE", variant: "default" as const, color: "text-blue-600" };
+    }
+    if (entry.status === 'pending' && entry.paid) {
+      return { label: "ACTIVE", variant: "default" as const, color: "text-blue-600" };
+    }
+    
+    // Fallback to payment status
+    if (!entry.paid && entry.entry_fee > 0) {
+      return { label: "PAYMENT PENDING", variant: "outline" as const, color: "text-orange-600" };
+    }
+    
+    return { label: "PENDING", variant: "outline" as const, color: "text-gray-600" };
   };
 
   return (
@@ -265,11 +300,12 @@ const ClubEntries = () => {
                         <SelectValue placeholder="Filter by status" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Entries</SelectItem>
-                        <SelectItem value="paid">Paid Only</SelectItem>
-                        <SelectItem value="unpaid">Pending Payment</SelectItem>
-                        <SelectItem value="free">Free Entries</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
+                         <SelectItem value="all">All Entries</SelectItem>
+                         <SelectItem value="paid">Paid Only</SelectItem>
+                         <SelectItem value="unpaid">Pending Payment</SelectItem>
+                         <SelectItem value="free">Free Entries</SelectItem>
+                         <SelectItem value="active">Active Attempts</SelectItem>
+                         <SelectItem value="completed">Completed/Finished</SelectItem>
                       </SelectContent>
                     </Select>
 
@@ -319,56 +355,56 @@ const ClubEntries = () => {
                     </div>
                   ) : (
                     <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Player</TableHead>
-                          <TableHead>Competition</TableHead>
-                          <TableHead>Hole #</TableHead>
-                          <TableHead>Entry Date</TableHead>
-                          <TableHead>Payment Status</TableHead>
-                          <TableHead>Progress</TableHead>
-                          <TableHead>Email</TableHead>
-                        </TableRow>
-                      </TableHeader>
+                       <TableHeader>
+                         <TableRow>
+                           <TableHead>Player</TableHead>
+                           <TableHead>Competition</TableHead>
+                           <TableHead>Hole #</TableHead>
+                           <TableHead>Entry Date</TableHead>
+                           <TableHead>Payment Status</TableHead>
+                           <TableHead>Entry Status</TableHead>
+                           <TableHead>Email</TableHead>
+                         </TableRow>
+                       </TableHeader>
                       <TableBody>
-                        {filteredEntries.map((entry) => {
-                          const paymentStatus = getPaymentStatus(entry);
-                          const completionStatus = getCompletionStatus(entry);
-                          
-                          return (
-                            <TableRow key={entry.id}>
-                              <TableCell className="font-medium">
-                                {entry.player_name}
-                              </TableCell>
-                              <TableCell>{entry.competition_name}</TableCell>
-                              <TableCell className="text-center font-mono">
-                                {entry.competition_hole_number}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="w-4 h-4 text-muted-foreground" />
-                                  {formatDateTime(entry.entry_date)}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={paymentStatus.variant}>
-                                  {paymentStatus.label}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={completionStatus.variant}>
-                                  {completionStatus.label}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Mail className="w-4 h-4 text-muted-foreground" />
-                                  {obfuscateEmail(entry.player_email)}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
+                         {filteredEntries.map((entry) => {
+                           const paymentStatus = getPaymentStatus(entry);
+                           const entryStatus = getEntryStatus(entry);
+                           
+                           return (
+                             <TableRow key={entry.id}>
+                               <TableCell className="font-medium">
+                                 {entry.player_name}
+                               </TableCell>
+                               <TableCell>{entry.competition_name}</TableCell>
+                               <TableCell className="text-center font-mono">
+                                 {entry.competition_hole_number}
+                               </TableCell>
+                               <TableCell>
+                                 <div className="flex items-center gap-2">
+                                   <Calendar className="w-4 h-4 text-muted-foreground" />
+                                   {formatDateTime(entry.entry_date)}
+                                 </div>
+                               </TableCell>
+                               <TableCell>
+                                 <Badge variant={paymentStatus.variant}>
+                                   {paymentStatus.label}
+                                 </Badge>
+                               </TableCell>
+                               <TableCell>
+                                 <Badge variant={entryStatus.variant} className={entryStatus.color}>
+                                   {entryStatus.label}
+                                 </Badge>
+                               </TableCell>
+                               <TableCell>
+                                 <div className="flex items-center gap-2">
+                                   <Mail className="w-4 h-4 text-muted-foreground" />
+                                   {obfuscateEmail(entry.player_email)}
+                                 </div>
+                               </TableCell>
+                             </TableRow>
+                           );
+                         })}
                       </TableBody>
                     </Table>
                   )}
