@@ -27,7 +27,6 @@ const AuthCallback = () => {
         const token = searchParams.get('token');
         
         if (token) {
-          console.log('Processing custom magic link token:', token);
           
           // Verify the custom magic link token
           const { data, error } = await supabase.functions.invoke('verify-magic-link', {
@@ -58,41 +57,15 @@ const AuthCallback = () => {
             }
           }
 
-          console.log('Magic link verification successful');
           setStatus('success');
           setMessage(`Welcome ${data.user?.first_name}! Redirecting to your competition...`);
           
-          // Profile information was already collected in the auth modal,
-          // so we can redirect directly to the competition
-          const redirectParam = searchParams.get('redirect');
-          
-          // Handle competition URL - extract path from external domains
-          let redirectUrl = '/';
-          if (data.competition_url) {
-            try {
-              const url = new URL(data.competition_url);
-              // If it's an external domain, extract just the pathname
-              if (!url.hostname.includes(window.location.hostname)) {
-                redirectUrl = url.pathname;
-              } else {
-                redirectUrl = data.competition_url;
-              }
-            } catch (error) {
-              console.error('Invalid competition URL:', data.competition_url);
-              redirectUrl = redirectParam || '/';
-            }
-          } else {
-            redirectUrl = redirectParam || '/';
-          }
-          
-          console.log('Redirecting to:', redirectUrl);
-          setTimeout(() => {
-            navigate(redirectUrl);
-          }, 2000);
+          // Simple direct redirect to competition URL
+          const redirectUrl = data.competition_url || searchParams.get('redirect') || '/';
+          window.location.href = redirectUrl;
 
         } else {
           // Handle standard Supabase auth callback
-          console.log('Processing standard Supabase auth callback');
           
           const { data: { session }, error } = await supabase.auth.getSession();
           
@@ -129,9 +102,7 @@ const AuthCallback = () => {
                 description: "Successfully signed in"
               });
               
-              setTimeout(() => {
-                navigate(redirectUrl);
-              }, 2000);
+              window.location.href = redirectUrl;
             }
           } else {
             throw new Error('No valid session found');
