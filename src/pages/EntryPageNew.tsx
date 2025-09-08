@@ -144,6 +144,14 @@ const EntryPageNew = () => {
 
         if (!competitions || competitions.length === 0) {
           console.error('No active competitions found for club:', venue.name);
+          // Check if there are ANY competitions (not just active ones)
+          const { data: allComps } = await supabase
+            .from('competitions')
+            .select('id, name, status, club_id')
+            .eq('club_id', venue.id);
+          
+          console.log('📊 All competitions for this club:', allComps);
+          
           toast({
             title: "No Active Competition",
             description: `No active competitions found at ${venue.name}.`,
@@ -153,44 +161,49 @@ const EntryPageNew = () => {
           return;
         }
 
-        // Log competition matching details
+        // Log competition matching details with exact slug generation
         console.log('🎯 Looking for competition with slug:', competitionSlug);
-        console.log('🎯 Available competitions:', competitions.map(c => ({ 
-          name: c.name, 
+        const competitionDebugInfo = competitions.map(c => ({
+          name: c.name,
           slug: createCompetitionSlug(c.name),
-          id: c.id 
-        })));
+          matches: createCompetitionSlug(c.name) === competitionSlug,
+          id: c.id,
+          status: c.status
+        }));
+        console.log('🎯 Competition matching debug:', competitionDebugInfo);
 
-        // Find the specific competition by slug with fallback strategies
+        // Try exact slug match first
         let selectedCompetition = competitions.find(comp => 
           createCompetitionSlug(comp.name) === competitionSlug
         );
 
-        // Fallback 1: Try case-insensitive slug matching
         if (!selectedCompetition) {
-          console.log('🔄 Trying case-insensitive slug matching...');
+          console.log('❌ Exact match failed. Trying fallback strategies...');
+          
+          // Fallback 1: Try case-insensitive slug matching
           selectedCompetition = competitions.find(comp => 
             createCompetitionSlug(comp.name).toLowerCase() === competitionSlug.toLowerCase()
           );
+          
+          if (selectedCompetition) {
+            console.log('✅ Found via case-insensitive match');
+          }
         }
 
-        // Fallback 2: Try partial name matching
         if (!selectedCompetition) {
-          console.log('🔄 Trying partial name matching...');
+          // Fallback 2: Try partial name matching
           selectedCompetition = competitions.find(comp => 
             comp.name.toLowerCase().includes(competitionSlug.replace(/-/g, ' ').toLowerCase())
           );
+          
+          if (selectedCompetition) {
+            console.log('✅ Found via partial name match');
+          }
         }
 
         if (!selectedCompetition) {
           console.error('❌ No competition found for slug:', competitionSlug);
-          // Show detailed debugging info in error
-          const debugInfo = competitions.map(c => ({
-            name: c.name,
-            slug: createCompetitionSlug(c.name),
-            target: competitionSlug
-          }));
-          console.error('Debug info:', debugInfo);
+          console.error('Available competitions:', competitionDebugInfo);
           
           toast({
             title: "Competition not found",
@@ -395,10 +408,13 @@ const EntryPageNew = () => {
           <div className="text-center space-y-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">Loading competition...</p>
-            {/* Temporary visible debugging */}
-            <div className="text-xs text-muted-foreground/70 max-w-md">
-              <p>Club: {clubSlug}</p>
-              <p>Competition: {competitionSlug}</p>
+            {/* Visible debugging info */}
+            <div className="text-xs text-muted-foreground/70 max-w-md mx-auto">
+              <div className="bg-muted/50 p-2 rounded text-left space-y-1">
+                <p><strong>Club slug:</strong> {clubSlug}</p>
+                <p><strong>Competition slug:</strong> {competitionSlug}</p>
+                <p><strong>Test slug generation:</strong> {createCompetitionSlug('SHRIGLEY HALL - Hole In 1 Challenge')}</p>
+              </div>
             </div>
           </div>
         </main>
