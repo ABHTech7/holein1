@@ -15,6 +15,27 @@ export interface SafeClubData {
 /**
  * Service to handle club data access with proper security filtering
  */
+/**
+ * Safe competition data interface for public consumption
+ */
+export interface SafeCompetitionData {
+  id: string;
+  name: string;
+  description: string | null;
+  entry_fee: number | null;
+  prize_pool: number | null;
+  hole_number: number;
+  status: string;
+  start_date: string;
+  end_date: string | null;
+  is_year_round: boolean;
+  hero_image_url: string | null;
+  club_id: string;
+  club_name: string;
+  club_website: string | null;
+  club_logo_url: string | null;
+}
+
 export class ClubService {
   /**
    * Get clubs data safely - only returns non-sensitive information for public access
@@ -33,6 +54,29 @@ export class ClubService {
       return data || [];
     } catch (error) {
       console.error('Unexpected error in getSafeClubsData:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get competition data safely for public access
+   * Uses secure database function that only returns non-sensitive competition information
+   */
+  static async getSafeCompetitionData(clubId: string): Promise<SafeCompetitionData[]> {
+    try {
+      const { data, error } = await supabase.rpc('get_safe_competition_data', {
+        club_uuid: clubId,
+        competition_slug_param: '' // We get all competitions, then filter by slug in the component
+      });
+
+      if (error) {
+        console.error('Error fetching safe competition data:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Unexpected error in getSafeCompetitionData:', error);
       return [];
     }
   }

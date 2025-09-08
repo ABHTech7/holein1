@@ -118,40 +118,12 @@ const EntryPageNew = () => {
 
         console.log('✅ Found venue:', venue.name);
 
-        // Query for active competitions at this venue - simplified query
-        const { data: competitions, error } = await supabase
-          .from('competitions')
-          .select(`
-            id,
-            name,
-            description,
-            entry_fee,
-            prize_pool,
-            hole_number,
-            status,
-            hero_image_url
-          `)
-          .eq('club_id', venue.id)
-          .eq('status', 'ACTIVE');
-        
-        if (error) {
-          console.error('Database error:', error);
-          setLoading(false);
-          return;
-        }
-
-        console.log('📊 Raw competitions data:', competitions);
+        // Use the safe competition data function instead of direct query
+        const competitions = await ClubService.getSafeCompetitionData(venue.id);
+        console.log('📊 Got competitions via safe function:', competitions.length, 'competitions');
 
         if (!competitions || competitions.length === 0) {
           console.error('No active competitions found for club:', venue.name);
-          // Check if there are ANY competitions (not just active ones)
-          const { data: allComps } = await supabase
-            .from('competitions')
-            .select('id, name, status, club_id')
-            .eq('club_id', venue.id);
-          
-          console.log('📊 All competitions for this club:', allComps);
-          
           toast({
             title: "No Active Competition",
             description: `No active competitions found at ${venue.name}.`,
@@ -216,11 +188,18 @@ const EntryPageNew = () => {
 
         console.log('✅ Found competition:', selectedCompetition.name);
         
-        // Build the competition object with club name
+        // Build the competition object (data already includes club info from the safe function)
         const competitionWithClub = {
-          ...selectedCompetition,
-          club_name: venue.name,
-          club_id: venue.id
+          id: selectedCompetition.id,
+          name: selectedCompetition.name,
+          description: selectedCompetition.description,
+          entry_fee: selectedCompetition.entry_fee || 0,
+          prize_pool: selectedCompetition.prize_pool || 0,
+          hole_number: selectedCompetition.hole_number,
+          status: selectedCompetition.status,
+          club_name: selectedCompetition.club_name,
+          club_id: selectedCompetition.club_id,
+          hero_image_url: selectedCompetition.hero_image_url,
         };
         
         console.log('🏆 Setting competition:', competitionWithClub);

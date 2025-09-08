@@ -728,6 +728,26 @@ export type Database = {
           website: string
         }[]
       }
+      get_safe_competition_data: {
+        Args: { club_uuid: string; competition_slug_param: string }
+        Returns: {
+          club_id: string
+          club_logo_url: string
+          club_name: string
+          club_website: string
+          description: string
+          end_date: string
+          entry_fee: number
+          hero_image_url: string
+          hole_number: number
+          id: string
+          is_year_round: boolean
+          name: string
+          prize_pool: number
+          start_date: string
+          status: Database["public"]["Enums"]["competition_status"]
+        }[]
+      }
       get_user_role_safe: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["user_role"]
