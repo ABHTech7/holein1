@@ -134,23 +134,44 @@ const ClubEntries = () => {
 
       if (error) throw error;
 
-      const processedEntries = entriesData?.map((entry) => ({
-        id: entry.id,
-        entry_date: entry.entry_date,
-        paid: entry.paid,
-        status: entry.status || 'pending',
-        outcome_self: entry.outcome_self,
-        completed_at: entry.completed_at,
-        player_email: entry.profiles?.email || 'unknown@email.com',
-        player_name: entry.profiles?.first_name && entry.profiles?.last_name 
-          ? `${entry.profiles?.first_name} ${entry.profiles?.last_name}`.trim()
-          : entry.profiles?.first_name || entry.profiles?.email || 'Unknown User',
-        competition_id: entry.competitions.id,
-        competition_name: entry.competitions.name,
-        competition_hole_number: entry.competitions.hole_number,
-        competition_status: entry.competitions.status,
-        entry_fee: entry.competitions.entry_fee
-      })) || [];
+      const processedEntries = entriesData?.map((entry) => {
+        // Better name fallback logic
+        let playerName = 'Unknown User';
+        
+        if (entry.profiles) {
+          const firstName = entry.profiles.first_name?.trim();
+          const lastName = entry.profiles.last_name?.trim();
+          const email = entry.profiles.email;
+          
+          if (firstName && lastName) {
+            playerName = `${firstName} ${lastName}`;
+          } else if (firstName) {
+            playerName = firstName;
+          } else if (lastName) {
+            playerName = lastName;
+          } else if (email) {
+            // Extract name from email if available
+            const emailPrefix = email.split('@')[0];
+            playerName = emailPrefix.replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          }
+        }
+        
+        return {
+          id: entry.id,
+          entry_date: entry.entry_date,
+          paid: entry.paid,
+          status: entry.status || 'pending',
+          outcome_self: entry.outcome_self,
+          completed_at: entry.completed_at,
+          player_email: entry.profiles?.email || 'unknown@email.com',
+          player_name: playerName,
+          competition_id: entry.competitions?.id,
+          competition_name: entry.competitions?.name,
+          competition_hole_number: entry.competitions?.hole_number,
+          competition_status: entry.competitions?.status,
+          entry_fee: entry.competitions?.entry_fee
+        };
+      }) || [];
 
       setEntries(processedEntries);
 
