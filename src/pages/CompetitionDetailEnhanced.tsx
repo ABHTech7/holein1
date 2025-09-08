@@ -81,7 +81,12 @@ interface Entry {
   entry_date: string;
   paid: boolean;
   score: number | null;
+  status: string;
+  outcome_self: string | null;
+  outcome_official: string | null;
   completed_at: string | null;
+  attempt_window_start: string | null;
+  attempt_window_end: string | null;
   profiles: {
     email: string;
     first_name: string;
@@ -202,7 +207,12 @@ const CompetitionDetailEnhanced = () => {
             entry_date,
             paid,
             score,
+            status,
+            outcome_self,
+            outcome_official,
             completed_at,
+            attempt_window_start,
+            attempt_window_end,
             profiles:profiles(
               email,
               first_name,
@@ -814,9 +824,38 @@ const CompetitionDetailEnhanced = () => {
                               </TableCell>
                               <TableCell>{formatDateTime(entry.entry_date)}</TableCell>
                               <TableCell>
-                                <Badge variant={entry.score === 1 ? "default" : "secondary"}>
-                                  {entry.completed_at ? (entry.score === 1 ? "Won" : "Missed") : "In Progress"}
-                                </Badge>
+                                {(() => {
+                                  // Check outcome_self first for auto_miss
+                                  if (entry.outcome_self === 'auto_miss') {
+                                    return <Badge variant="destructive">Auto Missed</Badge>;
+                                  }
+                                  
+                                  // Check if completed
+                                  if (entry.completed_at) {
+                                    return (
+                                      <Badge variant={entry.score === 1 ? "default" : "secondary"}>
+                                        {entry.score === 1 ? "Won" : "Missed"}
+                                      </Badge>
+                                    );
+                                  }
+                                  
+                                  // Check if expired
+                                  if (entry.status === 'expired') {
+                                    return <Badge variant="destructive">Expired</Badge>;
+                                  }
+                                  
+                                  // Check attempt window
+                                  if (entry.attempt_window_end) {
+                                    const now = new Date();
+                                    const end = new Date(entry.attempt_window_end);
+                                    if (now > end) {
+                                      return <Badge variant="destructive">Window Expired</Badge>;
+                                    }
+                                  }
+                                  
+                                  // Default to in progress
+                                  return <Badge variant="secondary">In Progress</Badge>;
+                                })()}
                               </TableCell>
                             </TableRow>
                           ))}
