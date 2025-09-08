@@ -832,6 +832,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      validate_text_input: {
+        Args: { input_text: string; max_length?: number }
+        Returns: string
+      }
     }
     Enums: {
       claim_status: "PENDING" | "VERIFIED" | "REJECTED"

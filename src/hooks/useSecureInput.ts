@@ -10,9 +10,9 @@ interface ValidationRule {
   max?: number;
 }
 
-interface ValidationRules<T> {
+type ValidationRules<T> = {
   [K in keyof T]: ValidationRule;
-}
+};
 
 interface UseSecureInputOptions<T> {
   initialData: T;
@@ -43,10 +43,10 @@ export const useSecureInput = <T extends Record<string, any>>({
       const rule = validationRules[key];
       if (!rule) return null;
 
-      const testData = { [key]: value } as Partial<T>;
-      const testRules = { [key]: rule } as Partial<ValidationRules<T>>;
+      const testData = { [key]: value };
+      const testRules = { [key]: rule };
       
-      sanitizeFormData(testData, testRules);
+      sanitizeFormData(testData as any, testRules as any);
       return null;
     } catch (error) {
       return (error as Error).message;
