@@ -338,7 +338,7 @@ const ClubRevenue = () => {
                         />
                         <YAxis 
                           className="text-xs text-muted-foreground"
-                          tickFormatter={(value) => `£${value}`}
+                          tickFormatter={(value) => `£${value.toFixed(0)}`}
                         />
                         <Tooltip 
                           formatter={(value, name) => [
