@@ -68,8 +68,9 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Failed to create magic link");
     }
 
-    // Create the magic link URL
-    const magicLink = `${competitionUrl}/auth/callback?token=${token}`;
+    // Create the magic link URL - use base origin for auth callback
+    const baseUrl = new URL(competitionUrl).origin;
+    const magicLink = `${baseUrl}/auth/callback?token=${token}&redirect=${encodeURIComponent(competitionUrl)}`;
 
     // Send the email using Resend with custom domain
     const emailResponse = await resend.emails.send({

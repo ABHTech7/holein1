@@ -62,7 +62,8 @@ const AuthCallback = () => {
           
           // Profile information was already collected in the auth modal,
           // so we can redirect directly to the competition
-          const redirectUrl = data.competition_url || '/';
+          const redirectParam = searchParams.get('redirect');
+          const redirectUrl = data.competition_url || redirectParam || '/';
           setTimeout(() => {
             navigate(redirectUrl);
           }, 2000);
