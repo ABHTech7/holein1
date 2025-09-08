@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -22,6 +23,7 @@ interface AuthState {
 }
 
 export const useAuth = () => {
+  const navigate = useNavigate();
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     session: null,
@@ -166,6 +168,7 @@ export const useAuth = () => {
           description: "You have been signed out successfully."
         });
         
+        navigate('/auth');
         return { error: null };
       }
       
@@ -191,6 +194,7 @@ export const useAuth = () => {
           description: "You have been signed out successfully."
         });
         
+        navigate('/auth');
         return { error: null };
       }
       
@@ -200,6 +204,7 @@ export const useAuth = () => {
         description: "You have been signed out successfully."
       });
       
+      navigate('/auth');
       return { error: null };
       
     } catch (catchError: any) {
@@ -218,6 +223,7 @@ export const useAuth = () => {
         description: "You have been signed out successfully."
       });
       
+      navigate('/auth');
       return { error: null };
     }
   };
