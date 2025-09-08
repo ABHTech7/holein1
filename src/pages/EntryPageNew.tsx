@@ -32,7 +32,15 @@ interface VenueCompetition {
 }
 
 const EntryPageNew = () => {
-  const { venueSlug, competitionSlug, holeNumber } = useParams();
+  const params = useParams();
+  const venueSlug = params.venueSlug;
+  
+  // Determine if this is legacy format (numeric) or new format (slug)
+  const secondParam = params.competitionSlug || params.holeNumber;
+  const isNumeric = secondParam && /^\d+$/.test(secondParam);
+  
+  const holeNumber = isNumeric ? secondParam : undefined;
+  const competitionSlug = !isNumeric ? secondParam : undefined;
   const navigate = useNavigate();
   const { user } = useAuth();
   const [competition, setCompetition] = useState<VenueCompetition | null>(null);
