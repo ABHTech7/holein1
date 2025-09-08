@@ -3,17 +3,18 @@ import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
 import { copyToClipboard } from "@/lib/formatters";
 import { toast } from "@/hooks/use-toast";
-import { createClubSlug } from "@/lib/competitionUtils";
+import { createClubSlug, createCompetitionSlug } from "@/lib/competitionUtils";
 import { ClubService } from "@/lib/clubService";
 
 interface ShareUrlDisplayProps {
   competitionId: string;
+  competitionName: string;
   clubId?: string;
   holeNumber: number;
   onCopy?: () => void;
 }
 
-export const ShareUrlDisplay = ({ competitionId, clubId, holeNumber, onCopy }: ShareUrlDisplayProps) => {
+export const ShareUrlDisplay = ({ competitionId, competitionName, clubId, holeNumber, onCopy }: ShareUrlDisplayProps) => {
   const [shareUrl, setShareUrl] = useState(`${window.location.origin}/enter/${competitionId}`);
 
   useEffect(() => {
@@ -27,7 +28,8 @@ export const ShareUrlDisplay = ({ competitionId, clubId, holeNumber, onCopy }: S
         
         if (club) {
           const clubSlug = createClubSlug(club.name);
-          setShareUrl(`${window.location.origin}/enter/${clubSlug}/${holeNumber}`);
+          const competitionSlug = createCompetitionSlug(competitionName);
+          setShareUrl(`${window.location.origin}/enter/${clubSlug}/${competitionSlug}`);
         } else {
           console.error('Club not found for share URL:', clubId);
         }
@@ -37,7 +39,7 @@ export const ShareUrlDisplay = ({ competitionId, clubId, holeNumber, onCopy }: S
     };
 
     generateNewUrl();
-  }, [competitionId, clubId, holeNumber]);
+  }, [competitionId, competitionName, clubId, holeNumber]);
 
   const handleCopy = async () => {
     // Try to copy first

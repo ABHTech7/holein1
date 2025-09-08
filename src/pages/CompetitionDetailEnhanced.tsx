@@ -739,6 +739,7 @@ const CompetitionDetailEnhanced = () => {
                     </p>
                     <ShareUrlDisplay 
                       competitionId={competition.id}
+                      competitionName={competition.name}
                       clubId={competition.club_id}
                       holeNumber={competition.hole_number}
                       onCopy={handleShareCompetition}
@@ -751,6 +752,7 @@ const CompetitionDetailEnhanced = () => {
                     </Button>
                     <PreviewLink 
                       competitionId={competition.id}
+                      competitionName={competition.name}
                       clubId={competition.club_id}
                       holeNumber={competition.hole_number}
                     />

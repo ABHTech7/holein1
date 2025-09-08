@@ -393,6 +393,7 @@ const CompetitionDetail = () => {
                     <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border">
                     <ShareUrlDisplay 
                       competitionId={competition.id}
+                      competitionName={competition.name}
                       clubId={competition.club_id}
                       holeNumber={competition.hole_number}
                       onCopy={handleShareSuccess}
@@ -402,6 +403,7 @@ const CompetitionDetail = () => {
                   <div className="flex flex-col gap-2">
                     <PreviewLink 
                       competitionId={competition.id}
+                      competitionName={competition.name}
                       clubId={competition.club_id}
                       holeNumber={competition.hole_number}
                     />

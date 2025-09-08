@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
-import { createClubSlug } from "@/lib/competitionUtils";
+import { createClubSlug, createCompetitionSlug } from "@/lib/competitionUtils";
 import { ClubService } from "@/lib/clubService";
 
 interface PreviewLinkProps {
   competitionId: string;
+  competitionName: string;
   clubId: string;
   holeNumber: number;
 }
 
-export const PreviewLink = ({ competitionId, clubId, holeNumber }: PreviewLinkProps) => {
+export const PreviewLink = ({ competitionId, competitionName, clubId, holeNumber }: PreviewLinkProps) => {
   const [previewUrl, setPreviewUrl] = useState(`/enter/${competitionId}`);
 
   useEffect(() => {
@@ -22,9 +23,10 @@ export const PreviewLink = ({ competitionId, clubId, holeNumber }: PreviewLinkPr
         
         if (club) {
           const clubSlug = createClubSlug(club.name);
+          const competitionSlug = createCompetitionSlug(competitionName);
           
-          console.log('Preview link using club:', club.name, 'slug:', clubSlug);
-          setPreviewUrl(`/enter/${clubSlug}/${holeNumber}`);
+          console.log('Preview link using club:', club.name, 'competition:', competitionName);
+          setPreviewUrl(`/enter/${clubSlug}/${competitionSlug}`);
         } else {
           console.error('Club not found for preview:', clubId);
           // Fallback to old URL format
@@ -37,7 +39,7 @@ export const PreviewLink = ({ competitionId, clubId, holeNumber }: PreviewLinkPr
     };
 
     generateUrl();
-  }, [competitionId, clubId, holeNumber]);
+  }, [competitionId, competitionName, clubId, holeNumber]);
 
   return (
     <Button variant="outline" className="gap-2" asChild>

@@ -79,6 +79,8 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/dev/demo" element={<DeveloperDemo />} />
+          <Route path="/enter/:venueSlug/:competitionSlug" element={<EntryPageNew />} />
+          {/* Legacy route for backward compatibility */}
           <Route path="/enter/:venueSlug/:holeNumber" element={<EntryPageNew />} />
           <Route path="/entry/:entryId/confirmation" element={<EntryConfirmation />} />
           <Route path="/enter/:competitionId" element={<CompetitionEntry />} />

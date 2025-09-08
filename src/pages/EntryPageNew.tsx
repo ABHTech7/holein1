@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import useAuth from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { analytics } from "@/lib/analytics";
-import { createClubSlug } from "@/lib/competitionUtils";
+import { createClubSlug, createCompetitionSlug } from "@/lib/competitionUtils";
 import { ClubService } from "@/lib/clubService";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
@@ -32,7 +32,7 @@ interface VenueCompetition {
 }
 
 const EntryPageNew = () => {
-  const { venueSlug, holeNumber } = useParams();
+  const { venueSlug, competitionSlug, holeNumber } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [competition, setCompetition] = useState<VenueCompetition | null>(null);
@@ -44,7 +44,11 @@ const EntryPageNew = () => {
 
   useEffect(() => {
     const fetchCompetition = async () => {
-      if (!venueSlug || !holeNumber) return;
+      // Support both new format (competitionSlug) and legacy format (holeNumber)
+      if (!venueSlug || (!competitionSlug && !holeNumber)) return;
+
+      console.log('URL params:', { venueSlug, competitionSlug, holeNumber });
+      const isLegacyFormat = !competitionSlug && holeNumber;
 
       try {
         // Get all clubs safely (works for unauthenticated users)
@@ -77,55 +81,131 @@ const EntryPageNew = () => {
 
         console.log('Found matching club:', matchingClub.name, 'for slug:', venueSlug);
 
-        // Get the active competition for this club and hole
+        let foundCompetition = null;
         const now = new Date().toISOString();
-        console.log('Querying for active competition at', now);
-        
-        const { data: competitions, error: compError } = await supabase
-          .from('competitions')
-          .select('*')
-          .eq('club_id', matchingClub.id)
-          .eq('hole_number', parseInt(holeNumber))
-          .eq('archived', false)
-          .eq('status', 'ACTIVE')
-          .lte('start_date', now)
-          .or(`end_date.is.null,end_date.gte.${now}`)
-          .order('created_at', { ascending: false })
-          .limit(1);
 
-        if (compError || !competitions || competitions.length === 0) {
-          console.error('Competition error:', compError);
+        if (isLegacyFormat) {
+          // Legacy format: find by hole number
+          console.log('Using legacy format - finding by hole number:', holeNumber);
+          
+          // First try year-round competitions (no end date)
+          const { data: yearRoundComps, error: yearRoundError } = await supabase
+            .from('competitions')
+            .select('*')
+            .eq('club_id', matchingClub.id)
+            .eq('hole_number', parseInt(holeNumber))
+            .eq('archived', false)
+            .eq('status', 'ACTIVE')
+            .lte('start_date', now)
+            .is('end_date', null)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (!yearRoundError && yearRoundComps && yearRoundComps.length > 0) {
+            foundCompetition = yearRoundComps[0];
+            console.log('Found year-round competition:', foundCompetition.name);
+          } else {
+            // Try time-bounded competitions
+            console.log('No year-round competition found, trying time-bounded...');
+            const { data: timeBoundedComps, error: timeBoundedError } = await supabase
+              .from('competitions')
+              .select('*')
+              .eq('club_id', matchingClub.id)
+              .eq('hole_number', parseInt(holeNumber))
+              .eq('archived', false)
+              .eq('status', 'ACTIVE')
+              .lte('start_date', now)
+              .gte('end_date', now)
+              .order('created_at', { ascending: false })
+              .limit(1);
+
+            if (!timeBoundedError && timeBoundedComps && timeBoundedComps.length > 0) {
+              foundCompetition = timeBoundedComps[0];
+              console.log('Found time-bounded competition:', foundCompetition.name);
+            }
+          }
+        } else {
+          // New format: find by competition slug
+          console.log('Using new format - finding by competition slug:', competitionSlug);
+          
+          // First try year-round competitions (no end date)
+          const { data: yearRoundComps, error: yearRoundError } = await supabase
+            .from('competitions')
+            .select('*')
+            .eq('club_id', matchingClub.id)
+            .eq('archived', false)
+            .eq('status', 'ACTIVE')
+            .lte('start_date', now)
+            .is('end_date', null);
+
+          if (!yearRoundError && yearRoundComps) {
+            foundCompetition = yearRoundComps.find(comp => 
+              createCompetitionSlug(comp.name) === competitionSlug
+            );
+            if (foundCompetition) {
+              console.log('Found year-round competition by slug:', foundCompetition.name);
+            }
+          }
+
+          if (!foundCompetition) {
+            // Try time-bounded competitions
+            console.log('No year-round competition found by slug, trying time-bounded...');
+            const { data: timeBoundedComps, error: timeBoundedError } = await supabase
+              .from('competitions')
+              .select('*')
+              .eq('club_id', matchingClub.id)
+              .eq('archived', false)
+              .eq('status', 'ACTIVE')
+              .lte('start_date', now)
+              .gte('end_date', now);
+
+            if (!timeBoundedError && timeBoundedComps) {
+              foundCompetition = timeBoundedComps.find(comp => 
+                createCompetitionSlug(comp.name) === competitionSlug
+              );
+              if (foundCompetition) {
+                console.log('Found time-bounded competition by slug:', foundCompetition.name);
+              }
+            }
+          }
+        }
+
+        if (!foundCompetition) {
+          const errorMessage = isLegacyFormat 
+            ? `No active competition found for hole ${holeNumber} at ${matchingClub.name}.`
+            : `No active competition found matching "${competitionSlug}" at ${matchingClub.name}.`;
+          
+          console.error('No competition found');
           toast({
             title: "No Active Competition",
-            description: `No active competition found for hole ${holeNumber} at ${matchingClub.name}. The competition may be scheduled for later or already finished.`,
+            description: `${errorMessage} The competition may be scheduled for later or already finished.`,
             variant: "destructive"
           });
           navigate('/');
           return;
         }
 
-        const comp = competitions[0];
-        console.log('Setting competition with club name:', matchingClub.name);
+        console.log('Setting competition:', foundCompetition.name);
         setCompetition({
-          id: comp.id,
-          name: comp.name,
-          description: comp.description,
-          entry_fee: comp.entry_fee || 0,
-          prize_pool: comp.prize_pool,
-          hole_number: comp.hole_number,
-          status: comp.status,
+          id: foundCompetition.id,
+          name: foundCompetition.name,
+          description: foundCompetition.description,
+          entry_fee: foundCompetition.entry_fee || 0,
+          prize_pool: foundCompetition.prize_pool,
+          hole_number: foundCompetition.hole_number,
+          status: foundCompetition.status,
           club_name: matchingClub.name,
           club_id: matchingClub.id,
-          hero_image_url: comp.hero_image_url
+          hero_image_url: foundCompetition.hero_image_url
         });
 
         // Check for cooldown if user is logged in
         if (user) {
-          await checkCooldown(user.id, comp.id);
+          await checkCooldown(user.id, foundCompetition.id);
         }
 
         // Track entry view
-        analytics.entryViewed(comp.id, matchingClub.name, comp.hole_number);
+        analytics.entryViewed(foundCompetition.id, matchingClub.name, foundCompetition.hole_number);
 
       } catch (error) {
         console.error('Error fetching competition:', error);
@@ -140,7 +220,7 @@ const EntryPageNew = () => {
     };
 
     fetchCompetition();
-  }, [venueSlug, holeNumber, navigate, user]);
+  }, [venueSlug, competitionSlug, holeNumber, navigate, user]);
 
   const checkCooldown = async (userId: string, competitionId: string) => {
     const { data: recentEntries, error } = await supabase
@@ -401,7 +481,7 @@ const EntryPageNew = () => {
         open={authModalOpen}
         onOpenChange={setAuthModalOpen}
         onSuccess={handleAuthSuccess}
-        redirectUrl={`/enter/${venueSlug}/${holeNumber}`}
+        redirectUrl={competitionSlug ? `/enter/${venueSlug}/${competitionSlug}` : `/enter/${venueSlug}/${holeNumber}`}
       />
 
       {/* Mini Profile Form Modal */}
