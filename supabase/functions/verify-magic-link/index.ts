@@ -103,18 +103,49 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     if (existingProfile) {
-      // User exists, get their full user object
-      console.log("User already exists, fetching existing user data");
+      // Profile exists, try to get the corresponding auth user
+      console.log("Profile exists, fetching corresponding auth user");
       
       const { data: existingUserData, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(existingProfile.id);
       
       if (getUserError || !existingUserData.user) {
-        console.error("Error fetching existing user:", getUserError);
-        throw new Error("Failed to retrieve existing user");
+        console.log("Auth user not found for existing profile, this is an orphaned profile");
+        console.log("Attempting to create auth user with existing profile ID");
+        
+        // Try to create auth user with the existing profile ID
+        const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+          email: tokenData.email,
+          email_confirm: true,
+          user_metadata: {
+            first_name: tokenData.first_name,
+            last_name: tokenData.last_name,
+            phone: tokenData.phone_e164,
+            age_years: tokenData.age_years,
+            handicap: tokenData.handicap,
+            role: 'PLAYER'
+          }
+        });
+
+        if (createError || !userData.user) {
+          console.error("Failed to create auth user for orphaned profile:", createError);
+          console.log("Deleting orphaned profile and will create fresh user");
+          
+          // Delete the orphaned profile
+          await supabaseAdmin
+            .from('profiles')
+            .delete()
+            .eq('id', existingProfile.id);
+          
+          // Create a completely new user (this will fall through to the else block)
+          user = null;
+        } else {
+          user = userData.user;
+          console.log("Created auth user for existing profile:", user.id);
+        }
+      } else {
+        user = existingUserData.user;
+        console.log("Existing user found:", user.id);
       }
-      
-      user = existingUserData.user;
-      console.log("Existing user found:", user.id);
       
     } else {
       // User doesn't exist, create new user
