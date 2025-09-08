@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import useAuth from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { analytics } from "@/lib/analytics";
+import { createClubSlug } from "@/lib/competitionUtils";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Container from "@/components/layout/Container";
@@ -25,8 +26,7 @@ interface VenueCompetition {
   hole_number: number;
   status: string;
   club_name: string;
-  venue_name: string;
-  venue_slug: string;
+  club_id: string;
   hero_image_url: string | null;
 }
 
@@ -46,25 +46,29 @@ const EntryPageNew = () => {
       if (!venueSlug || !holeNumber) return;
 
       try {
-        // First get the venue with fresh club data (disable cache)
-        const { data: venue, error: venueError } = await supabase
-          .from('venues')
-          .select(`
-            id,
-            name,
-            slug,
-            club_id,
-            clubs!inner (
-              id,
-              name,
-              logo_url
-            )
-          `)
-          .eq('slug', venueSlug)
-          .single();
+        // Get all clubs to find the one that matches the slug
+        const { data: clubs, error: clubsError } = await supabase
+          .from('clubs')
+          .select('id, name, logo_url')
+          .eq('active', true)
+          .eq('archived', false);
 
-        if (venueError || !venue) {
-          console.error('Venue error:', venueError);
+        if (clubsError || !clubs) {
+          console.error('Clubs error:', clubsError);
+          toast({
+            title: "Error loading clubs",
+            description: "Something went wrong. Please try again.",
+            variant: "destructive"
+          });
+          navigate('/');
+          return;
+        }
+
+        // Find the club whose generated slug matches the venueSlug
+        const matchingClub = clubs.find(club => createClubSlug(club.name) === venueSlug);
+
+        if (!matchingClub) {
+          console.error('No club found with slug:', venueSlug);
           toast({
             title: "Venue not found",
             description: "The venue you're looking for doesn't exist.",
@@ -74,11 +78,13 @@ const EntryPageNew = () => {
           return;
         }
 
-        // Then get the competition for this venue and hole with fresh data
+        console.log('Found matching club:', matchingClub.name, 'for slug:', venueSlug);
+
+        // Get the competition for this club and hole
         const { data: competitions, error: compError } = await supabase
           .from('competitions')
           .select('*')
-          .eq('club_id', venue.club_id)
+          .eq('club_id', matchingClub.id)
           .eq('hole_number', parseInt(holeNumber))
           .eq('archived', false)
           .order('created_at', { ascending: false })
@@ -88,7 +94,7 @@ const EntryPageNew = () => {
           console.error('Competition error:', compError);
           toast({
             title: "Competition not found",
-            description: `No active competition found for hole ${holeNumber} at ${venue.name}.`,
+            description: `No active competition found for hole ${holeNumber} at ${matchingClub.name}.`,
             variant: "destructive"
           });
           navigate('/');
@@ -96,7 +102,7 @@ const EntryPageNew = () => {
         }
 
         const comp = competitions[0];
-        console.log('Setting competition with club name:', venue.clubs.name);
+        console.log('Setting competition with club name:', matchingClub.name);
         setCompetition({
           id: comp.id,
           name: comp.name,
@@ -105,9 +111,8 @@ const EntryPageNew = () => {
           prize_pool: comp.prize_pool,
           hole_number: comp.hole_number,
           status: comp.status,
-          club_name: venue.clubs.name,
-          venue_name: venue.name,
-          venue_slug: venue.slug,
+          club_name: matchingClub.name,
+          club_id: matchingClub.id,
           hero_image_url: comp.hero_image_url
         });
 
@@ -117,7 +122,7 @@ const EntryPageNew = () => {
         }
 
         // Track entry view
-        analytics.entryViewed(comp.id, venue.name, comp.hole_number);
+        analytics.entryViewed(comp.id, matchingClub.name, comp.hole_number);
 
       } catch (error) {
         console.error('Error fetching competition:', error);
@@ -342,7 +347,7 @@ const EntryPageNew = () => {
           holeNumber={competition.hole_number}
           prize={competition.prize_pool || 0}
           entryFee={competition.entry_fee}
-          venueName={competition.venue_name}
+          venueName={competition.club_name}
           heroImageUrl={competition.hero_image_url}
         />
 
