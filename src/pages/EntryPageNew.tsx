@@ -47,8 +47,10 @@ const EntryPageNew = () => {
 
   useEffect(() => {
     const fetchCompetition = async () => {
+      console.log('🔍 EntryPageNew: Route params received:', { clubSlug, competitionSlug });
+      
       if (!clubSlug || !competitionSlug) {
-        console.log('Missing required params', { clubSlug, competitionSlug });
+        console.error('❌ Missing required params', { clubSlug, competitionSlug });
         return;
       }
 
@@ -69,9 +71,11 @@ const EntryPageNew = () => {
 
         // Find the venue (club) by matching the slug
         const venue = clubs.find(club => createClubSlug(club.name) === clubSlug);
+        console.log('🏌️ Looking for club with slug:', clubSlug);
+        console.log('🏌️ Available clubs:', clubs.map(c => ({ name: c.name, slug: createClubSlug(c.name) })));
 
         if (!venue) {
-          console.error('Club not found for slug:', clubSlug);
+          console.error('❌ Club not found for slug:', clubSlug);
           toast({
             title: "Venue not found",
             description: "The venue you're looking for doesn't exist.",
@@ -80,6 +84,8 @@ const EntryPageNew = () => {
           navigate('/');
           return;
         }
+
+        console.log('✅ Found venue:', venue.name);
 
         // Query for active competitions at this venue
         const now = new Date();
@@ -123,9 +129,16 @@ const EntryPageNew = () => {
         const selectedCompetition = competitions.find(comp => 
           createCompetitionSlug(comp.name) === competitionSlug
         );
+        
+        console.log('🎯 Looking for competition with slug:', competitionSlug);
+        console.log('🎯 Available competitions:', competitions.map(c => ({ 
+          name: c.name, 
+          slug: createCompetitionSlug(c.name),
+          id: c.id 
+        })));
 
         if (!selectedCompetition) {
-          console.error('No competition found for slug:', competitionSlug);
+          console.error('❌ No competition found for slug:', competitionSlug);
           toast({
             title: "Competition not found",
             description: `The competition "${competitionSlug}" was not found at ${venue.name}.`,
@@ -133,6 +146,23 @@ const EntryPageNew = () => {
           });
           navigate('/');
           return;
+        }
+
+        console.log('✅ Found competition:', selectedCompetition.name);
+        
+        // Build the competition object with club name
+        const competitionWithClub = {
+          ...selectedCompetition,
+          club_name: venue.name,
+          club_id: venue.id
+        };
+        
+        console.log('🏆 Setting competition:', competitionWithClub);
+        setCompetition(competitionWithClub);
+        
+        // Check cooldown if user is logged in
+        if (user) {
+          await checkCooldown(user.id, selectedCompetition.id);
         }
 
       } catch (error) {
