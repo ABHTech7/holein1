@@ -18,7 +18,7 @@ import {
   XCircle
 } from "lucide-react";
 import { PlayerGreeting } from "@/components/ui/player-greeting";
-import { AttemptFlow } from "@/components/entry/AttemptFlow";
+import { SimpleAttemptFlow } from "@/components/entry/SimpleAttemptFlow";
 
 interface EntryData {
   id: string;
@@ -354,7 +354,7 @@ const EntryConfirmation = () => {
                     </Badge>
                   </div>
                 ) : !isTimeUp ? (
-                  <AttemptFlow
+                  <SimpleAttemptFlow
                     entryId={entry.id}
                     competitionName={entry.competition_name}
                     holeNumber={entry.hole_number}
