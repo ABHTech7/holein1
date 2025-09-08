@@ -54,24 +54,45 @@ export const generateEntryUrlSync = (clubSlug: string, holeNumber: number): stri
  * Create club slug from club name
  */
 export const createClubSlug = (clubName: string): string => {
+  if (!clubName) return '';
+  
   return clubName
     .toLowerCase()
-    .replace(/'/g, '')
-    .replace(/&/g, 'and')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .trim()
+    .replace(/'/g, '') // Remove apostrophes
+    .replace(/&/g, 'and') // Replace & with 'and'
+    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
+    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
 };
 
 /**
  * Create competition slug from competition name
  */
 export const createCompetitionSlug = (competitionName: string): string => {
+  if (!competitionName) return '';
+  
   return competitionName
     .toLowerCase()
-    .replace(/'/g, '')
-    .replace(/&/g, 'and')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .trim()
+    .replace(/'/g, '') // Remove apostrophes
+    .replace(/&/g, 'and') // Replace & with 'and'
+    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
+    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+};
+
+/**
+ * Debug slug generation for troubleshooting
+ */
+export const debugSlugGeneration = (text: string, type: 'club' | 'competition') => {
+  console.log(`🔧 ${type} slug generation for "${text}":`, {
+    original: text,
+    trimmed: text?.trim(),
+    lowercase: text?.trim()?.toLowerCase(),
+    noApostrophes: text?.trim()?.toLowerCase()?.replace(/'/g, ''),
+    replaceAnd: text?.trim()?.toLowerCase()?.replace(/'/g, '')?.replace(/&/g, 'and'),
+    replaceNonAlnum: text?.trim()?.toLowerCase()?.replace(/'/g, '')?.replace(/&/g, 'and')?.replace(/[^a-z0-9]+/g, '-'),
+    final: type === 'club' ? createClubSlug(text) : createCompetitionSlug(text)
+  });
 };
 
 /**

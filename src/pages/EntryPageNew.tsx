@@ -53,17 +53,23 @@ const EntryPageNew = () => {
   useEffect(() => {
     const fetchCompetition = async () => {
       // Support both new format (competitionSlug) and legacy format (holeNumber)
-      if (!venueSlug || (!competitionSlug && !holeNumber)) return;
+      if (!venueSlug || (!competitionSlug && !holeNumber)) {
+        console.log('🎯 EntryPageNew: Missing required params', { venueSlug, competitionSlug, holeNumber });
+        return;
+      }
 
-      console.log('URL params:', { venueSlug, competitionSlug, holeNumber });
+      console.log('🎯 EntryPageNew: Starting competition fetch with params:', { venueSlug, competitionSlug, holeNumber });
       const isLegacyFormat = !competitionSlug && holeNumber;
+      console.log('🎯 EntryPageNew: Format detection:', { isLegacyFormat, competitionSlug, holeNumber });
 
       try {
         // Get all clubs safely (works for unauthenticated users)
+        console.log('🎯 EntryPageNew: Fetching clubs data...');
         const clubs = await ClubService.getSafeClubsData();
+        console.log('🎯 EntryPageNew: Got clubs:', clubs.length, 'clubs');
 
         if (!clubs || clubs.length === 0) {
-          console.error('No clubs found');
+          console.error('🎯 EntryPageNew: No clubs found');
           toast({
             title: "Error loading clubs",
             description: "Something went wrong. Please try again.",
@@ -73,11 +79,23 @@ const EntryPageNew = () => {
           return;
         }
 
+        // Debug club slug matching
+        console.log('🎯 EntryPageNew: Looking for venue slug:', venueSlug);
+        console.log('🎯 EntryPageNew: Available clubs with slugs:', 
+          clubs.map(club => ({ 
+            id: club.id, 
+            name: club.name, 
+            slug: createClubSlug(club.name),
+            matches: createClubSlug(club.name) === venueSlug
+          }))
+        );
+
         // Find the club whose generated slug matches the venueSlug
         const matchingClub = clubs.find(club => createClubSlug(club.name) === venueSlug);
 
         if (!matchingClub) {
-          console.error('No club found with slug:', venueSlug);
+          console.error('🎯 EntryPageNew: No club found with slug:', venueSlug);
+          console.error('🎯 EntryPageNew: Available slugs:', clubs.map(c => createClubSlug(c.name)));
           toast({
             title: "Venue not found",
             description: "The venue you're looking for doesn't exist.",
@@ -87,7 +105,7 @@ const EntryPageNew = () => {
           return;
         }
 
-        console.log('Found matching club:', matchingClub.name, 'for slug:', venueSlug);
+        console.log('🎯 EntryPageNew: Found matching club:', matchingClub.name, 'for slug:', venueSlug);
 
         let foundCompetition = null;
         const now = new Date().toISOString();
@@ -134,9 +152,10 @@ const EntryPageNew = () => {
           }
         } else {
           // New format: find by competition slug
-          console.log('Using new format - finding by competition slug:', competitionSlug);
+          console.log('🎯 EntryPageNew: Using new format - finding by competition slug:', competitionSlug);
           
           // First try year-round competitions (no end date)
+          console.log('🎯 EntryPageNew: Searching year-round competitions...');
           const { data: yearRoundComps, error: yearRoundError } = await supabase
             .from('competitions')
             .select('*')
@@ -146,18 +165,29 @@ const EntryPageNew = () => {
             .lte('start_date', now)
             .is('end_date', null);
 
+          console.log('🎯 EntryPageNew: Year-round query result:', { 
+            error: yearRoundError, 
+            count: yearRoundComps?.length || 0,
+            competitions: yearRoundComps?.map(c => ({ 
+              id: c.id, 
+              name: c.name, 
+              slug: createCompetitionSlug(c.name),
+              matches: createCompetitionSlug(c.name) === competitionSlug
+            })) || []
+          });
+
           if (!yearRoundError && yearRoundComps) {
             foundCompetition = yearRoundComps.find(comp => 
               createCompetitionSlug(comp.name) === competitionSlug
             );
             if (foundCompetition) {
-              console.log('Found year-round competition by slug:', foundCompetition.name);
+              console.log('🎯 EntryPageNew: Found year-round competition by slug:', foundCompetition.name);
             }
           }
 
           if (!foundCompetition) {
             // Try time-bounded competitions
-            console.log('No year-round competition found by slug, trying time-bounded...');
+            console.log('🎯 EntryPageNew: No year-round competition found by slug, trying time-bounded...');
             const { data: timeBoundedComps, error: timeBoundedError } = await supabase
               .from('competitions')
               .select('*')
@@ -167,12 +197,23 @@ const EntryPageNew = () => {
               .lte('start_date', now)
               .gte('end_date', now);
 
+            console.log('🎯 EntryPageNew: Time-bounded query result:', { 
+              error: timeBoundedError, 
+              count: timeBoundedComps?.length || 0,
+              competitions: timeBoundedComps?.map(c => ({ 
+                id: c.id, 
+                name: c.name, 
+                slug: createCompetitionSlug(c.name),
+                matches: createCompetitionSlug(c.name) === competitionSlug
+              })) || []
+            });
+
             if (!timeBoundedError && timeBoundedComps) {
               foundCompetition = timeBoundedComps.find(comp => 
                 createCompetitionSlug(comp.name) === competitionSlug
               );
               if (foundCompetition) {
-                console.log('Found time-bounded competition by slug:', foundCompetition.name);
+                console.log('🎯 EntryPageNew: Found time-bounded competition by slug:', foundCompetition.name);
               }
             }
           }
@@ -183,7 +224,15 @@ const EntryPageNew = () => {
             ? `No active competition found for hole ${holeNumber} at ${matchingClub.name}.`
             : `No active competition found matching "${competitionSlug}" at ${matchingClub.name}.`;
           
-          console.error('No competition found');
+          console.error('🎯 EntryPageNew: No competition found - FINAL RESULT');
+          console.error('🎯 EntryPageNew: Search summary:', {
+            clubName: matchingClub.name,
+            clubId: matchingClub.id,
+            isLegacyFormat,
+            searchTerm: isLegacyFormat ? holeNumber : competitionSlug,
+            currentTime: now
+          });
+          
           toast({
             title: "No Active Competition",
             description: `${errorMessage} The competition may be scheduled for later or already finished.`,
@@ -193,7 +242,7 @@ const EntryPageNew = () => {
           return;
         }
 
-        console.log('Setting competition:', foundCompetition.name);
+        console.log('🎯 EntryPageNew: SUCCESS - Setting competition:', foundCompetition.name);
         setCompetition({
           id: foundCompetition.id,
           name: foundCompetition.name,
