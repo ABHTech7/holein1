@@ -224,23 +224,7 @@ const handler = async (req: Request): Promise<Response> => {
       // Don't fail the request for this, just log it
     }
 
-    // Generate proper access and refresh tokens for the user
-    console.log("Generating access token for user:", user.id);
-    
-    const { data: tokenResponse, error: accessTokenError } = await supabaseAdmin.auth.admin.generateAccessToken(user.id);
-
-    if (accessTokenError) {
-      console.error("Error generating access token:", accessTokenError);
-      throw new Error("Failed to create user session");
-    }
-
-    if (!tokenResponse?.access_token) {
-      console.error("No access token returned from generateAccessToken");
-      throw new Error("Failed to generate valid access token");
-    }
-
     console.log("Magic link verification successful for user:", user.id);
-    console.log("Access token generated successfully");
 
     return new Response(JSON.stringify({ 
       success: true,
@@ -248,11 +232,10 @@ const handler = async (req: Request): Promise<Response> => {
         id: user.id,
         email: user.email,
         first_name: tokenData.first_name,
-        last_name: tokenData.last_name
+        last_name: tokenData.last_name,
+        role: 'PLAYER'
       },
-      competition_url: tokenData.competition_url,
-      access_token: tokenResponse.access_token,
-      refresh_token: tokenResponse.refresh_token
+      competition_url: tokenData.competition_url
     }), {
       status: 200,
       headers: {
