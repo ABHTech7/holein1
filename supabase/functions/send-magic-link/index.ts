@@ -59,26 +59,13 @@ const handler = async (req: Request): Promise<Response> => {
     // Generate a secure token for the magic link
     const token = crypto.randomUUID();
     
-    // Set expiration to 15 minutes from now in London timezone
+    // Set expiration to 15 minutes from now
     const now = new Date();
-    
-    // Get London time (handles both GMT and BST automatically)
-    const londonFormatter = new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Europe/London',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
-    
-    const londonTimeString = londonFormatter.format(now);
-    console.log("Current London time:", londonTimeString);
-    
-    // Add 15 minutes to current time for expiration
     const expiresAt = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes
+    
+    console.log("Token expiration set:");
+    console.log("Current time (UTC):", now.toISOString());
+    console.log("Expires at (UTC):", expiresAt.toISOString());
 
     // Store the magic link token with user data
     const { error: tokenError } = await supabaseAdmin

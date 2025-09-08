@@ -27,13 +27,15 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { token }: VerifyMagicLinkRequest = await req.json();
     
-    console.log("Verifying magic link token");
+    console.log("Verifying magic link token:", token);
 
     // Initialize Supabase Admin Client
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
+
+    console.log("Supabase client initialized successfully");
 
     // Look up the magic link token with detailed error handling
     const { data: tokenData, error: tokenError } = await supabaseAdmin
@@ -69,25 +71,12 @@ const handler = async (req: Request): Promise<Response> => {
     const now = new Date();
     const expiresAt = new Date(tokenData.expires_at);
     
-    // Log London time for debugging
-    const londonFormatter = new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Europe/London',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
-    
-    const nowLondon = londonFormatter.format(now);
-    const expiresLondon = londonFormatter.format(expiresAt);
+    console.log("Checking token expiration:");
+    console.log("Current time (UTC):", now.toISOString());
+    console.log("Token expires at (UTC):", expiresAt.toISOString());
     
     if (expiresAt <= now) {
       console.error("Token expired:", token);
-      console.error("Current London time:", nowLondon);
-      console.error("Token expired at London time:", expiresLondon);
       return new Response(JSON.stringify({ 
         success: false,
         error: "This magic link has expired. Please request a new one." 
@@ -97,7 +86,7 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
     
-    console.log("Token validation successful. Current London time:", nowLondon, "Expires London time:", expiresLondon);
+    console.log("Token validation successful. Token is still valid.");
 
     // Try to create the user - if they already exist, we'll get them back
     const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -217,6 +206,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   } catch (error: any) {
     console.error("Error in verify-magic-link function:", error);
+    console.error("Error stack:", error.stack);
     return new Response(
       JSON.stringify({ 
         success: false,
