@@ -16,6 +16,7 @@ import { EnterNowCTA } from "@/components/entry/EnterNowCTA";
 import { EnhancedAuthModal } from "@/components/entry/EnhancedAuthModal";
 import { MiniProfileForm } from "@/components/entry/MiniProfileForm";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { AlertCircle, Clock } from "lucide-react";
 
 interface VenueCompetition {
@@ -45,6 +46,7 @@ const EntryPageNew = () => {
   const { user } = useAuth();
   const [competition, setCompetition] = useState<VenueCompetition | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [entering, setEntering] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [showProfileForm, setShowProfileForm] = useState(false);
@@ -67,6 +69,7 @@ const EntryPageNew = () => {
         console.log('🎯 EntryPageNew: Fetching clubs data...');
         const clubs = await ClubService.getSafeClubsData();
         console.log('🎯 EntryPageNew: Got clubs:', clubs.length, 'clubs');
+        console.log('🎯 EntryPageNew: Full clubs data:', clubs);
 
         if (!clubs || clubs.length === 0) {
           console.error('🎯 EntryPageNew: No clubs found');
@@ -96,12 +99,11 @@ const EntryPageNew = () => {
         if (!matchingClub) {
           console.error('🎯 EntryPageNew: No club found with slug:', venueSlug);
           console.error('🎯 EntryPageNew: Available slugs:', clubs.map(c => createClubSlug(c.name)));
-          toast({
-            title: "Venue not found",
-            description: "The venue you're looking for doesn't exist.",
-            variant: "destructive"
-          });
-          navigate('/');
+          console.error('🎯 EntryPageNew: Expected club name should contain "Shrigley Hall"');
+          console.error('🎯 EntryPageNew: Clubs matching "Shrigley":', clubs.filter(c => c.name.toLowerCase().includes('shrigley')));
+          
+          setLoading(false);
+          setError('Venue not found: ' + venueSlug);
           return;
         }
 
@@ -461,6 +463,22 @@ const EntryPageNew = () => {
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">Loading competition...</p>
+          </div>
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <SiteHeader />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center max-w-md mx-auto p-6">
+            <h1 className="text-2xl font-bold text-destructive mb-2">Error</h1>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={() => navigate('/')}>Go Home</Button>
           </div>
         </main>
         <SiteFooter />
