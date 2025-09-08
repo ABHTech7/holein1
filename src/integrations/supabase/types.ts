@@ -762,6 +762,14 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      is_valid_email: {
+        Args: { email_text: string }
+        Returns: boolean
+      }
+      is_valid_phone: {
+        Args: { phone_text: string }
+        Returns: boolean
+      }
       update_expired_entries: {
         Args: Record<PropertyKey, never>
         Returns: number
