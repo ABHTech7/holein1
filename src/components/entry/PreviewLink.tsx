@@ -39,7 +39,7 @@ export const PreviewLink = ({ competitionId, competitionName, clubId, holeNumber
         if (club) {
           const clubSlug = createClubSlug(club.name);
           const competitionSlug = createCompetitionSlug(competitionName);
-          const newUrl = `/enter/${clubSlug}/${competitionSlug}`;
+          const newUrl = `/competition/${clubSlug}/${competitionSlug}`;
           
           console.log('🔗 PreviewLink: Generated URL components:', {
             clubName: club.name,

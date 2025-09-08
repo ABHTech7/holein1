@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { createSlug } from "@/lib/slugUtils";
 
 /**
  * Generate the new entry URL format for a competition
@@ -51,47 +52,26 @@ export const generateEntryUrlSync = (clubSlug: string, holeNumber: number): stri
 };
 
 /**
- * Create club slug from club name
+ * Create club slug from club name using centralized slug function
  */
 export const createClubSlug = (clubName: string): string => {
-  if (!clubName) return '';
-  
-  return clubName
-    .toLowerCase()
-    .trim()
-    .replace(/'/g, '') // Remove apostrophes
-    .replace(/&/g, 'and') // Replace & with 'and'
-    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
-    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+  return createSlug(clubName);
 };
 
 /**
- * Create competition slug from competition name
+ * Create competition slug from competition name using centralized slug function
  */
 export const createCompetitionSlug = (competitionName: string): string => {
-  if (!competitionName) return '';
-  
-  return competitionName
-    .toLowerCase()
-    .trim()
-    .replace(/'/g, '') // Remove apostrophes
-    .replace(/&/g, 'and') // Replace & with 'and'
-    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
-    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+  return createSlug(competitionName);
 };
 
 /**
- * Debug slug generation for troubleshooting
+ * Debug slug generation for troubleshooting using centralized function
  */
 export const debugSlugGeneration = (text: string, type: 'club' | 'competition') => {
   console.log(`🔧 ${type} slug generation for "${text}":`, {
     original: text,
-    trimmed: text?.trim(),
-    lowercase: text?.trim()?.toLowerCase(),
-    noApostrophes: text?.trim()?.toLowerCase()?.replace(/'/g, ''),
-    replaceAnd: text?.trim()?.toLowerCase()?.replace(/'/g, '')?.replace(/&/g, 'and'),
-    replaceNonAlnum: text?.trim()?.toLowerCase()?.replace(/'/g, '')?.replace(/&/g, 'and')?.replace(/[^a-z0-9]+/g, '-'),
-    final: type === 'club' ? createClubSlug(text) : createCompetitionSlug(text)
+    final: createSlug(text)
   });
 };
 
@@ -125,7 +105,7 @@ export const generateCompetitionEntryUrl = async (competitionId: string): Promis
 
     const clubSlug = createClubSlug(club.name);
     const competitionSlug = createCompetitionSlug(competition.name);
-    return `/enter/${clubSlug}/${competitionSlug}`;
+    return `/competition/${clubSlug}/${competitionSlug}`;
   } catch (error) {
     console.error('Error generating competition entry URL:', error);
     return `/enter/${competitionId}`; // Fallback to old format
@@ -136,5 +116,5 @@ export const generateCompetitionEntryUrl = async (competitionId: string): Promis
  * Generate entry URL synchronously if we have all the data (new format)
  */
 export const generateCompetitionEntryUrlSync = (clubSlug: string, competitionSlug: string): string => {
-  return `/enter/${clubSlug}/${competitionSlug}`;
+  return `/competition/${clubSlug}/${competitionSlug}`;
 };

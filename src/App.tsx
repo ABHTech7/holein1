@@ -79,9 +79,10 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/dev/demo" element={<DeveloperDemo />} />
-          {/* Single route handles both legacy (numeric) and new (slug) formats */}
-          <Route path="/enter/:venueSlug/:param" element={<EntryPageNew />} />
+          {/* New competition entry route with clear structure */}
+          <Route path="/competition/:clubSlug/:competitionSlug" element={<EntryPageNew />} />
           <Route path="/entry/:entryId/confirmation" element={<EntryConfirmation />} />
+          {/* Legacy routes for backward compatibility */}
           <Route path="/enter/:competitionId" element={<CompetitionEntry />} />
           <Route path="/competitions/:id" element={<CompetitionDetail />} />
           

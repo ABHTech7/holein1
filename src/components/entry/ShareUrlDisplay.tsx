@@ -29,7 +29,7 @@ export const ShareUrlDisplay = ({ competitionId, competitionName, clubId, holeNu
         if (club) {
           const clubSlug = createClubSlug(club.name);
           const competitionSlug = createCompetitionSlug(competitionName);
-          setShareUrl(`${window.location.origin}/enter/${clubSlug}/${competitionSlug}`);
+          setShareUrl(`${window.location.origin}/competition/${clubSlug}/${competitionSlug}`);
         } else {
           console.error('Club not found for share URL:', clubId);
         }
