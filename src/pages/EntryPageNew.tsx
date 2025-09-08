@@ -66,7 +66,12 @@ const EntryPageNew = () => {
         // Get all clubs safely (works for unauthenticated users)
         console.log('🎯 EntryPageNew: Fetching clubs data...');
         const clubs = await ClubService.getSafeClubsData();
-        console.log('🎯 EntryPageNew: Got clubs:', clubs.length, 'clubs');
+        console.log('🎯 EntryPageNew: Got clubs:', clubs.length, 'clubs');  
+        console.log('🎯 EntryPageNew: Looking for venue slug:', venueSlug);
+        console.log('🎯 EntryPageNew: Available club names and slugs:', clubs.map(c => ({ 
+          name: c.name, 
+          slug: createClubSlug(c.name) 
+        })));
 
         if (!clubs || clubs.length === 0) {
           console.error('🎯 EntryPageNew: No clubs found');
