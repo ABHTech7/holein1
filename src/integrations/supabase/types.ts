@@ -472,6 +472,57 @@ export type Database = {
           },
         ]
       }
+      magic_link_tokens: {
+        Row: {
+          age_years: number
+          competition_url: string
+          created_at: string
+          email: string
+          expires_at: string
+          first_name: string
+          handicap: number
+          id: string
+          last_name: string
+          phone_e164: string
+          token: string
+          updated_at: string
+          used: boolean
+          used_at: string | null
+        }
+        Insert: {
+          age_years: number
+          competition_url: string
+          created_at?: string
+          email: string
+          expires_at: string
+          first_name: string
+          handicap: number
+          id?: string
+          last_name: string
+          phone_e164: string
+          token: string
+          updated_at?: string
+          used?: boolean
+          used_at?: string | null
+        }
+        Update: {
+          age_years?: number
+          competition_url?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          first_name?: string
+          handicap?: number
+          id?: string
+          last_name?: string
+          phone_e164?: string
+          token?: string
+          updated_at?: string
+          used?: boolean
+          used_at?: string | null
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           content: string

@@ -13,7 +13,7 @@ import { EntryHero } from "@/components/entry/EntryHero";
 import { TrustBanner } from "@/components/entry/TrustBanner";
 import { RuleSummary } from "@/components/entry/RuleSummary";
 import { EnterNowCTA } from "@/components/entry/EnterNowCTA";
-import { EnhancedAuthModal } from "@/components/entry/EnhancedAuthModal";
+import { ImprovedAuthModal } from "@/components/entry/ImprovedAuthModal";
 import { MiniProfileForm } from "@/components/entry/MiniProfileForm";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle, Clock } from "lucide-react";
@@ -440,8 +440,8 @@ const EntryPageNew = () => {
 
       <SiteFooter />
 
-      {/* Enhanced Auth Modal */}
-      <EnhancedAuthModal
+      {/* Improved Auth Modal with Profile Collection */}
+      <ImprovedAuthModal
         open={authModalOpen}
         onOpenChange={setAuthModalOpen}
         onSuccess={handleAuthSuccess}
