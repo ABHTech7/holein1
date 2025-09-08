@@ -88,53 +88,53 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log("Token validation successful. Token is still valid.");
 
-    // Try to create the user - if they already exist, we'll get them back
-    const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email: tokenData.email,
-      email_confirm: true, // Auto-confirm email since they clicked the magic link
-      user_metadata: {
-        first_name: tokenData.first_name,
-        last_name: tokenData.last_name,
-        phone: tokenData.phone_e164,
-        age_years: tokenData.age_years,
-        handicap: tokenData.handicap,
-        role: 'PLAYER'
-      }
-    });
+    // Check if user already exists using direct database query
+    const { data: existingUsers, error: queryError } = await supabaseAdmin
+      .from('auth.users')
+      .select('id')
+      .eq('email', tokenData.email)
+      .maybeSingle();
 
     let user;
-    if (createError) {
-      // If user already exists, try to get them
-      if (createError.message.includes('already registered')) {
-        console.log("User already exists, fetching existing user");
-        
-        // Get existing user by listing users with email filter
-        const { data: userList, error: listError } = await supabaseAdmin.auth.admin.listUsers({
-          page: 1,
-          perPage: 1000 // Should be enough for most cases
-        });
-        
-        if (listError) {
-          console.error("Error listing users:", listError);
-          throw new Error("Failed to verify existing user");
-        }
-        
-        const existingUser = userList.users.find(u => u.email === tokenData.email);
-        if (!existingUser) {
-          console.error("User should exist but not found in list");
-          throw new Error("Failed to find existing user");
-        }
-        
-        user = existingUser;
-        console.log("Existing user found:", user.id);
-      } else {
-        console.error("Error creating user:", createError);
-        throw new Error("Failed to create user account");
+    
+    if (queryError && !queryError.message.includes('No rows found')) {
+      console.error("Error checking for existing user:", queryError);
+      throw new Error("Failed to verify user status");
+    }
+
+    if (existingUsers) {
+      // User exists, get their full user object
+      console.log("User already exists, fetching existing user data");
+      
+      const { data: existingUserData, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(existingUsers.id);
+      
+      if (getUserError || !existingUserData.user) {
+        console.error("Error fetching existing user:", getUserError);
+        throw new Error("Failed to retrieve existing user");
       }
+      
+      user = existingUserData.user;
+      console.log("Existing user found:", user.id);
+      
     } else {
-      // New user created successfully
-      if (!userData.user) {
-        console.error("User creation succeeded but no user returned");
+      // User doesn't exist, create new user
+      console.log("Creating new user");
+      
+      const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email: tokenData.email,
+        email_confirm: true, // Auto-confirm email since they clicked the magic link
+        user_metadata: {
+          first_name: tokenData.first_name,
+          last_name: tokenData.last_name,
+          phone: tokenData.phone_e164,
+          age_years: tokenData.age_years,
+          handicap: tokenData.handicap,
+          role: 'PLAYER'
+        }
+      });
+
+      if (createError || !userData.user) {
+        console.error("Error creating user:", createError);
         throw new Error("Failed to create user account");
       }
       
