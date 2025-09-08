@@ -718,6 +718,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      get_safe_club_info: {
+        Args: { club_uuid: string }
+        Returns: {
+          created_at: string
+          id: string
+          logo_url: string
+          name: string
+          website: string
+        }[]
+      }
       get_safe_clubs_data: {
         Args: Record<PropertyKey, never>
         Returns: {
