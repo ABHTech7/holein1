@@ -69,8 +69,8 @@ export const ImprovedAuthModal = ({
     }
 
     const age = parseInt(profileForm.ageYears);
-    if (!profileForm.ageYears || age < 18 || age > 100) {
-      newErrors.ageYears = "Age must be between 18 and 100";
+    if (!profileForm.ageYears || age < 13 || age > 100) {
+      newErrors.ageYears = "Age must be between 13 and 100";
     }
 
     const handicap = parseFloat(profileForm.handicap);
@@ -216,7 +216,7 @@ export const ImprovedAuthModal = ({
                   Eligibility Requirements
                 </p>
                 <p className="text-sm text-amber-700 dark:text-amber-300">
-                  Must be 18+ with golf handicap above 0. We'll send you a secure magic link to complete your entry.
+                  Must be 13+ with golf handicap above 0. We'll send you a secure magic link to complete your entry.
                 </p>
               </div>
             </div>
@@ -306,7 +306,7 @@ export const ImprovedAuthModal = ({
                 id="ageYears"
                 type="number"
                 placeholder="25"
-                min="18"
+                min="13"
                 max="100"
                 value={profileForm.ageYears}
                 onChange={(e) => updateForm('ageYears', e.target.value)}
