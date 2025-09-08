@@ -62,11 +62,11 @@ export class ClubService {
    * Get competition data safely for public access
    * Uses secure database function that only returns non-sensitive competition information
    */
-  static async getSafeCompetitionData(clubId: string): Promise<SafeCompetitionData[]> {
+  static async getSafeCompetitionData(clubId: string, competitionSlug?: string): Promise<SafeCompetitionData[]> {
     try {
       const { data, error } = await supabase.rpc('get_safe_competition_data', {
         club_uuid: clubId,
-        competition_slug_param: '' // We get all competitions, then filter by slug in the component
+        competition_slug_param: competitionSlug || ''
       });
 
       if (error) {

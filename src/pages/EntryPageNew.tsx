@@ -119,67 +119,14 @@ const EntryPageNew = () => {
 
         console.log('✅ Found venue:', venue.name);
 
-        // Use the safe competition data function instead of direct query
-        const competitions = await ClubService.getSafeCompetitionData(venue.id);
-        console.log('📊 Got competitions via safe function:', competitions.length, 'competitions');
+        // Use the safe competition data function with the specific competition slug
+        const competitions = await ClubService.getSafeCompetitionData(venue.id, competitionSlug);
+        console.log('📊 Got competitions via safe function with slug:', competitions.length, 'competitions');
 
         if (!competitions || competitions.length === 0) {
-          console.error('No active competitions found for club:', venue.name);
+          console.error('No active competition found for club:', venue.name, 'and slug:', competitionSlug);
           toast({
-            title: "No Active Competition",
-            description: `No active competitions found at ${venue.name}.`,
-            variant: "destructive"
-          });
-          navigate('/');
-          return;
-        }
-
-        // Log competition matching details with exact slug generation
-        console.log('🎯 Looking for competition with slug:', competitionSlug);
-        const competitionDebugInfo = competitions.map(c => ({
-          name: c.name,
-          slug: createCompetitionSlug(c.name),
-          matches: createCompetitionSlug(c.name) === competitionSlug,
-          id: c.id,
-          status: c.status
-        }));
-        console.log('🎯 Competition matching debug:', competitionDebugInfo);
-
-        // Try exact slug match first
-        let selectedCompetition = competitions.find(comp => 
-          createCompetitionSlug(comp.name) === competitionSlug
-        );
-
-        if (!selectedCompetition) {
-          console.log('❌ Exact match failed. Trying fallback strategies...');
-          
-          // Fallback 1: Try case-insensitive slug matching
-          selectedCompetition = competitions.find(comp => 
-            createCompetitionSlug(comp.name).toLowerCase() === competitionSlug.toLowerCase()
-          );
-          
-          if (selectedCompetition) {
-            console.log('✅ Found via case-insensitive match');
-          }
-        }
-
-        if (!selectedCompetition) {
-          // Fallback 2: Try partial name matching
-          selectedCompetition = competitions.find(comp => 
-            comp.name.toLowerCase().includes(competitionSlug.replace(/-/g, ' ').toLowerCase())
-          );
-          
-          if (selectedCompetition) {
-            console.log('✅ Found via partial name match');
-          }
-        }
-
-        if (!selectedCompetition) {
-          console.error('❌ No competition found for slug:', competitionSlug);
-          console.error('Available competitions:', competitionDebugInfo);
-          
-          toast({
-            title: "Competition not found",
+            title: "Competition Not Found",
             description: `The competition "${competitionSlug}" was not found at ${venue.name}.`,
             variant: "destructive"
           });
@@ -187,6 +134,8 @@ const EntryPageNew = () => {
           return;
         }
 
+        // The database function should now return exactly the competition we want
+        const selectedCompetition = competitions[0];
         console.log('✅ Found competition:', selectedCompetition.name);
         
         // Build the competition object (data already includes club info from the safe function)
