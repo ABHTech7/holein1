@@ -151,8 +151,9 @@ const EntryPageNew = () => {
             }
           }
         } else {
-          // New format: find by competition slug with fallback matching
+          // New format: find by competition slug with fallback matching  
           console.log('🎯 EntryPageNew: New format - searching for competition slug:', competitionSlug);
+          console.log('🎯 EntryPageNew: Expected competition name slug would be:', createCompetitionSlug(competitionSlug));
           
           // Get all active competitions for this club
           const { data: allComps, error: allCompsError } = await supabase
@@ -167,14 +168,22 @@ const EntryPageNew = () => {
           console.log('🎯 EntryPageNew: All active competitions query result:', { 
             error: allCompsError, 
             count: allComps?.length || 0,
+            searchingFor: competitionSlug,
             competitions: allComps?.map(c => ({ 
               id: c.id, 
               name: c.name,
               slug: createCompetitionSlug(c.name),
               exactMatch: createCompetitionSlug(c.name) === competitionSlug,
-              // Fallback matching attempts
-              normalizedMatch: createCompetitionSlug(c.name.replace(/\s+/g, ' ').trim()) === competitionSlug,
-              partialMatch: createCompetitionSlug(c.name).includes(competitionSlug) || competitionSlug.includes(createCompetitionSlug(c.name))
+              // Show detailed comparison
+              nameBreakdown: {
+                original: c.name,
+                lowercase: c.name.toLowerCase(),
+                trimmed: c.name.toLowerCase().trim(),
+                noApostrophes: c.name.toLowerCase().trim().replace(/'/g, ''),
+                replaceAnd: c.name.toLowerCase().trim().replace(/'/g, '').replace(/&/g, 'and'),
+                replaceNonAlnum: c.name.toLowerCase().trim().replace(/'/g, '').replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-'),
+                final: createCompetitionSlug(c.name)
+              }
             })) || []
           });
 
@@ -183,6 +192,7 @@ const EntryPageNew = () => {
             foundCompetition = allComps.find(comp => 
               createCompetitionSlug(comp.name) === competitionSlug
             );
+            console.log('🎯 EntryPageNew: Exact match result:', foundCompetition?.name || 'None');
 
             // Fallback 1: Try normalized name (remove extra spaces, normalize case)
             if (!foundCompetition) {
@@ -219,6 +229,8 @@ const EntryPageNew = () => {
                 console.log('🎯 EntryPageNew: Found competition by fuzzy matching:', foundCompetition.name);
               }
             }
+
+            console.log('🎯 EntryPageNew: Final match result:', foundCompetition?.name || 'NO MATCH FOUND');
           }
         }
 
