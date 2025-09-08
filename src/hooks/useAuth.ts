@@ -147,7 +147,7 @@ export const useAuth = () => {
     const { error } = await supabase.auth.signOut();
     
     // If session not found, clear local state anyway (happens when demo data is refreshed)
-    if (error && (error.message.includes('Session not found') || error.message.includes('session_id claim in JWT does not exist'))) {
+    if (error && (error.message.includes('Session not found') || error.message.includes('session_id claim in JWT does not exist') || error.message.includes("doesn't exist"))) {
       // Force clear local auth state
       setAuthState({
         user: null,
