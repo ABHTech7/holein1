@@ -1,7 +1,6 @@
 // Utility formatters for the Hole in 1 Challenge application
 
-export const formatCurrency = (amountInCents: number, currency: string = 'GBP'): string => {
-  const amount = amountInCents / 100;
+export const formatCurrency = (amount: number, currency: string = 'GBP'): string => {
   return new Intl.NumberFormat('en-GB', {
     style: 'currency',
     currency: currency,
