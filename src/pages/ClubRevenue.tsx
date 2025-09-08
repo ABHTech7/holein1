@@ -90,6 +90,19 @@ const ClubRevenue = () => {
 
       console.log('Revenue Page - Raw entries data:', entriesData?.length, 'entries');
       console.log('Revenue Page - Today start:', todayStart.toISOString());
+      
+      // Debug each entry in detail
+      entriesData?.forEach((entry, index) => {
+        console.log(`Entry ${index}:`, {
+          id: entry.id,
+          entry_date: entry.entry_date,
+          paid: entry.paid,
+          commission: entry.competitions.commission_amount,
+          competition: entry.competitions.name,
+          player: entry.profiles?.email,
+          isToday: new Date(entry.entry_date) >= todayStart
+        });
+      });
 
       const processedEntries = entriesData?.map((entry) => ({
         id: entry.id,
@@ -99,12 +112,24 @@ const ClubRevenue = () => {
         player_email: entry.profiles?.email || 'unknown@email.com'
       })) || [];
 
+      console.log('Revenue Page - Processed entries for table:', processedEntries.length);
+      
+      // Show first few entries that will be displayed in table
+      console.log('Revenue Page - Table entries (first 5):', 
+        processedEntries.slice(0, 5).map(e => ({
+          date: e.entry_date,
+          commission: e.commission_amount,
+          competition: e.competition_name
+        }))
+      );
+
       setRevenueEntries(processedEntries);
 
       // Calculate commission stats - using same logic as dashboard
-      const dailyRevenueCalc = processedEntries
-        .filter(e => new Date(e.entry_date) >= todayStart)
-        .reduce((sum, e) => sum + e.commission_amount, 0);
+      const todayEntries = processedEntries.filter(e => new Date(e.entry_date) >= todayStart);
+      const dailyRevenueCalc = todayEntries.reduce((sum, e) => sum + e.commission_amount, 0);
+
+      console.log('Revenue Page - Today entries:', todayEntries.length, 'entries with total:', dailyRevenueCalc);
 
       const monthToDateCalc = processedEntries
         .filter(e => new Date(e.entry_date) >= monthStart)
@@ -117,7 +142,8 @@ const ClubRevenue = () => {
         dailyRevenueCalc,
         monthToDateCalc,
         yearToDateCalc,
-        totalEntries: processedEntries.length
+        totalEntries: processedEntries.length,
+        todayEntriesCount: todayEntries.length
       });
 
       setStats({
@@ -302,7 +328,18 @@ const ClubRevenue = () => {
               {/* Recent Revenue Entries */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Recent Paid Entries</CardTitle>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>Recent Paid Entries</CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Showing latest 10 of {revenueEntries.length} total paid entries
+                      </p>
+                    </div>
+                    <div className="text-right text-sm text-muted-foreground">
+                      <p>Total Revenue: {formatCurrency(stats.yearToDate)}</p>
+                      <p>Today's Revenue: {formatCurrency(stats.dailyRevenue)}</p>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {revenueEntries.length === 0 ? (
@@ -322,21 +359,35 @@ const ClubRevenue = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {revenueEntries.slice(0, 10).map((entry) => (
-                          <TableRow key={entry.id}>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4 text-muted-foreground" />
-                                {formatDateTime(entry.entry_date)}
-                              </div>
-                            </TableCell>
-                            <TableCell>{entry.competition_name}</TableCell>
-                            <TableCell>{entry.player_email}</TableCell>
-                            <TableCell className="font-medium">
-                              {formatCurrency(entry.commission_amount)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {revenueEntries.slice(0, 10).map((entry) => {
+                          const entryDate = new Date(entry.entry_date);
+                          const isToday = entryDate >= new Date(new Date().setHours(0, 0, 0, 0));
+                          
+                          return (
+                            <TableRow key={entry.id} className={isToday ? 'bg-accent/50' : ''}>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                                  <div className="flex flex-col">
+                                    <span className={isToday ? 'font-semibold text-primary' : ''}>
+                                      {formatDateTime(entry.entry_date)}
+                                    </span>
+                                    {isToday && (
+                                      <span className="text-xs text-primary">Today's Entry</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>{entry.competition_name}</TableCell>
+                              <TableCell>{entry.player_email}</TableCell>
+                              <TableCell className="font-medium">
+                                <span className={isToday ? 'text-primary font-bold' : ''}>
+                                  {formatCurrency(entry.commission_amount)}
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   )}
