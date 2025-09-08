@@ -38,6 +38,7 @@ export const ImprovedAuthModal = ({
 }: ImprovedAuthModalProps) => {
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [profileForm, setProfileForm] = useState<ProfileFormData>({
     firstName: '',
     lastName: '',
@@ -82,7 +83,7 @@ export const ImprovedAuthModal = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSendMagicLink = async () => {
+  const handleSendMagicLink = async (isResend = false) => {
     if (!validateForm()) {
       toast({
         title: "Please fix the errors",
@@ -92,7 +93,12 @@ export const ImprovedAuthModal = ({
       return;
     }
 
-    setLoading(true);
+    if (isResend) {
+      setResendLoading(true);
+    } else {
+      setLoading(true);
+    }
+
     try {
       // Call our custom magic link edge function
       const { data, error } = await supabase.functions.invoke('send-magic-link', {
@@ -112,7 +118,7 @@ export const ImprovedAuthModal = ({
       if (data?.success) {
         setEmailSent(true);
         toast({
-          title: "Magic link sent!",
+          title: isResend ? "Magic link resent!" : "Magic link sent!",
           description: "Check your email and click the link to complete your entry",
         });
       } else {
@@ -121,12 +127,16 @@ export const ImprovedAuthModal = ({
     } catch (error: any) {
       console.error('Magic link error:', error);
       toast({
-        title: "Failed to send magic link", 
+        title: isResend ? "Failed to resend magic link" : "Failed to send magic link", 
         description: error.message || "Please try again",
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      if (isResend) {
+        setResendLoading(false);
+      } else {
+        setLoading(false);
+      }
     }
   };
 
@@ -173,20 +183,34 @@ export const ImprovedAuthModal = ({
               </CardContent>
             </Card>
 
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-3">
               <p className="text-sm text-muted-foreground">
                 Didn't receive the email? Check your spam folder
               </p>
-              <Button
-                variant="link"
-                onClick={() => {
-                  setEmailSent(false);
-                  setLoading(false);
-                }}
-                className="text-sm"
-              >
-                Use a different email address
-              </Button>
+              
+              <div className="flex flex-col gap-2">
+                <Button
+                  onClick={() => handleSendMagicLink(true)}
+                  disabled={resendLoading}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  {resendLoading ? "Resending..." : "Resend Magic Link"}
+                </Button>
+                
+                <Button
+                  variant="link"
+                  onClick={() => {
+                    setEmailSent(false);
+                    setLoading(false);
+                    setResendLoading(false);
+                  }}
+                  className="text-sm"
+                >
+                  Use a different email address
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
@@ -339,7 +363,7 @@ export const ImprovedAuthModal = ({
           </div>
 
           <Button
-            onClick={handleSendMagicLink}
+            onClick={() => handleSendMagicLink()}
             disabled={loading}
             className="w-full h-12 text-base font-medium rounded-xl"
           >
