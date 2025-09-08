@@ -180,7 +180,7 @@ const ClubCommissionSection = ({ clubId }: CommissionSectionProps) => {
         period_start: newPayment.period_start,
         period_end: newPayment.period_end,
         entries_count: 0, // This would be calculated based on the period
-        commission_amount: 0, // This would be the weighted average
+        commission_rate: 0.00, // This would be the commission rate used
         notes: newPayment.notes || null,
         status: 'processed',
         created_by: user?.id

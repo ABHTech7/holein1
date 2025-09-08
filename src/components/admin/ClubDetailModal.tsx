@@ -135,8 +135,28 @@ const ClubDetailModal = ({ isOpen, onClose, clubId }: ClubDetailModalProps) => {
         setCompetitions(formattedCompetitions);
       }
 
-      // Initialize mock payments and notes
-      setPayments([]);
+      // Fetch actual payments from database
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from('club_payments')
+        .select('*')
+        .eq('club_id', clubId)
+        .order('payment_date', { ascending: false });
+
+      if (paymentsError) {
+        console.error('Error fetching payments:', paymentsError);
+        setPayments([]);
+      } else {
+        const formattedPayments = (paymentsData || []).map(payment => ({
+          id: payment.id,
+          amount: payment.amount,
+          description: payment.notes || payment.payment_reference || 'Payment',
+          payment_date: payment.payment_date,
+          payment_type: payment.payment_method || 'Revenue Share'
+        }));
+        setPayments(formattedPayments);
+      }
+
+      // Initialize notes (can be implemented later)
       setNotes([]);
 
     } catch (error) {
@@ -218,21 +238,47 @@ const ClubDetailModal = ({ isOpen, onClose, clubId }: ClubDetailModalProps) => {
       return;
     }
 
-    const mockPayment: ClubPayment = {
-      id: Date.now().toString(),
-      amount: parseFloat(newPayment.amount),
-      description: newPayment.description,
-      payment_date: new Date().toISOString(),
-      payment_type: newPayment.payment_type
-    };
+    try {
+      const paymentData = {
+        club_id: clubId,
+        amount: parseFloat(newPayment.amount),
+        payment_date: new Date().toISOString().split('T')[0],
+        payment_reference: `${newPayment.payment_type} - ${newPayment.description}`,
+        period_start: new Date().toISOString().split('T')[0],
+        period_end: new Date().toISOString().split('T')[0],
+        entries_count: 0,
+        commission_rate: 0.00,
+        notes: newPayment.description,
+        status: 'processed',
+        payment_method: 'manual'
+      };
 
-    setPayments([mockPayment, ...payments]);
-    setNewPayment({ amount: '', description: '', payment_type: 'Revenue Share' });
-    
-    toast({
-      title: "Payment Recorded",
-      description: "Payment has been added successfully.",
-    });
+      const { data: insertedPayment, error } = await supabase
+        .from('club_payments')
+        .insert(paymentData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setNewPayment({ amount: '', description: '', payment_type: 'Revenue Share' });
+      
+      // Refresh payment data
+      fetchClubDetails();
+      
+      toast({
+        title: "Payment Recorded",
+        description: "Payment has been saved successfully.",
+      });
+
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to record payment.",
+        variant: "destructive"
+      });
+    }
   };
 
   if (!clubId) return null;
