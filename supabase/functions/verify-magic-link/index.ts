@@ -35,20 +35,42 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Look up the magic link token
+    // Look up the magic link token with detailed error handling
     const { data: tokenData, error: tokenError } = await supabaseAdmin
       .from('magic_link_tokens')
       .select('*')
       .eq('token', token)
-      .eq('used', false)
-      .gt('expires_at', new Date().toISOString())
       .single();
 
     if (tokenError || !tokenData) {
-      console.error("Invalid or expired token:", tokenError);
+      console.error("Token not found:", tokenError);
       return new Response(JSON.stringify({ 
         success: false,
-        error: "Invalid or expired magic link" 
+        error: "Invalid magic link - token not found" 
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // Check if token is already used
+    if (tokenData.used) {
+      console.error("Token already used:", token);
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: "This magic link has already been used. Please request a new one." 
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // Check if token is expired
+    if (new Date(tokenData.expires_at) <= new Date()) {
+      console.error("Token expired:", token, "expired at:", tokenData.expires_at);
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: "This magic link has expired. Please request a new one." 
       }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -129,10 +151,15 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Mark the token as used
-    await supabaseAdmin
+    const { error: markUsedError } = await supabaseAdmin
       .from('magic_link_tokens')
       .update({ used: true, used_at: new Date().toISOString() })
       .eq('token', token);
+
+    if (markUsedError) {
+      console.error("Error marking token as used:", markUsedError);
+      // Don't fail the request for this, just log it
+    }
 
     // Generate an access token for the user
     const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({

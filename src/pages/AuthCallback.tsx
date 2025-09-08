@@ -40,7 +40,9 @@ const AuthCallback = () => {
           }
 
           if (!data?.success) {
-            throw new Error(data?.error || 'Invalid magic link');
+            const errorMessage = data?.error || 'Invalid magic link';
+            console.error('Magic link verification failed:', errorMessage);
+            throw new Error(errorMessage);
           }
 
           // Set the session using the tokens from the response
