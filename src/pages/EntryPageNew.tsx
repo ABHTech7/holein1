@@ -77,21 +77,25 @@ const EntryPageNew = () => {
 
         console.log('Found matching club:', matchingClub.name, 'for slug:', venueSlug);
 
-        // Get the competition for this club and hole
+        // Get the active competition for this club and hole
+        const now = new Date().toISOString();
         const { data: competitions, error: compError } = await supabase
           .from('competitions')
           .select('*')
           .eq('club_id', matchingClub.id)
           .eq('hole_number', parseInt(holeNumber))
           .eq('archived', false)
+          .eq('status', 'ACTIVE')
+          .lte('start_date', now)
+          .or(`end_date.is.null,end_date.gte.${now}`)
           .order('created_at', { ascending: false })
           .limit(1);
 
         if (compError || !competitions || competitions.length === 0) {
           console.error('Competition error:', compError);
           toast({
-            title: "Competition not found",
-            description: `No active competition found for hole ${holeNumber} at ${matchingClub.name}.`,
+            title: "No Active Competition",
+            description: `No active competition found for hole ${holeNumber} at ${matchingClub.name}. The competition may be scheduled for later or already finished.`,
             variant: "destructive"
           });
           navigate('/');
