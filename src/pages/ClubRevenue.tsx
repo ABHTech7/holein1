@@ -64,8 +64,8 @@ const ClubRevenue = () => {
       const yearStart = new Date(now.getFullYear(), 0, 1);
       const rangeStart = new Date(now.getTime() - (parseInt(dateRange) * 24 * 60 * 60 * 1000));
 
-      // Fetch all paid entries for the club
-        const { data: entriesData, error } = await supabase
+      // Fetch all paid entries for the club (matching dashboard query structure)
+      const { data: entriesData, error } = await supabase
         .from('entries')
         .select(`
           id,
@@ -88,6 +88,9 @@ const ClubRevenue = () => {
 
       if (error) throw error;
 
+      console.log('Revenue Page - Raw entries data:', entriesData?.length, 'entries');
+      console.log('Revenue Page - Today start:', todayStart.toISOString());
+
       const processedEntries = entriesData?.map((entry) => ({
         id: entry.id,
         entry_date: entry.entry_date,
@@ -98,25 +101,30 @@ const ClubRevenue = () => {
 
       setRevenueEntries(processedEntries);
 
-      // Calculate commission stats (only for paid entries)
-      const paidEntries = processedEntries.filter(e => entriesData?.find(entry => entry.id === e.id)?.paid);
-      
-      const dailyRevenueCalc = paidEntries
+      // Calculate commission stats - using same logic as dashboard
+      const dailyRevenueCalc = processedEntries
         .filter(e => new Date(e.entry_date) >= todayStart)
         .reduce((sum, e) => sum + e.commission_amount, 0);
 
-      const monthToDateCalc = paidEntries
+      const monthToDateCalc = processedEntries
         .filter(e => new Date(e.entry_date) >= monthStart)
         .reduce((sum, e) => sum + e.commission_amount, 0);
 
-      const yearToDateCalc = paidEntries
+      const yearToDateCalc = processedEntries
         .reduce((sum, e) => sum + e.commission_amount, 0);
+      
+      console.log('Revenue Page - Commission calculations:', {
+        dailyRevenueCalc,
+        monthToDateCalc,
+        yearToDateCalc,
+        totalEntries: processedEntries.length
+      });
 
       setStats({
         dailyRevenue: dailyRevenueCalc,
         monthToDate: monthToDateCalc,
         yearToDate: yearToDateCalc,
-        totalEntries: paidEntries.length
+        totalEntries: processedEntries.length
       });
 
       // Generate daily commission chart data (only paid entries)
@@ -128,8 +136,8 @@ const ClubRevenue = () => {
         dailyRevenueMap.set(dateKey, { revenue: 0, entries: 0 });
       }
 
-      // Populate with actual commission data (paid entries only)
-      paidEntries
+      // Populate with actual commission data
+      processedEntries
         .filter(e => new Date(e.entry_date) >= rangeStart)
         .forEach(entry => {
           const dateKey = entry.entry_date.split('T')[0];

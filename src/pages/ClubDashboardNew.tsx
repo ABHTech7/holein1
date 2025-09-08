@@ -212,10 +212,12 @@ const ClubDashboardNew = () => {
             .filter(e => new Date(e.entry_date) >= yearStart)
             .reduce((sum, e) => sum + (e.competitions.commission_amount || 0), 0);
 
-          console.log('Final commission calculations:', {
+          console.log('Dashboard - Final commission calculations:', {
             commissionToday,
             commissionMonth,
-            commissionYear
+            commissionYear,
+            totalPaidEntries: paidEntries.length,
+            todayStart: todayStart.toISOString()
           });
 
           const liveCompetitions = processedCompetitions.filter(c => c.status === 'ACTIVE').length;
