@@ -118,8 +118,8 @@ const EntryPageNew = () => {
 
         console.log('✅ Found venue:', venue.name);
 
-        // Query for active competitions at this venue
-        let query = supabase
+        // Query for active competitions at this venue - simplified query
+        const { data: competitions, error } = await supabase
           .from('competitions')
           .select(`
             id,
@@ -129,19 +129,18 @@ const EntryPageNew = () => {
             prize_pool,
             hole_number,
             status,
-            clubs!inner(name),
             hero_image_url
           `)
           .eq('club_id', venue.id)
           .eq('status', 'ACTIVE');
-
-        const { data: competitions, error } = await query;
         
         if (error) {
           console.error('Database error:', error);
           setLoading(false);
           return;
         }
+
+        console.log('📊 Raw competitions data:', competitions);
 
         if (!competitions || competitions.length === 0) {
           console.error('No active competitions found for club:', venue.name);
@@ -154,11 +153,7 @@ const EntryPageNew = () => {
           return;
         }
 
-        // Find the specific competition by slug
-        const selectedCompetition = competitions.find(comp => 
-          createCompetitionSlug(comp.name) === competitionSlug
-        );
-        
+        // Log competition matching details
         console.log('🎯 Looking for competition with slug:', competitionSlug);
         console.log('🎯 Available competitions:', competitions.map(c => ({ 
           name: c.name, 
@@ -166,8 +161,37 @@ const EntryPageNew = () => {
           id: c.id 
         })));
 
+        // Find the specific competition by slug with fallback strategies
+        let selectedCompetition = competitions.find(comp => 
+          createCompetitionSlug(comp.name) === competitionSlug
+        );
+
+        // Fallback 1: Try case-insensitive slug matching
+        if (!selectedCompetition) {
+          console.log('🔄 Trying case-insensitive slug matching...');
+          selectedCompetition = competitions.find(comp => 
+            createCompetitionSlug(comp.name).toLowerCase() === competitionSlug.toLowerCase()
+          );
+        }
+
+        // Fallback 2: Try partial name matching
+        if (!selectedCompetition) {
+          console.log('🔄 Trying partial name matching...');
+          selectedCompetition = competitions.find(comp => 
+            comp.name.toLowerCase().includes(competitionSlug.replace(/-/g, ' ').toLowerCase())
+          );
+        }
+
         if (!selectedCompetition) {
           console.error('❌ No competition found for slug:', competitionSlug);
+          // Show detailed debugging info in error
+          const debugInfo = competitions.map(c => ({
+            name: c.name,
+            slug: createCompetitionSlug(c.name),
+            target: competitionSlug
+          }));
+          console.error('Debug info:', debugInfo);
+          
           toast({
             title: "Competition not found",
             description: `The competition "${competitionSlug}" was not found at ${venue.name}.`,
@@ -368,9 +392,14 @@ const EntryPageNew = () => {
       <div className="min-h-screen flex flex-col">
         <SiteHeader />
         <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
+          <div className="text-center space-y-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">Loading competition...</p>
+            {/* Temporary visible debugging */}
+            <div className="text-xs text-muted-foreground/70 max-w-md">
+              <p>Club: {clubSlug}</p>
+              <p>Competition: {competitionSlug}</p>
+            </div>
           </div>
         </main>
         <SiteFooter />
