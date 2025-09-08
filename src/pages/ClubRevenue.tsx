@@ -100,7 +100,7 @@ const ClubRevenue = () => {
       const processedEntries = entriesData?.map((entry) => ({
         id: entry.id,
         entry_date: entry.entry_date,
-        commission_amount: entry.competitions.commission_amount || 0,
+        commission_amount: (entry.competitions.commission_amount || 0) / 100, // Convert pence to pounds
         competition_name: entry.competitions.name,
         player_email: entry.profiles?.email || 'unknown@email.com'
       })) || [];
