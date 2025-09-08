@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { copyToClipboard } from "@/lib/formatters";
 import { toast } from "@/hooks/use-toast";
 import { createClubSlug } from "@/lib/competitionUtils";
+import { ClubService } from "@/lib/clubService";
 
 interface ShareUrlDisplayProps {
   competitionId: string;
@@ -21,16 +21,15 @@ export const ShareUrlDisplay = ({ competitionId, clubId, holeNumber, onCopy }: S
       if (!clubId) return;
       
       try {
-        const { data: club } = await supabase
-          .from('clubs')
-          .select('name')
-          .eq('id', clubId)
-          .single();
+        // Get safe club data (works for unauthenticated users)
+        const clubs = await ClubService.getSafeClubsData();
+        const club = clubs.find(c => c.id === clubId);
         
         if (club) {
           const clubSlug = createClubSlug(club.name);
-          
           setShareUrl(`${window.location.origin}/enter/${clubSlug}/${holeNumber}`);
+        } else {
+          console.error('Club not found for share URL:', clubId);
         }
       } catch (error) {
         console.error('Error generating new URL format:', error);

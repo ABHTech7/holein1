@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { createClubSlug } from "@/lib/competitionUtils";
+import { ClubService } from "@/lib/clubService";
 
 interface PreviewLinkProps {
   competitionId: string;
@@ -16,20 +16,17 @@ export const PreviewLink = ({ competitionId, clubId, holeNumber }: PreviewLinkPr
   useEffect(() => {
     const generateUrl = async () => {
       try {
-        // Get club name directly
-        const { data: club, error } = await supabase
-          .from('clubs')
-          .select('name')
-          .eq('id', clubId)
-          .single();
+        // Get safe club data (works for unauthenticated users)
+        const clubs = await ClubService.getSafeClubsData();
+        const club = clubs.find(c => c.id === clubId);
         
-        if (club && !error) {
+        if (club) {
           const clubSlug = createClubSlug(club.name);
           
           console.log('Preview link using club:', club.name, 'slug:', clubSlug);
           setPreviewUrl(`/enter/${clubSlug}/${holeNumber}`);
         } else {
-          console.error('Error fetching club for preview:', error);
+          console.error('Club not found for preview:', clubId);
           // Fallback to old URL format
           setPreviewUrl(`/enter/${competitionId}`);
         }
