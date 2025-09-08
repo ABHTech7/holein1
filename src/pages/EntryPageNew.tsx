@@ -151,86 +151,72 @@ const EntryPageNew = () => {
             }
           }
         } else {
-          // New format: find by competition slug
-          console.log('🎯 EntryPageNew: Using new format - finding by competition slug:', competitionSlug);
+          // New format: find by competition slug with fallback matching
+          console.log('🎯 EntryPageNew: New format - searching for competition slug:', competitionSlug);
           
-          // First try year-round competitions (no end date)
-          console.log('🎯 EntryPageNew: Searching year-round competitions...');
-          const { data: yearRoundComps, error: yearRoundError } = await supabase
+          // Get all active competitions for this club
+          const { data: allComps, error: allCompsError } = await supabase
             .from('competitions')
             .select('*')
             .eq('club_id', matchingClub.id)
             .eq('archived', false)
             .eq('status', 'ACTIVE')
             .lte('start_date', now)
-            .is('end_date', null);
+            .or('end_date.is.null,end_date.gte.' + now);
 
-          console.log('🎯 EntryPageNew: Year-round query result:', { 
-            error: yearRoundError, 
-            count: yearRoundComps?.length || 0,
-            queryParams: {
-              club_id: matchingClub.id,
-              archived: false,
-              status: 'ACTIVE',
-              start_date_lte: now,
-              end_date_is_null: true
-            },
-            competitions: yearRoundComps?.map(c => ({ 
+          console.log('🎯 EntryPageNew: All active competitions query result:', { 
+            error: allCompsError, 
+            count: allComps?.length || 0,
+            competitions: allComps?.map(c => ({ 
               id: c.id, 
-              name: c.name, 
-              start_date: c.start_date,
-              end_date: c.end_date,
-              status: c.status,
-              archived: c.archived,
-              is_year_round: c.is_year_round,
+              name: c.name,
               slug: createCompetitionSlug(c.name),
-              matches: createCompetitionSlug(c.name) === competitionSlug,
-              startDateCompare: {
-                competition_start: c.start_date,
-                now_iso: now,
-                passes_filter: new Date(c.start_date) <= new Date(now)
-              }
+              exactMatch: createCompetitionSlug(c.name) === competitionSlug,
+              // Fallback matching attempts
+              normalizedMatch: createCompetitionSlug(c.name.replace(/\s+/g, ' ').trim()) === competitionSlug,
+              partialMatch: createCompetitionSlug(c.name).includes(competitionSlug) || competitionSlug.includes(createCompetitionSlug(c.name))
             })) || []
           });
 
-          if (!yearRoundError && yearRoundComps) {
-            foundCompetition = yearRoundComps.find(comp => 
+          if (allComps && !allCompsError) {
+            // Try exact match first
+            foundCompetition = allComps.find(comp => 
               createCompetitionSlug(comp.name) === competitionSlug
             );
-            if (foundCompetition) {
-              console.log('🎯 EntryPageNew: Found year-round competition by slug:', foundCompetition.name);
-            }
-          }
 
-          if (!foundCompetition) {
-            // Try time-bounded competitions
-            console.log('🎯 EntryPageNew: No year-round competition found by slug, trying time-bounded...');
-            const { data: timeBoundedComps, error: timeBoundedError } = await supabase
-              .from('competitions')
-              .select('*')
-              .eq('club_id', matchingClub.id)
-              .eq('archived', false)
-              .eq('status', 'ACTIVE')
-              .lte('start_date', now)
-              .gte('end_date', now);
-
-            console.log('🎯 EntryPageNew: Time-bounded query result:', { 
-              error: timeBoundedError, 
-              count: timeBoundedComps?.length || 0,
-              competitions: timeBoundedComps?.map(c => ({ 
-                id: c.id, 
-                name: c.name, 
-                slug: createCompetitionSlug(c.name),
-                matches: createCompetitionSlug(c.name) === competitionSlug
-              })) || []
-            });
-
-            if (!timeBoundedError && timeBoundedComps) {
-              foundCompetition = timeBoundedComps.find(comp => 
-                createCompetitionSlug(comp.name) === competitionSlug
+            // Fallback 1: Try normalized name (remove extra spaces, normalize case)
+            if (!foundCompetition) {
+              console.log('🎯 EntryPageNew: No exact match, trying normalized matching...');
+              foundCompetition = allComps.find(comp => 
+                createCompetitionSlug(comp.name.replace(/\s+/g, ' ').trim()) === competitionSlug
               );
               if (foundCompetition) {
-                console.log('🎯 EntryPageNew: Found time-bounded competition by slug:', foundCompetition.name);
+                console.log('🎯 EntryPageNew: Found competition by normalized matching:', foundCompetition.name);
+              }
+            }
+
+            // Fallback 2: Try partial matching (slug contains or is contained by competition slug)
+            if (!foundCompetition) {
+              console.log('🎯 EntryPageNew: No normalized match, trying partial matching...');
+              foundCompetition = allComps.find(comp => {
+                const compSlug = createCompetitionSlug(comp.name);
+                return compSlug.includes(competitionSlug) || competitionSlug.includes(compSlug);
+              });
+              if (foundCompetition) {
+                console.log('🎯 EntryPageNew: Found competition by partial matching:', foundCompetition.name);
+              }
+            }
+
+            // Fallback 3: Try matching without special characters and common words
+            if (!foundCompetition) {
+              console.log('🎯 EntryPageNew: No partial match, trying fuzzy matching...');
+              const fuzzySlug = competitionSlug.replace(/-/g, '').replace(/\b(hole|in|one|1|challenge|competition)\b/g, '');
+              foundCompetition = allComps.find(comp => {
+                const compFuzzy = createCompetitionSlug(comp.name).replace(/-/g, '').replace(/\b(hole|in|one|1|challenge|competition)\b/g, '');
+                return compFuzzy.includes(fuzzySlug) || fuzzySlug.includes(compFuzzy);
+              });
+              if (foundCompetition) {
+                console.log('🎯 EntryPageNew: Found competition by fuzzy matching:', foundCompetition.name);
               }
             }
           }
