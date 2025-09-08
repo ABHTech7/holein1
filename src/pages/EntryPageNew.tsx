@@ -108,7 +108,7 @@ const EntryPageNew = () => {
         console.log('🎯 EntryPageNew: Found matching club:', matchingClub.name, 'for slug:', venueSlug);
 
         let foundCompetition = null;
-        const now = new Date().toISOString();
+    const now = new Date().toISOString();
 
         if (isLegacyFormat) {
           // Legacy format: find by hole number
@@ -168,11 +168,28 @@ const EntryPageNew = () => {
           console.log('🎯 EntryPageNew: Year-round query result:', { 
             error: yearRoundError, 
             count: yearRoundComps?.length || 0,
+            queryParams: {
+              club_id: matchingClub.id,
+              archived: false,
+              status: 'ACTIVE',
+              start_date_lte: now,
+              end_date_is_null: true
+            },
             competitions: yearRoundComps?.map(c => ({ 
               id: c.id, 
               name: c.name, 
+              start_date: c.start_date,
+              end_date: c.end_date,
+              status: c.status,
+              archived: c.archived,
+              is_year_round: c.is_year_round,
               slug: createCompetitionSlug(c.name),
-              matches: createCompetitionSlug(c.name) === competitionSlug
+              matches: createCompetitionSlug(c.name) === competitionSlug,
+              startDateCompare: {
+                competition_start: c.start_date,
+                now_iso: now,
+                passes_filter: new Date(c.start_date) <= new Date(now)
+              }
             })) || []
           });
 
