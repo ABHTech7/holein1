@@ -79,6 +79,8 @@ const EntryPageNew = () => {
 
         // Get the active competition for this club and hole
         const now = new Date().toISOString();
+        console.log('Querying for active competition at', now);
+        
         const { data: competitions, error: compError } = await supabase
           .from('competitions')
           .select('*')
@@ -87,7 +89,7 @@ const EntryPageNew = () => {
           .eq('archived', false)
           .eq('status', 'ACTIVE')
           .lte('start_date', now)
-          .or(`end_date.is.null,end_date.gte.${now}`)
+          .or('end_date.is.null,end_date.gte.' + now)
           .order('created_at', { ascending: false })
           .limit(1);
 
