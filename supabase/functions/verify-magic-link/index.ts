@@ -136,8 +136,29 @@ const handler = async (req: Request): Promise<Response> => {
             .delete()
             .eq('id', existingProfile.id);
           
-          // Create a completely new user (this will fall through to the else block)
-          user = null;
+          // Create a completely fresh new user
+          console.log("Creating fresh user after orphaned profile cleanup");
+          
+          const { data: freshUserData, error: freshUserError } = await supabaseAdmin.auth.admin.createUser({
+            email: tokenData.email,
+            email_confirm: true,
+            user_metadata: {
+              first_name: tokenData.first_name,
+              last_name: tokenData.last_name,
+              phone: tokenData.phone_e164,
+              age_years: tokenData.age_years,
+              handicap: tokenData.handicap,
+              role: 'PLAYER'
+            }
+          });
+
+          if (freshUserError || !freshUserData.user) {
+            console.error("Failed to create fresh user:", freshUserError);
+            throw new Error("Failed to create fresh user after orphaned profile cleanup");
+          }
+          
+          user = freshUserData.user;
+          console.log("Fresh user created after cleanup:", user.id);
         } else {
           user = userData.user;
           console.log("Created auth user for existing profile:", user.id);
