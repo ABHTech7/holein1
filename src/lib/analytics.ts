@@ -69,14 +69,14 @@ class Analytics {
     });
   }
 
-  authMethodSelected(method: 'apple' | 'google' | 'email') {
+  authMethodSelected(method: 'email') {
     this.log({
       event: 'auth_method_selected',
       properties: { method }
     });
   }
 
-  authCompleted(method: 'apple' | 'google' | 'email', userId: string) {
+  authCompleted(method: 'email', userId: string) {
     this.log({
       event: 'auth_completed',
       properties: { 
@@ -86,7 +86,7 @@ class Analytics {
     });
   }
 
-  authFailed(method: 'apple' | 'google' | 'email', error: string) {
+  authFailed(method: 'email', error: string) {
     this.log({
       event: 'auth_failed',
       properties: { 
