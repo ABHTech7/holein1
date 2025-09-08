@@ -456,8 +456,12 @@ const EntryPageNew = () => {
             userEmail={user.email || ''}
             onComplete={handleProfileComplete}
             onSkip={() => {
+              analytics.profileSkipped(user.id);
               setShowProfileForm(false);
-              if (user) handleEntry(user.id);
+              if (user) {
+                // Add small delay to ensure state is stable before navigation
+                setTimeout(() => handleEntry(user.id), 100);
+              }
             }}
           />
         </div>

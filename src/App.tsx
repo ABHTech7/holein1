@@ -105,20 +105,6 @@ const App = () => {
                 </RoleGuard>
               } 
             />
-          <Route path="/entry/:entryId/confirmation" element={<EntryConfirmation />} />
-          {/* Legacy routes for backward compatibility */}
-          <Route path="/enter/:competitionId" element={<CompetitionEntry />} />
-          <Route path="/competitions/:id" element={<CompetitionDetail />} />
-          
-          {/* Dashboard Routes */}
-          <Route 
-            path="/dashboard/admin" 
-            element={
-              <RoleGuard allowedRoles={['ADMIN']}>
-                <AdminDashboard />
-              </RoleGuard>
-            } 
-          />
           <Route 
             path="/dashboard/admin/players" 
             element={

@@ -40,15 +40,23 @@ const EntryConfirmation = () => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      navigate('/');
-      return;
-    }
+    // Add a small delay to prevent premature redirects during auth state changes
+    const checkAuthAndFetch = setTimeout(() => {
+      if (!user) {
+        console.log('No user found, redirecting to home');
+        navigate('/');
+        return;
+      }
+      fetchEntry();
+    }, 100);
 
-    const fetchEntry = async () => {
-      if (!entryId) return;
+    return () => clearTimeout(checkAuthAndFetch);
+  }, [entryId, user, navigate]);
 
-      try {
+  const fetchEntry = async () => {
+    if (!entryId || !user) return;
+
+    try {
         const { data, error } = await supabase
           .from('entries')
           .select(`
@@ -106,9 +114,6 @@ const EntryConfirmation = () => {
         setLoading(false);
       }
     };
-
-    fetchEntry();
-  }, [entryId, user, navigate]);
 
   // Timer logic
   useEffect(() => {
