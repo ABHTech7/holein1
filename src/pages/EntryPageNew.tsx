@@ -156,14 +156,19 @@ const EntryPageNew = () => {
           console.log('🎯 EntryPageNew: Expected competition name slug would be:', createCompetitionSlug(competitionSlug));
           
           // Get all active competitions for this club
-          const { data: allComps, error: allCompsError } = await supabase
+          // Split the query to handle OR condition properly
+          let query = supabase
             .from('competitions')
             .select('*')
             .eq('club_id', matchingClub.id)
             .eq('archived', false)
             .eq('status', 'ACTIVE')
-            .lte('start_date', now)
-            .or('end_date.is.null,end_date.gte.' + now);
+            .lte('start_date', now);
+          
+          // Handle the OR condition for end_date properly
+          query = query.or(`end_date.is.null,end_date.gte.${now}`);
+          
+          const { data: allComps, error: allCompsError } = await query;
 
           console.log('🎯 EntryPageNew: All active competitions query result:', { 
             error: allCompsError, 
