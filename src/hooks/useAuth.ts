@@ -144,11 +144,68 @@ export const useAuth = () => {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
+    console.log('🚪 Starting logout process...');
     
-    // If session not found, clear local state anyway (happens when demo data is refreshed)
-    if (error && (error.message.includes('Session not found') || error.message.includes('session_id claim in JWT does not exist') || error.message.includes("doesn't exist"))) {
-      // Force clear local auth state
+    try {
+      // Check if there's actually a session to sign out
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      console.log('📋 Current session exists:', !!currentSession);
+      
+      // If no session exists, just clear local state
+      if (!currentSession) {
+        console.log('✅ No session found, clearing local state');
+        setAuthState({
+          user: null,
+          session: null,
+          profile: null,
+          loading: false,
+        });
+        
+        toast({
+          title: "Signed out",
+          description: "You have been signed out successfully."
+        });
+        
+        return { error: null };
+      }
+      
+      // Attempt to sign out
+      const { error } = await supabase.auth.signOut();
+      console.log('🔓 Supabase signOut result:', error ? `Error: ${error.message}` : 'Success');
+      
+      // If any error occurs during logout, just clear local state anyway
+      if (error) {
+        console.log('⚠️ SignOut error occurred, clearing local state anyway:', error.message);
+        
+        // Force clear local auth state regardless of error
+        setAuthState({
+          user: null,
+          session: null,
+          profile: null,
+          loading: false,
+        });
+        
+        // Always show success to user - logout should never "fail" from UX perspective
+        toast({
+          title: "Signed out",
+          description: "You have been signed out successfully."
+        });
+        
+        return { error: null };
+      }
+      
+      // Success case - state will be cleared by onAuthStateChange listener
+      toast({
+        title: "Signed out",
+        description: "You have been signed out successfully."
+      });
+      
+      return { error: null };
+      
+    } catch (catchError: any) {
+      console.error('💥 Unexpected error during logout:', catchError);
+      
+      // Even if something completely unexpected happens, clear state
       setAuthState({
         user: null,
         session: null,
@@ -163,16 +220,6 @@ export const useAuth = () => {
       
       return { error: null };
     }
-    
-    if (error) {
-      toast({
-        title: "Sign out failed",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-    
-    return { error };
   };
 
   return {
