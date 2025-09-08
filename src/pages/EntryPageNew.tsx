@@ -89,7 +89,7 @@ const EntryPageNew = () => {
           .eq('archived', false)
           .eq('status', 'ACTIVE')
           .lte('start_date', now)
-          .or('end_date.is.null,end_date.gte.' + now)
+          .or(`end_date.is.null,end_date.gte.${now}`)
           .order('created_at', { ascending: false })
           .limit(1);
 
