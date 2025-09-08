@@ -39,6 +39,34 @@ const EntryPageNew = () => {
   }>();
   console.log('📍 Raw URL params:', { clubSlug, competitionSlug });
   
+  // Add error boundary
+  if (!clubSlug || !competitionSlug) {
+    console.error('❌ Missing URL parameters');
+    return (
+      <div className="min-h-screen flex flex-col">
+        <SiteHeader />
+        <main className="flex-1 flex items-center justify-center">
+          <Card className="max-w-md mx-auto">
+            <CardContent className="text-center p-8">
+              <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Invalid URL</h2>
+              <p className="text-muted-foreground mb-4">
+                This page requires valid club and competition parameters.
+              </p>
+              <button 
+                onClick={() => window.location.href = '/'}
+                className="text-primary hover:underline"
+              >
+                Return Home
+              </button>
+            </CardContent>
+          </Card>
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
+  
   const navigate = useNavigate();
   const { user } = useAuth();
   const [competition, setCompetition] = useState<VenueCompetition | null>(null);
@@ -91,7 +119,6 @@ const EntryPageNew = () => {
         console.log('✅ Found venue:', venue.name);
 
         // Query for active competitions at this venue
-        const now = new Date();
         let query = supabase
           .from('competitions')
           .select(`
@@ -106,8 +133,7 @@ const EntryPageNew = () => {
             hero_image_url
           `)
           .eq('club_id', venue.id)
-          .eq('status', 'ACTIVE')
-          .or(`expires_at.is.null,expires_at.gte.${now.toISOString()}`);
+          .eq('status', 'ACTIVE');
 
         const { data: competitions, error } = await query;
         
