@@ -4,6 +4,7 @@ import { Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { copyToClipboard } from "@/lib/formatters";
 import { toast } from "@/hooks/use-toast";
+import { createClubSlug } from "@/lib/competitionUtils";
 
 interface ShareUrlDisplayProps {
   competitionId: string;
@@ -27,12 +28,7 @@ export const ShareUrlDisplay = ({ competitionId, clubId, holeNumber, onCopy }: S
           .single();
         
         if (club) {
-          const clubSlug = club.name
-            .toLowerCase()
-            .replace(/'/g, '')
-            .replace(/&/g, 'and')
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-+|-+$/g, '');
+          const clubSlug = createClubSlug(club.name);
           
           setShareUrl(`${window.location.origin}/enter/${clubSlug}/${holeNumber}`);
         }

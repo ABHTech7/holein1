@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { createClubSlug } from "@/lib/competitionUtils";
 
 interface PreviewLinkProps {
   competitionId: string;
@@ -23,12 +24,7 @@ export const PreviewLink = ({ competitionId, clubId, holeNumber }: PreviewLinkPr
           .single();
         
         if (club && !error) {
-          const clubSlug = club.name
-            .toLowerCase()
-            .replace(/'/g, '')
-            .replace(/&/g, 'and')
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-+|-+$/g, '');
+          const clubSlug = createClubSlug(club.name);
           
           console.log('Preview link using club:', club.name, 'slug:', clubSlug);
           setPreviewUrl(`/enter/${clubSlug}/${holeNumber}`);
