@@ -69,6 +69,7 @@ const EntryPageNew = () => {
   
   const navigate = useNavigate();
   const { user } = useAuth();
+  console.log('👤 Current user in EntryPageNew:', user ? { id: user.id, email: user.email } : 'Not logged in');
   const [competition, setCompetition] = useState<VenueCompetition | null>(null);
   const [loading, setLoading] = useState(true);
   const [entering, setEntering] = useState(false);
