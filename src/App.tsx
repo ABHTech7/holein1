@@ -56,31 +56,55 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          {/* Main Routes */}
-          <Route path="/" element={<Home />} />
-          <Route path="/partnership" element={<PartnershipApplication />} />
-          <Route path="/clubs/signup" element={<ClubSignup />} />
-          <Route path="/players/login" element={<PlayerLogin />} />
-          <Route 
-            path="/players/entries" 
-            element={
-              <RoleGuard allowedRoles={['PLAYER']}>
-                <PlayerEntries />
-              </RoleGuard>
-            } 
-          />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/dev/demo" element={<DeveloperDemo />} />
-          {/* New competition entry route with clear structure */}
-          <Route path="/competition/:clubSlug/:competitionSlug" element={<EntryPageNew />} />
+const App = () => {
+  console.log('🔧 App component rendering, current URL:', window.location.href);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {/* Main Routes */}
+            <Route path="/" element={<Home />} />
+            <Route path="/partnership" element={<PartnershipApplication />} />
+            <Route path="/clubs/signup" element={<ClubSignup />} />
+            <Route path="/players/login" element={<PlayerLogin />} />
+            <Route 
+              path="/players/entries" 
+              element={
+                <RoleGuard allowedRoles={['PLAYER']}>
+                  <PlayerEntries />
+                </RoleGuard>
+              } 
+            />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/dev/demo" element={<DeveloperDemo />} />
+            {/* New competition entry route with clear structure */}
+            <Route 
+              path="/competition/:clubSlug/:competitionSlug" 
+              element={
+                <>
+                  {console.log('🎯 Competition route matched!')}
+                  <EntryPageNew />
+                </>
+              } 
+            />
+            <Route path="/entry/:entryId/confirmation" element={<EntryConfirmation />} />
+            {/* Legacy routes for backward compatibility */}
+            <Route path="/enter/:competitionId" element={<CompetitionEntry />} />
+            <Route path="/competitions/:id" element={<CompetitionDetail />} />
+            
+            {/* Dashboard Routes */}
+            <Route 
+              path="/dashboard/admin" 
+              element={
+                <RoleGuard allowedRoles={['ADMIN']}>
+                  <AdminDashboard />
+                </RoleGuard>
+              } 
+            />
           <Route path="/entry/:entryId/confirmation" element={<EntryConfirmation />} />
           {/* Legacy routes for backward compatibility */}
           <Route path="/enter/:competitionId" element={<CompetitionEntry />} />
@@ -279,6 +303,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

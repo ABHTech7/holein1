@@ -33,11 +33,14 @@ interface VenueCompetition {
 
 const EntryPageNew = () => {
   console.log('🚀 EntryPageNew component mounting...');
+  console.log('🌐 Current URL:', window.location.href);
+  console.log('🔗 Current pathname:', window.location.pathname);
   const { clubSlug, competitionSlug } = useParams<{
     clubSlug: string;
     competitionSlug: string;
   }>();
   console.log('📍 Raw URL params:', { clubSlug, competitionSlug });
+  console.log('🔍 Route match check - clubSlug exists:', !!clubSlug, 'competitionSlug exists:', !!competitionSlug);
   
   // Add error boundary
   if (!clubSlug || !competitionSlug) {
