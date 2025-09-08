@@ -175,10 +175,10 @@ const handler = async (req: Request): Promise<Response> => {
     // Generate proper access and refresh tokens for the user
     console.log("Generating access token for user:", user.id);
     
-    const { data: tokenResponse, error: tokenError } = await supabaseAdmin.auth.admin.generateAccessToken(user.id);
+    const { data: tokenResponse, error: accessTokenError } = await supabaseAdmin.auth.admin.generateAccessToken(user.id);
 
-    if (tokenError) {
-      console.error("Error generating access token:", tokenError);
+    if (accessTokenError) {
+      console.error("Error generating access token:", accessTokenError);
       throw new Error("Failed to create user session");
     }
 
