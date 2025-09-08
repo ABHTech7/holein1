@@ -148,75 +148,59 @@ export const useAuth = () => {
   const signOut = async () => {
     console.log('🚪 Starting logout process...');
     
-    try {
-      // Check if there's actually a session to sign out
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      console.log('📋 Current session exists:', !!currentSession);
-      
-      // If no session exists, just clear local state
-      if (!currentSession) {
-        console.log('✅ No session found, clearing local state');
-        setAuthState({
-          user: null,
-          session: null,
-          profile: null,
-          loading: false,
-        });
-        
-        toast({
-          title: "Signed out",
-          description: "You have been signed out successfully."
-        });
-        
-        navigate('/auth');
-        return { error: null };
-      }
-      
-      // Attempt to sign out
-      const { error } = await supabase.auth.signOut();
-      console.log('🔓 Supabase signOut result:', error ? `Error: ${error.message}` : 'Success');
-      
-      // If any error occurs during logout, just clear local state anyway
-      if (error) {
-        console.log('⚠️ SignOut error occurred, clearing local state anyway:', error.message);
-        
-        // Force clear local auth state regardless of error
-        setAuthState({
-          user: null,
-          session: null,
-          profile: null,
-          loading: false,
-        });
-        
-        // Always show success to user - logout should never "fail" from UX perspective
-        toast({
-          title: "Signed out",
-          description: "You have been signed out successfully."
-        });
-        
-        navigate('/auth');
-        return { error: null };
-      }
-      
-      // Success case - state will be cleared by onAuthStateChange listener
-      toast({
-        title: "Signed out",
-        description: "You have been signed out successfully."
-      });
-      
-      navigate('/auth');
-      return { error: null };
-      
-    } catch (catchError: any) {
-      console.error('💥 Unexpected error during logout:', catchError);
-      
-      // Even if something completely unexpected happens, clear state
+    // Immediately clear local state to prevent UI issues
+    const clearLocalState = () => {
       setAuthState({
         user: null,
         session: null,
         profile: null,
         loading: false,
       });
+      
+      // Force clear localStorage tokens as additional safety measure
+      try {
+        localStorage.removeItem('sb-srnbylbbsdckkwatfqjg-auth-token');
+        sessionStorage.clear();
+      } catch (storageError) {
+        console.log('Storage clear error (non-critical):', storageError);
+      }
+    };
+    
+    try {
+      // Always attempt Supabase signOut, but don't wait for validation
+      const signOutPromise = supabase.auth.signOut();
+      
+      // Clear local state immediately
+      clearLocalState();
+      
+      // Show success message immediately
+      toast({
+        title: "Signed out", 
+        description: "You have been signed out successfully."
+      });
+      
+      // Navigate immediately
+      navigate('/auth');
+      
+      // Wait for Supabase signOut to complete in background
+      try {
+        const { error } = await signOutPromise;
+        if (error) {
+          console.log('⚠️ Supabase signOut error (already handled):', error.message);
+        } else {
+          console.log('✅ Supabase signOut completed successfully');
+        }
+      } catch (signOutError) {
+        console.log('⚠️ Supabase signOut failed (already handled):', signOutError);
+      }
+      
+      return { error: null };
+      
+    } catch (catchError: any) {
+      console.error('💥 Unexpected error during logout:', catchError);
+      
+      // Ensure state is cleared even in unexpected errors
+      clearLocalState();
       
       toast({
         title: "Signed out",
