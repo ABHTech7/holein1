@@ -158,9 +158,6 @@ const ClubDashboardNew = () => {
         const yearStart = new Date(now.getFullYear(), 0, 1);
         const weekStart = new Date(todayStart.getTime() - (7 * 24 * 60 * 60 * 1000));
 
-        console.log('Debug: About to fetch entries for club:', profile.club_id);
-        console.log('Debug: User role:', profile.role);
-        
         // Fetch recent entries for stats calculation
         let entriesQuery = supabase
           .from('entries')
@@ -187,78 +184,25 @@ const ClubDashboardNew = () => {
         const { data: entriesData, error: entriesError } = await entriesQuery
           .order('entry_date', { ascending: false });
 
-        console.log('Entries query result:', {
-          error: entriesError,
-          dataLength: entriesData?.length || 0,
-          clubId: profile.club_id,
-          userRole: profile.role,
-          yearStart: yearStart.toISOString(),
-          todayStart: todayStart.toISOString(),
-          firstFiveEntries: entriesData?.slice(0, 5)?.map(e => ({
-            id: e.id,
-            entry_date: e.entry_date,
-            club_id: e.competitions?.club_id,
-            competition_name: e.competitions?.name
-          }))
-        });
-
         if (entriesError) {
           console.error('Entries query error:', entriesError);
         }
 
         if (entriesData) {
-          const todayEntries = entriesData.filter(e => {
-            const entryDate = new Date(e.entry_date);
-            const isToday = entryDate >= todayStart;
-            console.log('Entry date check:', {
-              entry_id: e.id,
-              entry_date: e.entry_date,
-              entryDate: entryDate.toISOString(),
-              todayStart: todayStart.toISOString(),
-              isToday,
-              club_id: e.competitions?.club_id,
-              competition_name: e.competitions?.name
-            });
-            return isToday;
-          });
-
-          const entriesToday = todayEntries.length;
+          const entriesToday = entriesData.filter(e => 
+            new Date(e.entry_date) >= todayStart
+          ).length;
+          
           const entriesThisWeek = entriesData.filter(e => 
             new Date(e.entry_date) >= weekStart
           ).length;
-
-          console.log('Final count results:', {
-            totalEntries: entriesData.length,
-            entriesToday,
-            entriesThisWeek,
-            todayEntries: todayEntries.map(e => ({
-              id: e.id,
-              date: e.entry_date,
-              club: e.competitions?.club_id
-            }))
-          });
-
-          console.log('Commission calculation data:', {
-            entriesData: entriesData?.length || 0,
-            paidEntriesCount: entriesData?.filter(e => e.paid).length || 0,
-            sampleEntry: entriesData?.[0],
-            todayStart: todayStart.toISOString(),
-            monthStart: monthStart.toISOString()
-          });
 
           // Calculate commission for paid entries only
           const paidEntries = entriesData.filter(e => e.paid);
           
           const commissionToday = paidEntries
-            .filter(e => {
-              const entryDate = new Date(e.entry_date);
-              console.log('Today filter:', entryDate, '>=', todayStart, ':', entryDate >= todayStart);
-              return entryDate >= todayStart;
-            })
-            .reduce((sum, e) => {
-              console.log('Adding commission:', e.competitions.commission_amount);
-              return sum + (e.competitions.commission_amount || 0);
-            }, 0);
+            .filter(e => new Date(e.entry_date) >= todayStart)
+            .reduce((sum, e) => sum + (e.competitions.commission_amount || 0), 0);
 
           const commissionMonth = paidEntries
             .filter(e => new Date(e.entry_date) >= monthStart)
