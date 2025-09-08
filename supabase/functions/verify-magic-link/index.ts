@@ -88,9 +88,9 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log("Token validation successful. Token is still valid.");
 
-    // Check if user already exists using direct database query
-    const { data: existingUsers, error: queryError } = await supabaseAdmin
-      .from('auth.users')
+    // Check if user already exists using profiles table lookup
+    const { data: existingProfile, error: queryError } = await supabaseAdmin
+      .from('profiles')
       .select('id')
       .eq('email', tokenData.email)
       .maybeSingle();
@@ -102,11 +102,11 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Failed to verify user status");
     }
 
-    if (existingUsers) {
+    if (existingProfile) {
       // User exists, get their full user object
       console.log("User already exists, fetching existing user data");
       
-      const { data: existingUserData, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(existingUsers.id);
+      const { data: existingUserData, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(existingProfile.id);
       
       if (getUserError || !existingUserData.user) {
         console.error("Error fetching existing user:", getUserError);
