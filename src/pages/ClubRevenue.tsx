@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Calendar, TrendingUp, DollarSign, Download, Trophy, ArrowLeft } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDateTime } from "@/lib/formatters";
@@ -30,6 +31,8 @@ const ClubRevenue = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [revenueEntries, setRevenueEntries] = useState<RevenueEntry[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [chartPeriod, setChartPeriod] = useState("7");
   const [stats, setStats] = useState({
     dailyRevenue: 0,
     monthToDate: 0,
@@ -115,6 +118,38 @@ const ClubRevenue = () => {
 
       setRevenueEntries(processedEntries);
 
+      // Generate chart data based on selected period
+      const generateChartData = (days: number) => {
+        const chartEntries = [];
+        const now = new Date();
+        
+        for (let i = days - 1; i >= 0; i--) {
+          const date = new Date(now);
+          date.setDate(date.getDate() - i);
+          date.setHours(0, 0, 0, 0);
+          
+          const nextDate = new Date(date);
+          nextDate.setDate(nextDate.getDate() + 1);
+          
+          const dayEntries = processedEntries.filter(entry => {
+            const entryDate = new Date(entry.entry_date);
+            return entryDate >= date && entryDate < nextDate;
+          });
+          
+          const dayRevenue = dayEntries.reduce((sum, entry) => sum + entry.commission_amount, 0);
+          
+          chartEntries.push({
+            date: date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }),
+            revenue: dayRevenue,
+            entries: dayEntries.length
+          });
+        }
+        
+        return chartEntries;
+      };
+
+      setChartData(generateChartData(parseInt(chartPeriod)));
+
       // Calculate commission stats - using same logic as dashboard
       const todayEntries = processedEntries.filter(e => new Date(e.entry_date) >= todayStart);
       const dailyRevenueCalc = todayEntries.reduce((sum, e) => sum + e.commission_amount, 0);
@@ -161,6 +196,41 @@ const ClubRevenue = () => {
       title: 'Coming Soon',
       description: 'Revenue report download will be available soon',
     });
+  };
+
+  const handlePeriodChange = (newPeriod: string) => {
+    setChartPeriod(newPeriod);
+    
+    const generateChartData = (days: number) => {
+      const chartEntries = [];
+      const now = new Date();
+      
+      for (let i = days - 1; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
+        date.setHours(0, 0, 0, 0);
+        
+        const nextDate = new Date(date);
+        nextDate.setDate(nextDate.getDate() + 1);
+        
+        const dayEntries = revenueEntries.filter(entry => {
+          const entryDate = new Date(entry.entry_date);
+          return entryDate >= date && entryDate < nextDate;
+        });
+        
+        const dayRevenue = dayEntries.reduce((sum, entry) => sum + entry.commission_amount, 0);
+        
+        chartEntries.push({
+          date: date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }),
+          revenue: dayRevenue,
+          entries: dayEntries.length
+        });
+      }
+      
+      return chartEntries;
+    };
+
+    setChartData(generateChartData(parseInt(newPeriod)));
   };
 
   return (
@@ -220,6 +290,62 @@ const ClubRevenue = () => {
                 />
               </div>
 
+              {/* Revenue Trend Chart */}
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>Revenue Trend</CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Daily commission earnings over time
+                      </p>
+                    </div>
+                    <Select value={chartPeriod} onValueChange={handlePeriodChange}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="7">7 Days</SelectItem>
+                        <SelectItem value="30">30 Days</SelectItem>
+                        <SelectItem value="90">90 Days</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis 
+                          dataKey="date" 
+                          className="text-xs text-muted-foreground"
+                        />
+                        <YAxis 
+                          className="text-xs text-muted-foreground"
+                          tickFormatter={(value) => `£${value}`}
+                        />
+                        <Tooltip 
+                          formatter={(value, name) => [
+                            `£${Number(value).toFixed(2)}`, 
+                            name === 'revenue' ? 'Revenue' : 'Entries'
+                          ]}
+                          labelFormatter={(label) => `Date: ${label}`}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="revenue" 
+                          stroke="hsl(var(--primary))" 
+                          strokeWidth={2}
+                          dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
 
               {/* Recent Revenue Entries */}
               <Card>
@@ -260,16 +386,16 @@ const ClubRevenue = () => {
                           const isToday = entryDate >= new Date(new Date().setHours(0, 0, 0, 0));
                           
                           return (
-                            <TableRow key={entry.id} className={isToday ? 'bg-accent/50' : ''}>
+                            <TableRow key={entry.id}>
                               <TableCell>
                                 <div className="flex items-center gap-2">
                                   <Calendar className="w-4 h-4 text-muted-foreground" />
                                   <div className="flex flex-col">
-                                    <span className={isToday ? 'font-semibold text-primary' : ''}>
+                                    <span>
                                       {formatDateTime(entry.entry_date)}
                                     </span>
                                     {isToday && (
-                                      <span className="text-xs text-primary">Today's Entry</span>
+                                      <span className="text-xs text-muted-foreground">Today's Entry</span>
                                     )}
                                   </div>
                                 </div>
@@ -277,9 +403,7 @@ const ClubRevenue = () => {
                               <TableCell>{entry.competition_name}</TableCell>
                               <TableCell>{entry.player_email}</TableCell>
                               <TableCell className="font-medium">
-                                <span className={isToday ? 'text-primary font-bold' : ''}>
-                                  {formatCurrency(entry.commission_amount)}
-                                </span>
+                                {formatCurrency(entry.commission_amount)}
                               </TableCell>
                             </TableRow>
                           );
