@@ -131,24 +131,33 @@ const ClubRevenue = () => {
           const nextDate = new Date(date);
           nextDate.setDate(nextDate.getDate() + 1);
           
+          // Filter entries for this specific day
           const dayEntries = processedEntries.filter(entry => {
             const entryDate = new Date(entry.entry_date);
-            return entryDate >= date && entryDate < nextDate;
+            // Normalize entry date to start of day for comparison
+            const entryDayStart = new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate());
+            const targetDayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            return entryDayStart.getTime() === targetDayStart.getTime();
           });
           
           const dayRevenue = dayEntries.reduce((sum, entry) => sum + entry.commission_amount, 0);
           
+          console.log(`Chart Data - ${date.toDateString()}: ${dayEntries.length} entries, £${dayRevenue.toFixed(2)} revenue`);
+          
           chartEntries.push({
             date: date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }),
             revenue: dayRevenue,
-            entries: dayEntries.length
+            entries: dayEntries.length,
+            fullDate: date.toDateString() // for debugging
           });
         }
         
         return chartEntries;
       };
 
-      setChartData(generateChartData(parseInt(chartPeriod)));
+      const initialChartData = generateChartData(parseInt(chartPeriod));
+      console.log('Initial chart data:', initialChartData);
+      setChartData(initialChartData);
 
       // Calculate commission stats - using same logic as dashboard
       const todayEntries = processedEntries.filter(e => new Date(e.entry_date) >= todayStart);
@@ -210,27 +219,33 @@ const ClubRevenue = () => {
         date.setDate(date.getDate() - i);
         date.setHours(0, 0, 0, 0);
         
-        const nextDate = new Date(date);
-        nextDate.setDate(nextDate.getDate() + 1);
-        
+        // Filter entries for this specific day
         const dayEntries = revenueEntries.filter(entry => {
           const entryDate = new Date(entry.entry_date);
-          return entryDate >= date && entryDate < nextDate;
+          // Normalize entry date to start of day for comparison
+          const entryDayStart = new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate());
+          const targetDayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+          return entryDayStart.getTime() === targetDayStart.getTime();
         });
         
         const dayRevenue = dayEntries.reduce((sum, entry) => sum + entry.commission_amount, 0);
         
+        console.log(`Period Change Chart Data - ${date.toDateString()}: ${dayEntries.length} entries, £${dayRevenue.toFixed(2)} revenue`);
+        
         chartEntries.push({
           date: date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }),
           revenue: dayRevenue,
-          entries: dayEntries.length
+          entries: dayEntries.length,
+          fullDate: date.toDateString() // for debugging
         });
       }
       
       return chartEntries;
     };
 
-    setChartData(generateChartData(parseInt(newPeriod)));
+    const newChartData = generateChartData(parseInt(newPeriod));
+    console.log('New chart data for period', newPeriod, ':', newChartData);
+    setChartData(newChartData);
   };
 
   return (
