@@ -36,7 +36,7 @@ const EntryPageNew = () => {
   const venueSlug = params.venueSlug;
   
   // Determine if this is legacy format (numeric) or new format (slug)
-  const secondParam = params.competitionSlug || params.holeNumber;
+  const secondParam = params.param;
   const isNumeric = secondParam && /^\d+$/.test(secondParam);
   
   const holeNumber = isNumeric ? secondParam : undefined;
