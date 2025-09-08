@@ -172,18 +172,23 @@ const handler = async (req: Request): Promise<Response> => {
       // Don't fail the request for this, just log it
     }
 
-    // Generate an access token for the user
-    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      email: tokenData.email,
-    });
+    // Generate proper access and refresh tokens for the user
+    console.log("Generating access token for user:", user.id);
+    
+    const { data: tokenResponse, error: tokenError } = await supabaseAdmin.auth.admin.generateAccessToken(user.id);
 
-    if (sessionError) {
-      console.error("Error generating session:", sessionError);
+    if (tokenError) {
+      console.error("Error generating access token:", tokenError);
       throw new Error("Failed to create user session");
     }
 
+    if (!tokenResponse?.access_token) {
+      console.error("No access token returned from generateAccessToken");
+      throw new Error("Failed to generate valid access token");
+    }
+
     console.log("Magic link verification successful for user:", user.id);
+    console.log("Access token generated successfully");
 
     return new Response(JSON.stringify({ 
       success: true,
@@ -194,8 +199,8 @@ const handler = async (req: Request): Promise<Response> => {
         last_name: tokenData.last_name
       },
       competition_url: tokenData.competition_url,
-      access_token: sessionData.properties?.access_token,
-      refresh_token: sessionData.properties?.refresh_token
+      access_token: tokenResponse.access_token,
+      refresh_token: tokenResponse.refresh_token
     }), {
       status: 200,
       headers: {
