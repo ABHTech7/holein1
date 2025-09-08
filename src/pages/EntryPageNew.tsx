@@ -5,6 +5,7 @@ import useAuth from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { analytics } from "@/lib/analytics";
 import { createClubSlug } from "@/lib/competitionUtils";
+import { ClubService } from "@/lib/clubService";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Container from "@/components/layout/Container";
@@ -46,15 +47,11 @@ const EntryPageNew = () => {
       if (!venueSlug || !holeNumber) return;
 
       try {
-        // Get all clubs to find the one that matches the slug
-        const { data: clubs, error: clubsError } = await supabase
-          .from('clubs')
-          .select('id, name, logo_url')
-          .eq('active', true)
-          .eq('archived', false);
+        // Get all clubs safely (works for unauthenticated users)
+        const clubs = await ClubService.getSafeClubsData();
 
-        if (clubsError || !clubs) {
-          console.error('Clubs error:', clubsError);
+        if (!clubs || clubs.length === 0) {
+          console.error('No clubs found');
           toast({
             title: "Error loading clubs",
             description: "Something went wrong. Please try again.",
