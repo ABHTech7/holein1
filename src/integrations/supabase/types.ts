@@ -813,6 +813,13 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      is_role_change_authorized: {
+        Args: {
+          new_role: Database["public"]["Enums"]["user_role"]
+          target_user_id: string
+        }
+        Returns: boolean
+      }
       is_valid_email: {
         Args: { email_text: string }
         Returns: boolean
