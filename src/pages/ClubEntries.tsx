@@ -58,10 +58,10 @@ const ClubEntries = () => {
   }, [searchParams]);
 
   useEffect(() => {
-    if (profile?.club_id) {
+    if (profile && (profile?.club_id || profile?.role === 'ADMIN')) {
       fetchEntries();
     }
-  }, [profile?.club_id]);
+  }, [profile?.club_id, profile?.role]);
 
   useEffect(() => {
     let filtered = entries.filter(entry => {
@@ -92,12 +92,12 @@ const ClubEntries = () => {
   }, [entries, searchTerm, statusFilter, competitionFilter]);
 
   const fetchEntries = async () => {
-    if (!profile?.club_id) return;
+    if (!profile?.club_id && profile?.role !== 'ADMIN') return;
 
     try {
       setLoading(true);
 
-      const { data: entriesData, error } = await supabase
+      let query = supabase
         .from('entries')
         .select(`
           id,
@@ -122,15 +122,24 @@ const ClubEntries = () => {
             first_name,
             last_name
           )
-        `)
-        .eq('competitions.club_id', profile.club_id)
+        `);
+
+      // Filter by club_id only for club members, admins see all
+      if (profile?.role !== 'ADMIN' && profile?.club_id) {
+        query = query.eq('competitions.club_id', profile.club_id);
+      }
+
+      const { data: entriesData, error } = await query
         .order('entry_date', { ascending: false });
 
       console.log('ClubEntries query:', {
         error,
         dataLength: entriesData?.length || 0,
         clubId: profile.club_id,
-        competitionIdParam: searchParams.get('competition')
+        competitionIdParam: searchParams.get('competition'),
+        rawData: entriesData?.slice(0, 3), // Show first 3 entries for debugging
+        userRole: profile?.role,
+        isAdmin: profile?.role === 'ADMIN'
       });
 
       if (error) throw error;
@@ -212,7 +221,7 @@ const ClubEntries = () => {
       return { label: "MISSED", variant: "secondary" as const, color: "text-gray-600" };
     }
     if (entry.outcome_self === 'auto_miss') {
-      return { label: "AUTO-MISSED", variant: "destructive" as const, color: "text-red-600" };
+      return { label: "AUTO-MISSED", variant: "secondary" as const, color: "text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800" };
     }
     
     // Check database status
@@ -391,11 +400,14 @@ const ClubEntries = () => {
                                    {paymentStatus.label}
                                  </Badge>
                                </TableCell>
-                               <TableCell>
-                                 <Badge variant={entryStatus.variant} className={entryStatus.color}>
-                                   {entryStatus.label}
-                                 </Badge>
-                               </TableCell>
+                                <TableCell>
+                                  <Badge 
+                                    variant={entryStatus.variant} 
+                                    className={`${entryStatus.color} font-medium`}
+                                  >
+                                    {entryStatus.label}
+                                  </Badge>
+                                </TableCell>
                                <TableCell>
                                  <div className="flex items-center gap-2">
                                    <Mail className="w-4 h-4 text-muted-foreground" />
