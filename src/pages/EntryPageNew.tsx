@@ -32,10 +32,13 @@ interface VenueCompetition {
 }
 
 const EntryPageNew = () => {
+  console.log('🚀 EntryPageNew component mounting...');
   const { clubSlug, competitionSlug } = useParams<{
     clubSlug: string;
     competitionSlug: string;
   }>();
+  console.log('📍 Raw URL params:', { clubSlug, competitionSlug });
+  
   const navigate = useNavigate();
   const { user } = useAuth();
   const [competition, setCompetition] = useState<VenueCompetition | null>(null);
