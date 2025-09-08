@@ -66,8 +66,28 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Check if token is expired
-    if (new Date(tokenData.expires_at) <= new Date()) {
-      console.error("Token expired:", token, "expired at:", tokenData.expires_at);
+    const now = new Date();
+    const expiresAt = new Date(tokenData.expires_at);
+    
+    // Log London time for debugging
+    const londonFormatter = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/London',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    
+    const nowLondon = londonFormatter.format(now);
+    const expiresLondon = londonFormatter.format(expiresAt);
+    
+    if (expiresAt <= now) {
+      console.error("Token expired:", token);
+      console.error("Current London time:", nowLondon);
+      console.error("Token expired at London time:", expiresLondon);
       return new Response(JSON.stringify({ 
         success: false,
         error: "This magic link has expired. Please request a new one." 
@@ -76,6 +96,8 @@ const handler = async (req: Request): Promise<Response> => {
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
+    
+    console.log("Token validation successful. Current London time:", nowLondon, "Expires London time:", expiresLondon);
 
     // Try to create the user - if they already exist, we'll get them back
     const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({

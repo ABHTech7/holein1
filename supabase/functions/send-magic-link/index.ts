@@ -44,9 +44,41 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
+    // Invalidate any existing unused tokens for this email
+    const { error: invalidateError } = await supabaseAdmin
+      .from('magic_link_tokens')
+      .update({ used: true, used_at: new Date().toISOString() })
+      .eq('email', email)
+      .eq('used', false);
+
+    if (invalidateError) {
+      console.error("Error invalidating previous tokens:", invalidateError);
+      // Continue anyway - this shouldn't block the new token creation
+    }
+
     // Generate a secure token for the magic link
     const token = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    
+    // Set expiration to 15 minutes from now in London timezone
+    const now = new Date();
+    
+    // Get London time (handles both GMT and BST automatically)
+    const londonFormatter = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/London',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    
+    const londonTimeString = londonFormatter.format(now);
+    console.log("Current London time:", londonTimeString);
+    
+    // Add 15 minutes to current time for expiration
+    const expiresAt = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes
 
     // Store the magic link token with user data
     const { error: tokenError } = await supabaseAdmin
