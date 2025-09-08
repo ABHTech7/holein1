@@ -108,7 +108,7 @@ const ClubEntries = () => {
           completed_at,
           competition_id,
           player_id,
-          competitions!inner(
+          competitions(
             id,
             name,
             hole_number,
@@ -116,7 +116,7 @@ const ClubEntries = () => {
             entry_fee,
             club_id
           ),
-          profiles!inner(
+          profiles(
             id,
             email,
             first_name,
@@ -131,16 +131,6 @@ const ClubEntries = () => {
 
       const { data: entriesData, error } = await query
         .order('entry_date', { ascending: false });
-
-      console.log('ClubEntries query:', {
-        error,
-        dataLength: entriesData?.length || 0,
-        clubId: profile.club_id,
-        competitionIdParam: searchParams.get('competition'),
-        rawData: entriesData?.slice(0, 3), // Show first 3 entries for debugging
-        userRole: profile?.role,
-        isAdmin: profile?.role === 'ADMIN'
-      });
 
       if (error) throw error;
 
