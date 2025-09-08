@@ -45,29 +45,50 @@ export const useAuth = () => {
   };
 
   useEffect(() => {
-    // Set up auth state listener
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setAuthState(prev => ({ ...prev, session, user: session?.user ?? null }));
+      (event, session) => {
+        console.log('Auth state change:', event, session?.user?.id);
+        
+        // Always update session and user state immediately
+        setAuthState(prev => ({ 
+          ...prev, 
+          session, 
+          user: session?.user ?? null 
+        }));
         
         if (session?.user) {
-          // Fetch profile data
-          setTimeout(async () => {
-            const profile = await fetchProfile(session.user.id);
-            setAuthState(prev => ({ ...prev, profile, loading: false }));
+          // Defer profile fetching to avoid blocking auth state changes
+          setTimeout(() => {
+            fetchProfile(session.user.id).then(profile => {
+              setAuthState(prev => ({ ...prev, profile, loading: false }));
+            }).catch(error => {
+              console.error('Error fetching profile in auth callback:', error);
+              setAuthState(prev => ({ ...prev, loading: false }));
+            });
           }, 0);
         } else {
-          setAuthState(prev => ({ ...prev, profile: null, loading: false }));
+          // Clear profile immediately when session is null
+          setAuthState(prev => ({ 
+            ...prev, 
+            profile: null, 
+            loading: false 
+          }));
         }
       }
     );
 
-    // Check for existing session
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.id);
+      
       if (session?.user) {
         setAuthState(prev => ({ ...prev, session, user: session.user }));
         fetchProfile(session.user.id).then(profile => {
           setAuthState(prev => ({ ...prev, profile, loading: false }));
+        }).catch(error => {
+          console.error('Error fetching profile in initial check:', error);
+          setAuthState(prev => ({ ...prev, loading: false }));
         });
       } else {
         setAuthState(prev => ({ ...prev, loading: false }));
