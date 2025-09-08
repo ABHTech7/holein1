@@ -124,6 +124,59 @@ export type Database = {
           },
         ]
       }
+      club_banking: {
+        Row: {
+          access_count: number | null
+          bank_account_holder: string | null
+          bank_account_number: string | null
+          bank_iban: string | null
+          bank_sort_code: string | null
+          bank_swift: string | null
+          club_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          last_accessed_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_count?: number | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_iban?: string | null
+          bank_sort_code?: string | null
+          bank_swift?: string | null
+          club_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_count?: number | null
+          bank_account_holder?: string | null
+          bank_account_number?: string | null
+          bank_iban?: string | null
+          bank_sort_code?: string | null
+          bank_swift?: string | null
+          club_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "club_banking_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: true
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       club_payments: {
         Row: {
           amount: number
@@ -325,6 +378,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      data_access_log: {
+        Row: {
+          access_type: string
+          created_at: string
+          id: string
+          ip_address: unknown | null
+          record_id: string | null
+          sensitive_fields: string[] | null
+          table_name: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          access_type: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          record_id?: string | null
+          sensitive_fields?: string[] | null
+          table_name: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          access_type?: string
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          record_id?: string | null
+          sensitive_fields?: string[] | null
+          table_name?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       entries: {
         Row: {
@@ -765,6 +854,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_current_user_profile_safe: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          role: Database["public"]["Enums"]["user_role"]
+        }[]
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
@@ -827,6 +927,19 @@ export type Database = {
       is_valid_phone: {
         Args: { phone_text: string }
         Returns: boolean
+      }
+      log_sensitive_access: {
+        Args: {
+          access_type: string
+          record_id: string
+          sensitive_fields: string[]
+          table_name: string
+        }
+        Returns: boolean
+      }
+      migrate_club_banking_data: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       update_expired_entries: {
         Args: Record<PropertyKey, never>
