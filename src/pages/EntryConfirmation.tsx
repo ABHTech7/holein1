@@ -34,38 +34,121 @@ interface EntryData {
 const EntryConfirmation = () => {
   const { entryId } = useParams();
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, forceRefresh } = useAuth();
   const [entry, setEntry] = useState<EntryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    console.log('🔍 EntryConfirmation: Auth state check', { user: !!user, entryId });
+    console.log('🔍 EntryConfirmation: Component mounted', { user: !!user, entryId });
     
-    // Don't redirect immediately - wait for auth state to stabilize
-    if (user && entryId) {
-      console.log('✅ EntryConfirmation: User found, fetching entry');
-      fetchEntry();
+    if (!entryId) {
+      console.log('❌ EntryConfirmation: No entryId provided');
+      navigate('/');
+      return;
     }
-  }, [entryId, user]);
+
+    // Force check for session and attempt to fetch entry
+    const initializeEntry = async () => {
+      console.log('🔄 EntryConfirmation: Initializing entry fetch...');
+      
+      // First try with current user
+      if (user?.id) {
+        console.log('✅ EntryConfirmation: User from hook available, fetching entry');
+        await fetchEntry();
+        return;
+      }
+
+      // If no user from hook, check Supabase session directly
+      console.log('⚠️ EntryConfirmation: No user from hook, checking Supabase session...');
+      try {
+        // Try force refresh first
+        const authRefreshed = await forceRefresh?.();
+        if (authRefreshed) {
+          console.log('✅ EntryConfirmation: Auth refreshed successfully, fetching entry');
+          setTimeout(() => fetchEntry(), 100); // Small delay to let state update
+          return;
+        }
+
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('🔍 EntryConfirmation: Session check result', { 
+          hasSession: !!session, 
+          userId: session?.user?.id,
+          error: error?.message 
+        });
+
+        if (session?.user?.id) {
+          console.log('✅ EntryConfirmation: Session found, fetching entry');
+          await fetchEntry();
+          return;
+        }
+
+        // Check localStorage as fallback
+        const storedSession = localStorage.getItem('sb-srnbylbbsdckkwatfqjg-auth-token');
+        if (storedSession) {
+          console.log('⚠️ EntryConfirmation: Found stored session, waiting for auth sync...');
+          // Give auth hook time to sync
+          setTimeout(async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user?.id) {
+              console.log('✅ EntryConfirmation: Auth synced, fetching entry');
+              await fetchEntry();
+            } else {
+              console.log('❌ EntryConfirmation: Auth sync failed after delay');
+              setLoading(false);
+            }
+          }, 2000);
+          return;
+        }
+
+        console.log('❌ EntryConfirmation: No authentication found');
+        setLoading(false);
+      } catch (error) {
+        console.error('💥 EntryConfirmation: Session check failed', error);
+        setLoading(false);
+      }
+    };
+
+    // Set up timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ EntryConfirmation: Timeout reached, stopping loading');
+      setLoading(false);
+    }, 10000); // 10 second timeout
+
+    const cleanup = () => clearTimeout(timeoutId);
+    
+    initializeEntry().finally(cleanup);
+    return cleanup;
+  }, [entryId, user, navigate, forceRefresh]);
 
   const fetchEntry = async () => {
-    if (!entryId) return;
+    if (!entryId) {
+      console.log('❌ fetchEntry: No entryId provided');
+      return;
+    }
+
+    console.log('🔄 fetchEntry: Starting entry fetch...', { entryId });
 
     // Try to get session directly from Supabase if user hook hasn't updated yet
     let userId = user?.id;
     if (!userId) {
+      console.log('⚠️ fetchEntry: No user from hook, checking Supabase session...');
       const { data: { session } } = await supabase.auth.getSession();
       userId = session?.user?.id;
+      console.log('🔍 fetchEntry: Session check result', { userId });
     }
 
     if (!userId) {
-      console.log('❌ EntryConfirmation: No user ID available');
+      console.log('❌ fetchEntry: No user ID available from any source');
+      setLoading(false);
       return;
     }
 
     try {
+        setLoading(true);
+        console.log('🔄 fetchEntry: Querying database...', { entryId, userId });
+        
         const { data, error } = await supabase
           .from('entries')
           .select(`
@@ -84,25 +167,33 @@ const EntryConfirmation = () => {
           .eq('player_id', userId)
           .single();
 
+        console.log('🔍 fetchEntry: Database query result', { 
+          hasData: !!data, 
+          error: error?.message,
+          entryStatus: data?.status,
+          hasOutcome: !!data?.outcome_self
+        });
+
         if (error || !data) {
-          console.error('Entry fetch error:', error);
+          console.error('❌ fetchEntry: Entry fetch error:', error);
           toast({
             title: "Entry not found",
-            description: "Could not find your entry or it may still be loading",
+            description: error?.message || "Could not find your entry",
             variant: "destructive"
           });
-          // Don't navigate away immediately - user might still be authenticating
+          setLoading(false);
           return;
         }
 
         // Get venue name from club
+        console.log('🔄 fetchEntry: Fetching venue details...', { clubId: data.competitions.club_id });
         const { data: venue } = await supabase
           .from('venues')
           .select('name')
           .eq('club_id', data.competitions.club_id)
           .single();
 
-        setEntry({
+        const entryData = {
           id: data.id,
           competition_name: data.competitions.name,
           hole_number: data.competitions.hole_number,
@@ -111,10 +202,29 @@ const EntryConfirmation = () => {
           attempt_window_end: data.attempt_window_end,
           status: data.status,
           outcome_self: data.outcome_self
+        };
+
+        console.log('✅ fetchEntry: Entry data loaded successfully', {
+          entryId: entryData.id,
+          competitionName: entryData.competition_name,
+          hasAttemptWindow: !!(entryData.attempt_window_start && entryData.attempt_window_end),
+          outcome: entryData.outcome_self
         });
 
+        setEntry(entryData);
+
+        // Check if attempt window has expired
+        if (entryData.attempt_window_end) {
+          const endTime = new Date(entryData.attempt_window_end);
+          const now = new Date();
+          if (now > endTime && !entryData.outcome_self) {
+            console.log('⚠️ fetchEntry: Attempt window expired, triggering auto-miss');
+            setTimeout(() => handleAutoMiss(), 1000);
+          }
+        }
+
       } catch (error: any) {
-        console.error('Error fetching entry:', error);
+        console.error('💥 fetchEntry: Unexpected error:', error);
         toast({
           title: "Error",
           description: "Failed to load entry details",
@@ -241,8 +351,8 @@ const EntryConfirmation = () => {
     }
   };
 
-  // Show loading if we don't have entry data OR if we're still waiting for auth
-  if (loading || (!entry && !user)) {
+  // Show loading while we're fetching data
+  if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
         <SiteHeader />

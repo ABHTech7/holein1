@@ -46,6 +46,43 @@ export const useAuth = () => {
     return data as Profile;
   };
 
+  const forceRefresh = async () => {
+    console.log('🔄 useAuth: Force refreshing auth state...');
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      console.log('🔍 useAuth: Force refresh result', { 
+        hasSession: !!session, 
+        userId: session?.user?.id,
+        error: error?.message 
+      });
+      
+      if (session?.user) {
+        setAuthState(prev => ({ 
+          ...prev, 
+          session, 
+          user: session.user 
+        }));
+        
+        const profile = await fetchProfile(session.user.id);
+        setAuthState(prev => ({ ...prev, profile, loading: false }));
+        return true;
+      } else {
+        setAuthState(prev => ({ 
+          ...prev, 
+          session: null, 
+          user: null, 
+          profile: null, 
+          loading: false 
+        }));
+        return false;
+      }
+    } catch (error) {
+      console.error('💥 useAuth: Force refresh failed', error);
+      setAuthState(prev => ({ ...prev, loading: false }));
+      return false;
+    }
+  };
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -217,6 +254,7 @@ export const useAuth = () => {
     signUp,
     signIn,
     signOut,
+    forceRefresh,
     refreshProfile: () => {
       if (authState.user?.id) {
         fetchProfile(authState.user.id).then(profile => {
