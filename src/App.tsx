@@ -14,6 +14,7 @@ import AuthCallback from "./pages/AuthCallback";
 import CompetitionEntry from "./pages/CompetitionEntry";
 import EntryPageNew from "./pages/EntryPageNew";
 import EntryConfirmation from "./pages/EntryConfirmation";
+import TokenEntryConfirmation from "./pages/TokenEntryConfirmation";
 import DeveloperDemo from "./pages/DeveloperDemo";
 import AdminDashboard from "./pages/AdminDashboard";
 import ClubDashboard from "./pages/ClubDashboard";
@@ -92,6 +93,7 @@ const App = () => {
               } 
             />
             <Route path="/entry/:entryId/confirmation" element={<EntryConfirmation />} />
+            <Route path="/entry-confirm" element={<TokenEntryConfirmation />} />
             {/* Legacy routes for backward compatibility */}
             <Route path="/enter/:competitionId" element={<CompetitionEntry />} />
             <Route path="/competitions/:id" element={<CompetitionDetail />} />

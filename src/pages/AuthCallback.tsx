@@ -78,6 +78,16 @@ const AuthCallback = () => {
             }
           }
 
+          console.log("Magic link verification successful:", data);
+        
+          // Check if we have a redirect URL for the new token-based flow
+          if (data.redirect_url) {
+            console.log("Redirecting to token-based confirmation:", data.redirect_url);
+            window.location.href = data.redirect_url;
+            return;
+          }
+          
+          // Fallback to old flow if no redirect URL
           setStatus('success');
           setMessage(`Welcome ${data.user?.first_name}! Taking you to your golf challenge...`);
           
