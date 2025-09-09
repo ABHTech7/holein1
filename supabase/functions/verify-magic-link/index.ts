@@ -364,52 +364,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Magic link verification successful for user:", user.id);
 
-    // Create confirmation token for entry access
-    const { data: confirmationToken, error: confirmationTokenError } = await supabaseAdmin
-      .from('entry_confirmation_tokens')
-      .insert({
-        entry_id: entry.id,
-        magic_token: token,
-        user_data: {
-          id: user.id,
-          email: user.email,
-          first_name: tokenData.first_name,
-          last_name: tokenData.last_name,
-          role: 'PLAYER'
-        }
-      })
-      .select('token')
-      .single();
-
-    if (confirmationTokenError || !confirmationToken) {
-      console.error("Failed to create confirmation token:", confirmationTokenError);
-      // Fallback to old response format if token creation fails
-      return new Response(JSON.stringify({ 
-        success: true,
-        user: {
-          id: user.id,
-          email: user.email,
-          first_name: tokenData.first_name,
-          last_name: tokenData.last_name,
-          role: 'PLAYER'
-        },
-        entry_id: entry.id,
-        competition_url: tokenData.competition_url
-      }), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
-        },
-      });
-    }
-
-    console.log("Confirmation token created:", confirmationToken.token);
-
-    // Return redirect URL for the new token-based confirmation page
+    // Return redirect URL for the original working confirmation page
     const responseData = { 
       success: true,
-      redirect_url: `/entry-confirm?token=${confirmationToken.token}&entry=${entry.id}`,
+      redirect_url: `/entry/${entry.id}/confirmation`,
       user: {
         id: user.id,
         email: user.email,
