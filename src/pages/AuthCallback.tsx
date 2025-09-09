@@ -57,6 +57,25 @@ const AuthCallback = () => {
               console.error('Session error:', sessionError);
               // Continue anyway - the user account was created successfully
             }
+            
+            // Wait for session to be fully established
+            console.log('⏳ Waiting for session to be established...');
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            while (attempts < maxAttempts) {
+              const { data: { session } } = await supabase.auth.getSession();
+              if (session?.user) {
+                console.log('✅ Session established successfully');
+                break;
+              }
+              attempts++;
+              await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            
+            if (attempts >= maxAttempts) {
+              console.warn('⚠️ Session establishment timeout, proceeding anyway');
+            }
           }
 
           setStatus('success');
@@ -66,17 +85,23 @@ const AuthCallback = () => {
           console.log('📝 Entry ID from response:', data.entry_id);
           console.log('🌐 Competition URL from response:', data.competition_url);
           
+          // Store entry ID in localStorage as backup
+          if (data.entry_id) {
+            localStorage.setItem('pending_entry_id', data.entry_id);
+          }
+          
           // Redirect to entry confirmation page if we have an entry ID
           if (data.entry_id) {
             const redirectUrl = `/entry/${data.entry_id}/confirmation`;
             console.log("✅ Redirecting to entry confirmation:", redirectUrl);
-            setTimeout(() => navigate(redirectUrl), 1500);
+            // Increased delay to ensure session is ready
+            setTimeout(() => navigate(redirectUrl), 2500);
           } else {
             // Fallback to competition URL
             console.log("❌ No entry_id found, using fallback redirect");
             const redirectUrl = data.competition_url || searchParams.get('redirect') || '/';
             console.log("⚠️ Fallback redirect:", redirectUrl);
-            setTimeout(() => navigate(redirectUrl), 1500);
+            setTimeout(() => navigate(redirectUrl), 2500);
           }
 
         } else {
@@ -127,7 +152,17 @@ const AuthCallback = () => {
       } catch (error: any) {
         console.error('Auth callback error:', error);
         setStatus('error');
-        setMessage(error.message || 'Authentication failed');
+        
+        // Handle specific error types with better messaging
+        if (error.message?.includes("12 hours")) {
+          setMessage('You must wait 12 hours between entries for the same competition.');
+        } else if (error.message?.includes("already been used")) {
+          setMessage('This magic link has already been used. Please request a new one.');
+        } else if (error.message?.includes("expired")) {
+          setMessage('This magic link has expired. Please request a new one.');
+        } else {
+          setMessage(error.message || 'Authentication failed');
+        }
         
         toast({
           title: "Authentication failed",

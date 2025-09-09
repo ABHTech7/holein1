@@ -41,15 +41,35 @@ const EntryConfirmation = () => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // Add a small delay to prevent premature redirects during auth state changes
+    console.log('🔍 EntryConfirmation: Auth state check', { user: !!user, entryId });
+    
+    // Increased delay to allow session to fully establish after magic link
     const checkAuthAndFetch = setTimeout(() => {
       if (!user) {
-        console.log('No user found, redirecting to home');
+        console.log('❌ EntryConfirmation: No user found after 1000ms, checking for session tokens in localStorage');
+        
+        // Fallback: Check if we have session tokens in localStorage
+        const session = localStorage.getItem('sb-srnbylbbsdckkwatfqjg-auth-token');
+        if (session) {
+          console.log('⚠️ EntryConfirmation: Found session tokens, waiting longer for auth state to sync');
+          // Wait a bit longer if we have session tokens
+          setTimeout(() => {
+            if (!user) {
+              console.log('❌ EntryConfirmation: Still no user after extended wait, redirecting to home');
+              navigate('/');
+            }
+          }, 2000);
+          return;
+        }
+        
+        console.log('❌ EntryConfirmation: No session tokens found, redirecting to home');
         navigate('/');
         return;
       }
+      
+      console.log('✅ EntryConfirmation: User found, fetching entry');
       fetchEntry();
-    }, 100);
+    }, 1000); // Increased from 100ms to 1000ms
 
     return () => clearTimeout(checkAuthAndFetch);
   }, [entryId, user, navigate]);

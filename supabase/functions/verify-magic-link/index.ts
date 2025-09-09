@@ -333,6 +333,19 @@ const handler = async (req: Request): Promise<Response> => {
     
     if (entryError || !entry) {
       console.error("Error creating entry:", entryError);
+      
+      // Handle specific cooldown error with better messaging
+      if (entryError.message?.includes("Players must wait 12 hours")) {
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: "You must wait 12 hours between entries for the same competition. Please try again later.",
+          error_type: "cooldown"
+        }), {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      
       throw new Error("Failed to create competition entry");
     }
     
