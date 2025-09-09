@@ -365,7 +365,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Magic link verification successful for user:", user.id);
 
     // Create confirmation token for entry access
-    const { data: confirmationToken, error: tokenError } = await supabaseAdmin
+    const { data: confirmationToken, error: confirmationTokenError } = await supabaseAdmin
       .from('entry_confirmation_tokens')
       .insert({
         entry_id: entry.id,
@@ -381,8 +381,8 @@ const handler = async (req: Request): Promise<Response> => {
       .select('token')
       .single();
 
-    if (tokenError || !confirmationToken) {
-      console.error("Failed to create confirmation token:", tokenError);
+    if (confirmationTokenError || !confirmationToken) {
+      console.error("Failed to create confirmation token:", confirmationTokenError);
       // Fallback to old response format if token creation fails
       return new Response(JSON.stringify({ 
         success: true,
