@@ -407,7 +407,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Confirmation token created:", confirmationToken.token);
 
     // Return redirect URL for the new token-based confirmation page
-    return new Response(JSON.stringify({ 
+    const responseData = { 
       success: true,
       redirect_url: `/entry-confirm?token=${confirmationToken.token}&entry=${entry.id}`,
       user: {
@@ -419,7 +419,11 @@ const handler = async (req: Request): Promise<Response> => {
       },
       entry_id: entry.id,
       competition_url: tokenData.competition_url
-    }), {
+    };
+    
+    console.log("Success response data:", JSON.stringify(responseData, null, 2));
+    
+    return new Response(JSON.stringify(responseData), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
