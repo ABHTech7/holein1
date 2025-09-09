@@ -511,42 +511,6 @@ export type Database = {
           },
         ]
       }
-      entry_confirmation_tokens: {
-        Row: {
-          created_at: string
-          entry_id: string
-          expires_at: string
-          id: string
-          magic_token: string
-          token: string
-          used: boolean
-          used_at: string | null
-          user_data: Json
-        }
-        Insert: {
-          created_at?: string
-          entry_id: string
-          expires_at?: string
-          id?: string
-          magic_token: string
-          token?: string
-          used?: boolean
-          used_at?: string | null
-          user_data: Json
-        }
-        Update: {
-          created_at?: string
-          entry_id?: string
-          expires_at?: string
-          id?: string
-          magic_token?: string
-          token?: string
-          used?: boolean
-          used_at?: string | null
-          user_data?: Json
-        }
-        Relationships: []
-      }
       leads: {
         Row: {
           club_id: string | null
