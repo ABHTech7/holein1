@@ -44,6 +44,8 @@ const AuthCallback = () => {
             throw new Error(errorMessage);
           }
 
+          console.log('🔍 Magic link verification response:', data);
+
           // Set the session using the tokens from the response
           if (data.access_token && data.refresh_token) {
             const { error: sessionError } = await supabase.auth.setSession({
@@ -60,15 +62,20 @@ const AuthCallback = () => {
           setStatus('success');
           setMessage(`Welcome ${data.user?.first_name}! Taking you to your golf challenge...`);
           
+          console.log('🔍 Magic link verification response:', data);
+          console.log('📝 Entry ID from response:', data.entry_id);
+          console.log('🌐 Competition URL from response:', data.competition_url);
+          
           // Redirect to entry confirmation page if we have an entry ID
           if (data.entry_id) {
             const redirectUrl = `/entry/${data.entry_id}/confirmation`;
-            console.log("Redirecting to entry confirmation:", redirectUrl);
+            console.log("✅ Redirecting to entry confirmation:", redirectUrl);
             setTimeout(() => navigate(redirectUrl), 1500);
           } else {
             // Fallback to competition URL
+            console.log("❌ No entry_id found, using fallback redirect");
             const redirectUrl = data.competition_url || searchParams.get('redirect') || '/';
-            console.log("Fallback redirect:", redirectUrl);
+            console.log("⚠️ Fallback redirect:", redirectUrl);
             setTimeout(() => navigate(redirectUrl), 1500);
           }
 
