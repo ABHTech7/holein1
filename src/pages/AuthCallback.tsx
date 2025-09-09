@@ -64,12 +64,12 @@ const AuthCallback = () => {
           if (data.entry_id) {
             const redirectUrl = `/entry/${data.entry_id}/confirmation`;
             console.log("Redirecting to entry confirmation:", redirectUrl);
-            window.location.href = redirectUrl;
+            setTimeout(() => navigate(redirectUrl), 1500);
           } else {
             // Fallback to competition URL
             const redirectUrl = data.competition_url || searchParams.get('redirect') || '/';
             console.log("Fallback redirect:", redirectUrl);
-            window.location.href = redirectUrl;
+            setTimeout(() => navigate(redirectUrl), 1500);
           }
 
         } else {
@@ -110,7 +110,7 @@ const AuthCallback = () => {
                 description: "Successfully signed in"
               });
               
-              window.location.href = redirectUrl;
+              setTimeout(() => navigate(redirectUrl), 1500);
             }
           } else {
             throw new Error('No valid session found');
