@@ -43,39 +43,27 @@ const EntryConfirmation = () => {
   useEffect(() => {
     console.log('🔍 EntryConfirmation: Auth state check', { user: !!user, entryId });
     
-    // Increased delay to allow session to fully establish after magic link
-    const checkAuthAndFetch = setTimeout(() => {
-      if (!user) {
-        console.log('❌ EntryConfirmation: No user found after 1000ms, checking for session tokens in localStorage');
-        
-        // Fallback: Check if we have session tokens in localStorage
-        const session = localStorage.getItem('sb-srnbylbbsdckkwatfqjg-auth-token');
-        if (session) {
-          console.log('⚠️ EntryConfirmation: Found session tokens, waiting longer for auth state to sync');
-          // Wait a bit longer if we have session tokens
-          setTimeout(() => {
-            if (!user) {
-              console.log('❌ EntryConfirmation: Still no user after extended wait, redirecting to home');
-              navigate('/');
-            }
-          }, 2000);
-          return;
-        }
-        
-        console.log('❌ EntryConfirmation: No session tokens found, redirecting to home');
-        navigate('/');
-        return;
-      }
-      
+    // Don't redirect immediately - wait for auth state to stabilize
+    if (user && entryId) {
       console.log('✅ EntryConfirmation: User found, fetching entry');
       fetchEntry();
-    }, 1000); // Increased from 100ms to 1000ms
-
-    return () => clearTimeout(checkAuthAndFetch);
-  }, [entryId, user, navigate]);
+    }
+  }, [entryId, user]);
 
   const fetchEntry = async () => {
-    if (!entryId || !user) return;
+    if (!entryId) return;
+
+    // Try to get session directly from Supabase if user hook hasn't updated yet
+    let userId = user?.id;
+    if (!userId) {
+      const { data: { session } } = await supabase.auth.getSession();
+      userId = session?.user?.id;
+    }
+
+    if (!userId) {
+      console.log('❌ EntryConfirmation: No user ID available');
+      return;
+    }
 
     try {
         const { data, error } = await supabase
@@ -93,16 +81,17 @@ const EntryConfirmation = () => {
             )
           `)
           .eq('id', entryId)
-          .eq('player_id', user.id)
+          .eq('player_id', userId)
           .single();
 
         if (error || !data) {
+          console.error('Entry fetch error:', error);
           toast({
             title: "Entry not found",
-            description: "Could not find your entry",
+            description: "Could not find your entry or it may still be loading",
             variant: "destructive"
           });
-          navigate('/');
+          // Don't navigate away immediately - user might still be authenticating
           return;
         }
 
@@ -252,14 +241,20 @@ const EntryConfirmation = () => {
     }
   };
 
-  if (loading) {
+  // Show loading if we don't have entry data OR if we're still waiting for auth
+  if (loading || (!entry && !user)) {
     return (
       <div className="min-h-screen flex flex-col">
         <SiteHeader />
         <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading entry details...</p>
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <div>
+              <p className="text-muted-foreground">Loading entry details...</p>
+              <p className="text-sm text-muted-foreground/70 mt-1">
+                This may take a moment after clicking your magic link
+              </p>
+            </div>
           </div>
         </main>
         <SiteFooter />
