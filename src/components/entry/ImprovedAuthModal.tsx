@@ -100,7 +100,7 @@ export const ImprovedAuthModal = ({
     }
 
     try {
-      // Call our custom magic link edge function
+      // Call our custom secure entry link edge function
       const { data, error } = await supabase.functions.invoke('send-magic-link', {
         body: {
           email: profileForm.email,

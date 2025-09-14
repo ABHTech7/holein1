@@ -58,7 +58,7 @@ export const EnhancedAuthModal = ({
 
     setLoading(true);
     try {
-      // Send magic link for email authentication
+      // Send secure entry link for email authentication
       const { error } = await supabase.auth.signInWithOtp({
         email: email,
         options: {

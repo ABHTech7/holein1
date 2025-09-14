@@ -155,28 +155,39 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
     try {
       let userId = user?.id;
       
-      // Auto-register user if not logged in
+      // Send OTP for authentication if not logged in
       if (!userId) {
-        console.log('Creating new user account...');
-        const authResult = await signUp(formData.email, 'temp-password-123!');
+        console.log('Sending OTP for user authentication...');
         
-        if (authResult.error) {
+        // Store form data in localStorage to restore after auth
+        localStorage.setItem('pending_entry_form', JSON.stringify({
+          ...formData,
+          competitionId: competition.id,
+          termsAccepted
+        }));
+        
+        const { error } = await supabase.auth.signInWithOtp({
+          email: formData.email,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback?continue=/entry-success`,
+          },
+        });
+        
+        if (error) {
           toast({ 
-            title: "Registration failed", 
-            description: authResult.error.message,
+            title: "Sign-in failed", 
+            description: error.message,
             variant: "destructive" 
           });
           return;
         }
         
-        // For new registrations, we'll use the current user after signup
-        // The auth system should automatically set the user state
-        if (user?.id) {
-          userId = user.id;
-        } else {
-          toast({ title: "User creation failed", variant: "destructive" });
-          return;
-        }
+        toast({
+          title: "Check your email",
+          description: "We've sent you a secure entry link.",
+        });
+        
+        return;
       }
 
       // Create entry record
