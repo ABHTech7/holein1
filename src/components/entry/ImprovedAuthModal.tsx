@@ -240,7 +240,7 @@ export const ImprovedAuthModal = ({
                   Eligibility Requirements
                 </p>
                 <p className="text-sm text-amber-700 dark:text-amber-300">
-                  Must be 13+ with golf handicap above 0. We'll send you a secure magic link to complete your entry.
+                  Must be 13+ with golf handicap above 0. We'll send you a secure link to verify and complete your entry.
                 </p>
               </div>
             </div>
@@ -366,14 +366,15 @@ export const ImprovedAuthModal = ({
             onClick={() => handleSendMagicLink()}
             disabled={loading}
             className="w-full h-12 text-base font-medium rounded-xl"
+            aria-label="Enter Competition"
           >
             <Mail className="w-5 h-5 mr-3" />
-            {loading ? "Sending Magic Link..." : "Send Magic Link"}
+            {loading ? "Entering Competition..." : "Enter Competition"}
           </Button>
 
           <p className="text-xs text-center text-muted-foreground px-4">
             By continuing, you agree to our Terms of Service and Privacy Policy.
-            We'll send you a secure magic link to complete your entry.
+            We'll send you a secure link to verify and complete your entry.
           </p>
         </div>
       </DialogContent>

@@ -113,9 +113,10 @@ export const EnhancedAuthModal = ({
           onClick={handleEmailAuth}
           disabled={loading}
           className="w-full h-12 text-base font-medium rounded-xl"
+          aria-label="Enter Competition"
         >
           <Mail className="w-5 h-5 mr-3" />
-          {loading ? "Sending..." : "Send Magic Link"}
+          {loading ? "Sending..." : "Enter Competition"}
         </Button>
       </div>
 

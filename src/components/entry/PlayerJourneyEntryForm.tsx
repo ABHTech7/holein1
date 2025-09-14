@@ -470,7 +470,7 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
           <div className="flex items-start gap-3">
             <Info className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-amber-800">
-              <strong>Eligibility Requirements</strong> — Must be 13+ and either have a handicap (1–54) or select 'I don't have one'. We'll send you a secure magic link to complete your entry.
+              <strong>Eligibility Requirements</strong> — Must be 13+ and either have a handicap (1–54) or select 'I don't have one'. We'll send you a secure link to verify and complete your entry.
             </div>
           </div>
         </div>
@@ -609,6 +609,7 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
               type="submit" 
               className="w-full h-12 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold shadow-sm text-lg"
               disabled={isSubmitting}
+              aria-label="Enter Competition"
             >
               {isSubmitting ? (
                 <>
@@ -616,7 +617,7 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
                   Creating Entry...
                 </>
               ) : (
-                'Send Magic Link'
+                'Enter Competition'
               )}
             </Button>
             
