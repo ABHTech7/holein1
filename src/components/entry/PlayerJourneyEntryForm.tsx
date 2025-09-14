@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getFormGreeting } from "@/lib/copyEngine";
 import { getAvailablePaymentProviders, createPaymentIntent, confirmPayment, updateEntryPaymentInfo } from "@/lib/paymentService";
 import { getPaymentMode } from "@/lib/featureFlags";
-import { Loader2, CreditCard, Shield, Zap, Badge } from "lucide-react";
+import { Loader2, CreditCard, Shield, Zap, Badge, Flag, User, Mail, Phone, Target, Info } from "lucide-react";
 import type { Gender } from '@/lib/copyEngine';
 
 interface PlayerJourneyEntryFormProps {
@@ -21,6 +21,7 @@ interface PlayerJourneyEntryFormProps {
     entry_fee: number;
     prize_pool: number;
     club_name: string;
+    hole_number?: number;
   };
   onSuccess: (entryId: string, playerData: PlayerFormData) => void;
 }
@@ -30,9 +31,9 @@ interface PlayerFormData {
   lastName: string;
   email: string;
   phone: string;
-  age: number;
+  age: number | null;
   gender: Gender;
-  handicap: number;
+  handicap: number | null;
 }
 
 const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
@@ -47,10 +48,12 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
     lastName: '',
     email: '',
     phone: '',
-    age: 18,
+    age: null,
     gender: 'prefer_not_to_say',
-    handicap: 28,
+    handicap: null,
   });
+
+  const [ageError, setAgeError] = useState<string>('');
   
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -77,9 +80,9 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
               lastName: profile.last_name || '',
               email: profile.email || '',
               phone: profile.phone || '',
-              age: profile.age_years || 18,
+              age: profile.age_years || null,
               gender: (profile.gender as Gender) || 'prefer_not_to_say',
-              handicap: profile.handicap || 28,
+              handicap: profile.handicap || null,
             }));
           }
         } catch (error) {
@@ -93,8 +96,21 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
     loadUserProfile();
   }, [user]);
 
-  const handleInputChange = (field: keyof PlayerFormData, value: string | number) => {
+  const handleInputChange = (field: keyof PlayerFormData, value: string | number | null) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Clear age error when user starts typing
+    if (field === 'age') {
+      setAgeError('');
+    }
+  };
+
+  const handleAgeBlur = () => {
+    if (formData.age !== null && (formData.age < 13 || formData.age > 120)) {
+      setAgeError('Age must be between 13 and 120');
+    } else {
+      setAgeError('');
+    }
   };
 
   const validateForm = (): boolean => {
@@ -110,11 +126,15 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
       toast({ title: "Phone number required", variant: "destructive" });
       return false;
     }
-    if (formData.age < 16 || formData.age > 120) {
-      toast({ title: "Age must be between 16 and 120", variant: "destructive" });
+    if (formData.age !== null && (formData.age < 13 || formData.age > 120)) {
+      toast({ title: "Age must be between 13 and 120", variant: "destructive" });
       return false;
     }
-    if (formData.handicap < -10 || formData.handicap > 54) {
+    if (formData.age === null) {
+      toast({ title: "Age is required", variant: "destructive" });
+      return false;
+    }
+    if (formData.handicap !== null && (formData.handicap < -10 || formData.handicap > 54)) {
       toast({ title: "Handicap must be between -10 and 54", variant: "destructive" });
       return false;
     }
@@ -416,138 +436,205 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
     );
   }
 
+  const paymentMode = getPaymentMode();
+  const availableProviders = getAvailablePaymentProviders();
+
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>{greeting}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleFormSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name *</Label>
+    <div className="w-full max-w-4xl mx-auto">
+      {/* Golf Scorecard Container */}
+      <div className="rounded-2xl shadow-lg bg-slate-50 border border-emerald-100 overflow-hidden">
+        
+        {/* Scorecard Header Strip */}
+        <div className="bg-emerald-100 border-t-2 border-b-2 border-emerald-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Flag className="h-5 w-5 text-emerald-700" />
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">{competition.name}</h2>
+                <p className="text-sm text-slate-700">{competition.club_name} · Hole #{competition.hole_number || 1}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="px-3 py-1 bg-white rounded-full text-sm font-semibold text-emerald-700 border border-emerald-200">
+                £{(competition.entry_fee / 100).toFixed(2)}
+              </div>
+              <div className="px-3 py-1 bg-emerald-700 text-white rounded-full text-xs font-medium">
+                {paymentMode}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Eligibility Banner */}
+        <div className="bg-amber-50 border-b border-amber-200 px-6 py-3">
+          <div className="flex items-start gap-3">
+            <Info className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-amber-800">
+              <strong>Eligibility Requirements</strong> — Must be 13+ and either have a handicap (1–54) or select 'I don't have one'. We'll send you a secure magic link to complete your entry.
+            </div>
+          </div>
+        </div>
+
+        {/* Scorecard Form */}
+        <form onSubmit={handleFormSubmit} className="p-6 space-y-5">
+          
+          {/* Row 1: First & Last Name */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3 focus-within:border-emerald-300 focus-within:ring-2 focus-within:ring-emerald-500/10">
+              <Label htmlFor="firstName" className="text-xs uppercase font-medium text-slate-500 mb-1 block">
+                <User className="h-3 w-3 inline mr-1" />
+                First Name *
+              </Label>
               <Input
                 id="firstName"
                 value={formData.firstName}
                 onChange={(e) => handleInputChange('firstName', e.target.value)}
-                placeholder="Enter your first name"
+                placeholder="Enter first name"
+                className="border-0 p-0 text-base font-semibold text-slate-900 focus-visible:ring-0 bg-transparent"
                 required
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
+            <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3 focus-within:border-emerald-300 focus-within:ring-2 focus-within:ring-emerald-500/10 md:border-l-0 md:border-l-2 md:border-l-emerald-100 md:border-dotted">
+              <Label htmlFor="lastName" className="text-xs uppercase font-medium text-slate-500 mb-1 block">
+                Last Name
+              </Label>
               <Input
                 id="lastName"
                 value={formData.lastName}
                 onChange={(e) => handleInputChange('lastName', e.target.value)}
-                placeholder="Enter your last name"
+                placeholder="Enter last name"
+                className="border-0 p-0 text-base font-semibold text-slate-900 focus-visible:ring-0 bg-transparent"
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address *</Label>
+          {/* Row 2: Email */}
+          <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3 focus-within:border-emerald-300 focus-within:ring-2 focus-within:ring-emerald-500/10">
+            <Label htmlFor="email" className="text-xs uppercase font-medium text-slate-500 mb-1 block">
+              <Mail className="h-3 w-3 inline mr-1" />
+              Email Address *
+            </Label>
             <Input
               id="email"
               type="email"
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
               placeholder="Enter your email"
+              className="border-0 p-0 text-base font-semibold text-slate-900 focus-visible:ring-0 bg-transparent"
               required
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="phone">Mobile Number *</Label>
+          {/* Row 3: Phone */}
+          <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3 focus-within:border-emerald-300 focus-within:ring-2 focus-within:ring-emerald-500/10">
+            <Label htmlFor="phone" className="text-xs uppercase font-medium text-slate-500 mb-1 block">
+              <Phone className="h-3 w-3 inline mr-1" />
+              Mobile Number *
+            </Label>
             <Input
               id="phone"
               type="tel"
               value={formData.phone}
               onChange={(e) => handleInputChange('phone', e.target.value)}
               placeholder="Enter your mobile number"
+              className="border-0 p-0 text-base font-semibold text-slate-900 focus-visible:ring-0 bg-transparent"
               required
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="age">Age *</Label>
+          {/* Row 4: Age & Handicap */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3 focus-within:border-emerald-300 focus-within:ring-2 focus-within:ring-emerald-500/10">
+              <Label htmlFor="age" className="text-xs uppercase font-medium text-slate-500 mb-1 block">
+                Age *
+              </Label>
               <Input
                 id="age"
                 type="number"
-                min="16"
+                min="13"
                 max="120"
-                value={formData.age}
-                onChange={(e) => handleInputChange('age', parseInt(e.target.value) || 18)}
+                value={formData.age ?? ''}
+                onChange={(e) => handleInputChange('age', e.target.value === '' ? null : Number(e.target.value))}
+                onBlur={handleAgeBlur}
+                placeholder="Enter age"
+                className="border-0 p-0 text-base font-semibold text-slate-900 focus-visible:ring-0 bg-transparent"
                 required
               />
+              {ageError && (
+                <p className="text-red-500 text-xs mt-1" aria-live="polite">{ageError}</p>
+              )}
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="gender">Gender</Label>
-              <Select 
-                value={formData.gender} 
-                onValueChange={(value: Gender) => handleInputChange('gender', value)}
+            
+            <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3 focus-within:border-emerald-300 focus-within:ring-2 focus-within:ring-emerald-500/10 md:border-l-0 md:border-l-2 md:border-l-emerald-100 md:border-dotted">
+              <Label htmlFor="handicap" className="text-xs uppercase font-medium text-slate-500 mb-1 block">
+                <Target className="h-3 w-3 inline mr-1" />
+                Handicap
+              </Label>
+              <Select
+                value={formData.handicap === null ? 'none' : formData.handicap.toString()} 
+                onValueChange={(value) => handleInputChange('handicap', value === 'none' ? null : Number(value))}
               >
-                <SelectTrigger>
-                  <SelectValue />
+                <SelectTrigger className="border-0 p-0 text-base font-semibold text-slate-900 focus:ring-0 bg-transparent h-auto">
+                  <SelectValue placeholder="Select handicap" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="male">Male</SelectItem>
-                  <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                  <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                <SelectContent className="bg-white border-emerald-200">
+                  <SelectItem value="none">I don't have one</SelectItem>
+                  {Array.from({ length: 54 }, (_, i) => i + 1).map((handicap) => (
+                    <SelectItem key={handicap} value={handicap.toString()}>
+                      {handicap}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="handicap">Handicap *</Label>
-              <Input
-                id="handicap"
-                type="number"
-                min="-10"
-                max="54"
-                value={formData.handicap}
-                onChange={(e) => handleInputChange('handicap', parseFloat(e.target.value) || 28)}
-                required
-              />
-            </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          {/* Terms Checkbox */}
+          <div className="flex items-start gap-3 pt-2">
             <Checkbox
               id="terms"
               checked={termsAccepted}
               onCheckedChange={(checked) => setTermsAccepted(!!checked)}
+              className="mt-1"
             />
-            <Label htmlFor="terms" className="text-sm">
+            <Label htmlFor="terms" className="text-sm text-slate-700 leading-relaxed">
               I accept the terms and conditions and privacy policy *
             </Label>
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full h-12 text-lg"
-            size="lg"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                Creating Entry...
-              </>
-            ) : (
-              <>
-                <Zap className="h-5 w-5 mr-2" />
-                Continue to Payment
-              </>
+          {/* Submit Button */}
+          <div className="pt-3">
+            <Button 
+              type="submit" 
+              className="w-full h-12 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold shadow-sm text-lg"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  Creating Entry...
+                </>
+              ) : (
+                'Send Magic Link'
+              )}
+            </Button>
+            
+            <p className="text-xs text-slate-500 text-center mt-3">
+              By continuing, you agree to our Terms & Conditions and Privacy Policy
+            </p>
+
+            {/* No-Payments Note */}
+            {availableProviders.length === 0 && (
+              <p className="text-xs text-slate-500 text-center mt-2">
+                💳 Payment will be handled offline at the clubhouse.
+              </p>
             )}
-          </Button>
+          </div>
+
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 
