@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import EnhancedWinClaimForm from "@/components/entry/EnhancedWinClaimForm";
 import WinClaimForm from "@/components/entry/WinClaimForm";
+import { isFeatureEnabled } from "@/lib/featureFlags";
 import { Loader2, AlertTriangle } from "lucide-react";
 import type { Gender } from '@/lib/copyEngine';
 
@@ -37,7 +38,6 @@ const WinClaimPage: React.FC = () => {
   const [entryData, setEntryData] = useState<EntryData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [useEnhancedForm] = useState(true); // Feature flag - set to false for legacy form
 
   useEffect(() => {
     const loadEntryData = async () => {
@@ -47,63 +47,75 @@ const WinClaimPage: React.FC = () => {
       }
 
       try {
-        const { data, error: fetchError } = await supabase
+        // Step 1: Get entry data
+        const { data: entryRecord, error: entryError } = await supabase
           .from('entries')
-          .select(`
-            id,
-            player_id,
-            outcome_self,
-            status,
-            competition:competitions(
-              id,
-              name,
-              prize_pool,
-              hole_number,
-              club_name:clubs(name)
-            ),
-            player:profiles(
-              first_name,
-              gender
-            )
-          `)
+          .select('id, player_id, outcome_self, status, competition_id')
           .eq('id', entryId)
           .single();
 
-        if (fetchError || !data) {
-          console.error('Failed to fetch entry:', fetchError);
+        if (entryError || !entryRecord) {
+          console.error('Failed to fetch entry:', entryError);
           setError('Entry not found');
           return;
         }
 
         // Check if user is authorized to claim this entry
-        if (user && data.player_id !== user.id) {
+        if (user && entryRecord.player_id !== user.id) {
           setError('You are not authorized to access this entry');
           return;
         }
 
         // Check if entry is in correct state
-        if (data.outcome_self !== 'win' && data.status !== 'pending_verification') {
+        if (entryRecord.outcome_self !== 'win' && entryRecord.status !== 'pending_verification') {
           setError('This entry is not eligible for win verification');
           return;
         }
 
+        // Step 2: Get competition data
+        const { data: competitionRecord, error: competitionError } = await supabase
+          .from('competitions')
+          .select('id, name, prize_pool, hole_number, club_id')
+          .eq('id', entryRecord.competition_id)
+          .single();
+
+        if (competitionError || !competitionRecord) {
+          console.error('Failed to fetch competition:', competitionError);
+          setError('Competition not found');
+          return;
+        }
+
+        // Step 3: Get club data
+        const { data: clubRecord, error: clubError } = await supabase
+          .from('clubs')
+          .select('name')
+          .eq('id', competitionRecord.club_id)
+          .single();
+
+        // Step 4: Get player data
+        const { data: playerRecord, error: playerError } = await supabase
+          .from('profiles')
+          .select('first_name, gender')
+          .eq('id', entryRecord.player_id)
+          .single();
+
         // Transform data to match interface
         setEntryData({
-          id: data.id,
-          player_id: data.player_id,
+          id: entryRecord.id,
+          player_id: entryRecord.player_id,
           competition: {
-            id: data.competition.id,
-            name: data.competition.name,
-            prize_pool: data.competition.prize_pool,
-            hole_number: data.competition.hole_number,
-            club_name: data.competition.club_name?.name || 'Unknown Club',
+            id: competitionRecord.id,
+            name: competitionRecord.name,
+            prize_pool: competitionRecord.prize_pool,
+            hole_number: competitionRecord.hole_number,
+            club_name: clubRecord?.name || 'Unknown Club',
           },
           player: {
-            first_name: data.player.first_name || 'Player',
-            gender: data.player.gender as Gender,
+            first_name: playerRecord?.first_name || 'Player',
+            gender: playerRecord?.gender as Gender,
           },
-          outcome_self: data.outcome_self,
-          status: data.status,
+          outcome_self: entryRecord.outcome_self,
+          status: entryRecord.status,
         });
 
       } catch (error) {
@@ -180,7 +192,7 @@ const WinClaimPage: React.FC = () => {
   }
 
   // Render enhanced or legacy form based on feature flag
-  if (useEnhancedForm) {
+  if (isFeatureEnabled('VITE_ENHANCED_WIN_CLAIM_ENABLED')) {
     return (
       <EnhancedWinClaimForm
         entryId={entryData.id}

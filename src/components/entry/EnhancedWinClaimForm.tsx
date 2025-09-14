@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { uploadFile, deleteFile, getFileUrl } from "@/lib/fileUploadService";
 import { getWinClaimMessage, getVerificationPrompt } from "@/lib/copyEngine";
+import { getConfig } from "@/lib/featureFlags";
 import { 
   Trophy, 
   Camera, 
@@ -183,7 +184,10 @@ const EnhancedWinClaimForm: React.FC<EnhancedWinClaimFormProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Create verification record with file URLs
+      const config = getConfig();
+      const autoMissAt = new Date(Date.now() + config.verificationTimeoutHours * 60 * 60 * 1000);
+
+      // Create verification record with file storage references (bucket/path format)
       const { error: verificationError } = await supabase
         .from('verifications')
         .insert({
@@ -192,15 +196,17 @@ const EnhancedWinClaimForm: React.FC<EnhancedWinClaimFormProps> = ({
             name: witnessName.trim(),
             contact: witnessContact.trim()
           },
-          selfie_url: uploadedFiles.selfie?.public_url || await getFileUrl(uploadedFiles.selfie!),
-          id_document_url: uploadedFiles.idDocument?.public_url || await getFileUrl(uploadedFiles.idDocument!),
-          handicap_proof_url: uploadedFiles.handicapProof?.public_url || await getFileUrl(uploadedFiles.handicapProof!),
+          // Store as bucket/path format for signed URL generation
+          selfie_url: `${uploadedFiles.selfie!.storage_bucket}/${uploadedFiles.selfie!.storage_path}`,
+          id_document_url: `${uploadedFiles.idDocument!.storage_bucket}/${uploadedFiles.idDocument!.storage_path}`,
+          handicap_proof_url: `${uploadedFiles.handicapProof!.storage_bucket}/${uploadedFiles.handicapProof!.storage_path}`,
           video_url: uploadedFiles.videoEvidence ? 
-            (uploadedFiles.videoEvidence.public_url || await getFileUrl(uploadedFiles.videoEvidence)) : 
+            `${uploadedFiles.videoEvidence.storage_bucket}/${uploadedFiles.videoEvidence.storage_path}` : 
             null,
           status: 'pending',
           evidence_captured_at: new Date().toISOString(),
-          auto_miss_at: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(), // 12 hours
+          auto_miss_at: autoMissAt.toISOString(),
+          auto_miss_applied: false,
         });
 
       if (verificationError) {
@@ -384,7 +390,7 @@ const EnhancedWinClaimForm: React.FC<EnhancedWinClaimFormProps> = ({
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="w-4 h-4 text-blue-500" />
-                  <span>12h verification window</span>
+                  <span>{getConfig().verificationTimeoutHours}h verification window</span>
                 </div>
               </div>
             </div>

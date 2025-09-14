@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isFeatureEnabled } from "@/lib/featureFlags";
 
 export interface PaymentProvider {
   id: 'stripe' | 'fondy' | 'wise';
@@ -17,31 +18,29 @@ export interface PaymentIntent {
 }
 
 export const getAvailablePaymentProviders = (): PaymentProvider[] => {
-  // Get from environment variables (feature flags)
-  const stripeEnabled = true; // Default enabled for this demo
-  const fondyEnabled = false; // Feature flag controlled
-  const wiseEnabled = false; // Optional for later
-  
-  return [
+  const providers = [
     {
       id: 'stripe' as const,
       name: 'Stripe',
-      enabled: stripeEnabled,
+      enabled: isFeatureEnabled('VITE_PAYMENT_PROVIDER_STRIPE_ENABLED'),
       embeddedSupported: true,
     },
     {
       id: 'fondy' as const,
       name: 'Fondy',
-      enabled: fondyEnabled,
+      enabled: isFeatureEnabled('VITE_PAYMENT_PROVIDER_FONDY_ENABLED'),
       embeddedSupported: true,
     },
     {
       id: 'wise' as const,
       name: 'Wise',
-      enabled: wiseEnabled,
-      embeddedSupported: false,
+      enabled: isFeatureEnabled('VITE_PAYMENT_PROVIDER_WISE_ENABLED'),
+      embeddedSupported: false, // Keep Wise as non-embedded (later/optional)
     },
-  ].filter(provider => provider.enabled);
+  ];
+  
+  // Only return providers that are enabled and support embedded payments
+  return providers.filter(provider => provider.enabled && provider.embeddedSupported);
 };
 
 export const createPaymentIntent = async (

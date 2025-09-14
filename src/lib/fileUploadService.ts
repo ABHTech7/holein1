@@ -82,13 +82,13 @@ export const uploadFile = async (
       ? new Date(Date.now() + options.expiresInHours * 60 * 60 * 1000).toISOString()
       : null;
 
-    // Record file in uploaded_files table
+    // Record file in uploaded_files table (store full path for RLS compatibility)
     const { data: fileRecord, error: dbError } = await supabase
       .from('uploaded_files')
       .insert({
         user_id: userId,
         storage_bucket: bucket,
-        storage_path: storageFileName, // Store just the filename, not the full path
+        storage_path: storagePath, // Store full path including userId
         original_filename: file.name,
         file_size_bytes: file.size,
         mime_type: file.type,
@@ -105,19 +105,9 @@ export const uploadFile = async (
       throw new Error(`Database error: ${dbError.message}`);
     }
 
-    // Get public URL if needed
-    let publicUrl: string | undefined;
-    if (bucket === 'player-selfies' || bucket === 'handicap-proofs') {
-      const { data: urlData } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(storagePath);
-      publicUrl = urlData.publicUrl;
-    }
-
     const uploadedFile: UploadedFile = {
       ...fileRecord,
       upload_purpose: fileRecord.upload_purpose as UploadedFile['upload_purpose'],
-      public_url: publicUrl,
     };
 
     console.log('File upload completed:', uploadedFile);
@@ -158,11 +148,10 @@ export const deleteFile = async (fileId: string): Promise<void> => {
     throw new Error(`Cannot find file: ${fetchError.message}`);
   }
 
-  // Delete from storage
-  const storagePath = `${fileRecord.user_id}/${fileRecord.storage_path}`;
+  // Delete from storage using the full storage_path
   const { error: storageError } = await supabase.storage
     .from(fileRecord.storage_bucket)
-    .remove([storagePath]);
+    .remove([fileRecord.storage_path]);
 
   if (storageError) {
     console.error('Failed to delete from storage:', storageError);
@@ -183,16 +172,67 @@ export const deleteFile = async (fileId: string): Promise<void> => {
   console.log('File deleted successfully:', fileId);
 };
 
-export const getFileUrl = async (file: UploadedFile): Promise<string> => {
-  if (file.public_url) {
-    return file.public_url;
+/**
+ * Gets a signed URL for an uploaded file (always uses signed URLs, no public URLs)
+ * @param file - The uploaded file metadata  
+ * @param expiresIn - Expiry time in seconds (default: 1 hour)
+ * @returns Promise<string> - The signed URL
+ */
+export const getFileUrl = async (file: UploadedFile, expiresIn = 3600): Promise<string> => {
+  try {
+    const { data, error } = await supabase.storage
+      .from(file.storage_bucket)
+      .createSignedUrl(file.storage_path, expiresIn);
+
+    if (error) {
+      console.error('Failed to create signed URL:', error);
+      throw error;
+    }
+
+    if (!data.signedUrl) {
+      throw new Error('No signed URL returned');
+    }
+
+    return data.signedUrl;
+  } catch (error) {
+    console.error('Error creating signed URL:', error);
+    throw error;
+  }
+};
+
+/**
+ * Helper function to get signed URL from stored reference (bucket/path format)  
+ * Used for verifications and other stored file references
+ * @param storedRef - Format: "${bucket}/${path}"
+ * @param expiresIn - Expiry time in seconds (default: 1 hour)
+ * @returns Promise<string> - The signed URL
+ */
+export const getSignedUrlFromStoredRef = async (storedRef: string, expiresIn = 3600): Promise<string> => {
+  if (!storedRef || !storedRef.includes('/')) {
+    throw new Error('Invalid stored file reference format');
   }
 
-  // Generate signed URL for private files
-  const storagePath = `${file.user_id}/${file.storage_path}`;
-  const { data } = await supabase.storage
-    .from(file.storage_bucket)
-    .createSignedUrl(storagePath, 3600); // 1 hour expiry
+  const firstSlashIndex = storedRef.indexOf('/');
+  const bucket = storedRef.substring(0, firstSlashIndex);
+  const path = storedRef.substring(firstSlashIndex + 1);
 
-  return data?.signedUrl || '';
+  try {
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(path, expiresIn);
+
+    if (error) {
+      console.error('Failed to create signed URL:', error);
+      throw error;
+    }
+
+    if (!data.signedUrl) {
+      throw new Error('No signed URL returned');
+    }
+
+    return data.signedUrl;
+  } catch (error) {
+    console.error('Error creating signed URL from stored ref:', error);
+    throw error;
+  }
 };

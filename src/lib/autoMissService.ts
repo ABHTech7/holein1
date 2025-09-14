@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getConfig } from "@/lib/featureFlags";
 
 export interface AutoMissJob {
   id: string;
@@ -16,10 +17,13 @@ export interface AutoMissJob {
 export const scheduleAutoMiss = async (
   entryId: string,
   verificationId: string,
-  timeoutHours: number = 12
+  timeoutHours?: number
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    const scheduledAt = new Date(Date.now() + timeoutHours * 60 * 60 * 1000);
+    // Use config timeout or provided timeout
+    const config = getConfig();
+    const actualTimeout = timeoutHours || config.verificationTimeoutHours;
+    const scheduledAt = new Date(Date.now() + actualTimeout * 60 * 60 * 1000);
     
     // Update verification record with auto-miss timestamp
     const { error: updateError } = await supabase

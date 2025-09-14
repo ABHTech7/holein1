@@ -6,6 +6,7 @@ import { toast } from "@/hooks/use-toast";
 import { analytics } from "@/lib/analytics";
 import { createClubSlug, createCompetitionSlug } from "@/lib/competitionUtils";
 import { ClubService } from "@/lib/clubService";
+import { isFeatureEnabled } from "@/lib/featureFlags";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Container from "@/components/layout/Container";
