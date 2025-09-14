@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getEntrySuccessMessage } from "@/lib/copyEngine";
+import { getConfig } from "@/lib/featureFlags";
 import { Trophy, Target, Clock, MapPin, Loader2, Zap } from "lucide-react";
 import type { Gender } from '@/lib/copyEngine';
 
@@ -205,7 +206,7 @@ const EntrySuccess: React.FC = () => {
     competitionName: entryData.competition.name,
   });
 
-  const timeRemaining = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
+  const { verificationTimeoutHours } = getConfig();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-4">
@@ -243,9 +244,9 @@ const EntrySuccess: React.FC = () => {
               <div className="flex items-center gap-3">
                 <Clock className="h-5 w-5 text-primary" />
                 <div>
-                  <p className="font-medium">Attempt Window</p>
+                  <p className="font-medium">Verification Window</p>
                   <p className="text-sm text-muted-foreground">
-                    15 minutes (until {timeRemaining.toLocaleTimeString()})
+                    {verificationTimeoutHours} hours to submit verification
                   </p>
                 </div>
               </div>
@@ -268,7 +269,7 @@ const EntrySuccess: React.FC = () => {
           <CardHeader>
             <CardTitle className="text-center">Take Your Shot!</CardTitle>
             <p className="text-center text-muted-foreground">
-              You have 15 minutes to complete your attempt. Report your result when done.
+              Take your shot and report your result. If you score a hole-in-one, you'll have {verificationTimeoutHours} hours to upload your verification.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">

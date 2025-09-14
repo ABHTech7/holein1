@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap } from "lucide-react";
+import { getConfig } from "@/lib/featureFlags";
 
 interface EnterNowCTAProps {
   onClick: () => void;
@@ -9,6 +10,8 @@ interface EnterNowCTAProps {
 }
 
 export const EnterNowCTA = ({ onClick, disabled, loading, entryFee }: EnterNowCTAProps) => {
+  const { verificationTimeoutHours } = getConfig();
+  
   return (
     <div className="space-y-4">
       <Button
@@ -32,7 +35,7 @@ export const EnterNowCTA = ({ onClick, disabled, loading, entryFee }: EnterNowCT
       </Button>
       
       <p className="text-center text-sm text-muted-foreground">
-        Secure payment • Instant confirmation • 15-minute attempt window
+        Secure payment • Instant confirmation • {verificationTimeoutHours}-hour verification window
       </p>
     </div>
   );

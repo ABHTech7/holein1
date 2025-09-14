@@ -1,5 +1,6 @@
 import { CheckCircle, Clock, Target } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getConfig } from "@/lib/featureFlags";
 
 interface RuleSummaryProps {
   rules?: {
@@ -10,6 +11,8 @@ interface RuleSummaryProps {
 }
 
 export const RuleSummary = ({ rules }: RuleSummaryProps) => {
+  const { verificationTimeoutHours } = getConfig();
+  
   const defaultRules = [
     {
       icon: Target,
@@ -18,8 +21,8 @@ export const RuleSummary = ({ rules }: RuleSummaryProps) => {
     },
     {
       icon: Clock,
-      title: "15-Minute Window",
-      description: "You have 15 minutes after entry to attempt your shot"
+      title: `${verificationTimeoutHours}-Hour Verification Window`,
+      description: `Submit your verification within ${verificationTimeoutHours} hours of entry`
     },
     {
       icon: CheckCircle,

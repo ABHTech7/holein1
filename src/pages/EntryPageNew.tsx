@@ -288,9 +288,8 @@ const EntryPageNew = () => {
     setEntering(true);
 
     try {
-      // Create entry with proper attempt window
+      // Create entry without attempt window (V2 uses verification window instead)
       const now = new Date();
-      const attemptWindowEnd = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes from now
       
       const { data: entry, error: entryError } = await supabase
         .from('entries')
@@ -301,9 +300,7 @@ const EntryPageNew = () => {
           status: 'pending',
           amount_minor: competition.entry_fee,
           terms_version: "1.0",
-          terms_accepted_at: now.toISOString(),
-          attempt_window_start: now.toISOString(),
-          attempt_window_end: attemptWindowEnd.toISOString()
+          terms_accepted_at: now.toISOString()
         })
         .select()
         .single();
@@ -327,7 +324,7 @@ const EntryPageNew = () => {
 
       toast({
         title: "Entry confirmed!",
-        description: "You have 15 minutes to complete your attempt",
+        description: "Take your shot and report your result when ready",
       });
 
       // Navigate to confirmation

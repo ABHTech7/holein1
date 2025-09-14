@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import useAuth from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { getConfig } from "@/lib/featureFlags";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Container from "@/components/layout/Container";
@@ -454,7 +455,7 @@ const EntryConfirmation = () => {
                       {isTimeUp ? '00:00' : formatTime(timeRemaining)}
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {isTimeUp ? 'Your attempt window has expired' : 'to complete your attempt'}
+                      {isTimeUp ? 'Take your shot and report your result' : 'to complete your attempt'}
                     </p>
                   </div>
                 )}
