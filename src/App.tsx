@@ -14,6 +14,7 @@ import AuthCallback from "./pages/AuthCallback";
 import CompetitionEntry from "./pages/CompetitionEntry";
 import EntryPageNew from "./pages/EntryPageNew";
 import EntryConfirmation from "./pages/EntryConfirmation";
+import EntrySuccess from "./pages/EntrySuccess";
 
 import DeveloperDemo from "./pages/DeveloperDemo";
 import AdminDashboard from "./pages/AdminDashboard";

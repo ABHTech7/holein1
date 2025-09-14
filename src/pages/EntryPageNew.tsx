@@ -15,6 +15,7 @@ import { RuleSummary } from "@/components/entry/RuleSummary";
 import { EnterNowCTA } from "@/components/entry/EnterNowCTA";
 import { ImprovedAuthModal } from "@/components/entry/ImprovedAuthModal";
 import { MiniProfileForm } from "@/components/entry/MiniProfileForm";
+import PlayerJourneyEntryForm from "@/components/entry/PlayerJourneyEntryForm";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle, Clock } from "lucide-react";
 

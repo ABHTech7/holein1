@@ -1,0 +1,198 @@
+import { supabase } from "@/integrations/supabase/client";
+
+export interface UploadedFile {
+  id: string;
+  user_id: string;
+  storage_bucket: string;
+  storage_path: string;
+  original_filename: string;
+  file_size_bytes: number;
+  mime_type: string;
+  upload_purpose: 'selfie' | 'id_document' | 'handicap_proof' | 'video_evidence';
+  expires_at?: string;
+  uploaded_at: string;
+  public_url?: string;
+}
+
+export interface UploadOptions {
+  purpose: UploadedFile['upload_purpose'];
+  expiresInHours?: number;
+  maxSizeBytes?: number;
+}
+
+const BUCKET_MAPPING = {
+  selfie: 'player-selfies',
+  id_document: 'id-documents', 
+  handicap_proof: 'handicap-proofs',
+  video_evidence: 'shot-videos',
+} as const;
+
+const DEFAULT_MAX_SIZES = {
+  selfie: 5 * 1024 * 1024, // 5MB
+  id_document: 10 * 1024 * 1024, // 10MB
+  handicap_proof: 10 * 1024 * 1024, // 10MB
+  video_evidence: 50 * 1024 * 1024, // 50MB
+} as const;
+
+export const uploadFile = async (
+  file: File,
+  userId: string,
+  options: UploadOptions
+): Promise<UploadedFile> => {
+  console.log('Starting file upload:', { 
+    filename: file.name, 
+    size: file.size, 
+    purpose: options.purpose 
+  });
+
+  // Validate file size
+  const maxSize = options.maxSizeBytes || DEFAULT_MAX_SIZES[options.purpose];
+  if (file.size > maxSize) {
+    throw new Error(`File size exceeds limit of ${Math.round(maxSize / 1024 / 1024)}MB`);
+  }
+
+  // Validate file type based on purpose
+  validateFileType(file, options.purpose);
+
+  const bucket = BUCKET_MAPPING[options.purpose];
+  const fileExtension = file.name.split('.').pop()?.toLowerCase();
+  const timestamp = Date.now();
+  const randomString = Math.random().toString(36).substring(2, 8);
+  const storageFileName = `${timestamp}_${randomString}.${fileExtension}`;
+  const storagePath = `${userId}/${storageFileName}`;
+
+  try {
+    // Upload file to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(storagePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error('Storage upload failed:', uploadError);
+      throw new Error(`Upload failed: ${uploadError.message}`);
+    }
+
+    console.log('File uploaded to storage:', uploadData);
+
+    // Calculate expiry date if specified
+    const expiresAt = options.expiresInHours 
+      ? new Date(Date.now() + options.expiresInHours * 60 * 60 * 1000).toISOString()
+      : null;
+
+    // Record file in uploaded_files table
+    const { data: fileRecord, error: dbError } = await supabase
+      .from('uploaded_files')
+      .insert({
+        user_id: userId,
+        storage_bucket: bucket,
+        storage_path: storageFileName, // Store just the filename, not the full path
+        original_filename: file.name,
+        file_size_bytes: file.size,
+        mime_type: file.type,
+        upload_purpose: options.purpose,
+        expires_at: expiresAt,
+      })
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error('Database insert failed:', dbError);
+      // Clean up uploaded file
+      await supabase.storage.from(bucket).remove([storagePath]);
+      throw new Error(`Database error: ${dbError.message}`);
+    }
+
+    // Get public URL if needed
+    let publicUrl: string | undefined;
+    if (bucket === 'player-selfies' || bucket === 'handicap-proofs') {
+      const { data: urlData } = supabase.storage
+        .from(bucket)
+        .getPublicUrl(storagePath);
+      publicUrl = urlData.publicUrl;
+    }
+
+    const uploadedFile: UploadedFile = {
+      ...fileRecord,
+      upload_purpose: fileRecord.upload_purpose as UploadedFile['upload_purpose'],
+      public_url: publicUrl,
+    };
+
+    console.log('File upload completed:', uploadedFile);
+    return uploadedFile;
+
+  } catch (error) {
+    console.error('File upload error:', error);
+    throw error;
+  }
+};
+
+const validateFileType = (file: File, purpose: UploadOptions['purpose']) => {
+  const allowedTypes: Record<string, string[]> = {
+    selfie: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+    id_document: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'],
+    handicap_proof: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'],
+    video_evidence: ['video/mp4', 'video/mov', 'video/avi', 'video/webm'],
+  };
+
+  const allowed = allowedTypes[purpose];
+  if (!allowed.includes(file.type.toLowerCase())) {
+    throw new Error(`File type ${file.type} not allowed for ${purpose}. Allowed: ${allowed.join(', ')}`);
+  }
+};
+
+export const deleteFile = async (fileId: string): Promise<void> => {
+  console.log('Deleting file:', fileId);
+
+  // Get file record first
+  const { data: fileRecord, error: fetchError } = await supabase
+    .from('uploaded_files')
+    .select('*')
+    .eq('id', fileId)
+    .single();
+
+  if (fetchError) {
+    console.error('Failed to fetch file record:', fetchError);
+    throw new Error(`Cannot find file: ${fetchError.message}`);
+  }
+
+  // Delete from storage
+  const storagePath = `${fileRecord.user_id}/${fileRecord.storage_path}`;
+  const { error: storageError } = await supabase.storage
+    .from(fileRecord.storage_bucket)
+    .remove([storagePath]);
+
+  if (storageError) {
+    console.error('Failed to delete from storage:', storageError);
+    // Continue with database deletion even if storage deletion fails
+  }
+
+  // Delete from database
+  const { error: dbError } = await supabase
+    .from('uploaded_files')
+    .delete()
+    .eq('id', fileId);
+
+  if (dbError) {
+    console.error('Failed to delete file record:', dbError);
+    throw new Error(`Database deletion failed: ${dbError.message}`);
+  }
+
+  console.log('File deleted successfully:', fileId);
+};
+
+export const getFileUrl = async (file: UploadedFile): Promise<string> => {
+  if (file.public_url) {
+    return file.public_url;
+  }
+
+  // Generate signed URL for private files
+  const storagePath = `${file.user_id}/${file.storage_path}`;
+  const { data } = await supabase.storage
+    .from(file.storage_bucket)
+    .createSignedUrl(storagePath, 3600); // 1 hour expiry
+
+  return data?.signedUrl || '';
+};
