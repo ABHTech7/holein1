@@ -46,7 +46,7 @@ interface FormData {
 const CompetitionEntry = () => {
   const { competitionId } = useParams();
   const navigate = useNavigate();
-  const { user, profile, signUp } = useAuth();
+  const { user, profile, sendOtp } = useAuth();
   const [competition, setCompetition] = useState<CompetitionWithClub | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -193,19 +193,10 @@ const CompetitionEntry = () => {
 
       // If user is not logged in, create a new user account
       if (!user) {
-        const { error: signUpError } = await signUp(
-          formData.email,
-          'temp-password-' + Date.now(), // Generate temporary password
-          {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            phone: formData.phone,
-            role: 'PLAYER'
-          }
-        );
+        const { error: otpError } = await sendOtp(formData.email);
 
-        if (signUpError) {
-          throw signUpError;
+        if (otpError) {
+          throw new Error(otpError);
         }
 
         // Get the newly created user

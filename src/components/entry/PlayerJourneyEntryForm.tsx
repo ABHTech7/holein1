@@ -40,7 +40,7 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
   competition,
   onSuccess
 }) => {
-  const { user, signUp } = useAuth();
+  const { user, sendOtp } = useAuth();
   const { toast } = useToast();
   
   const [formData, setFormData] = useState<PlayerFormData>({
@@ -157,7 +157,7 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
       
       // Send OTP for authentication if not logged in
       if (!userId) {
-        console.log('Sending OTP for user authentication...');
+        console.warn('[Auth] About to send OTP for', formData.email);
         
         // Store form data in localStorage to restore after auth
         localStorage.setItem('pending_entry_form', JSON.stringify({
@@ -166,17 +166,12 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
           termsAccepted
         }));
         
-        const { error } = await supabase.auth.signInWithOtp({
-          email: formData.email,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback?continue=/entry-success`,
-          },
-        });
+        const { error } = await sendOtp(formData.email);
         
         if (error) {
           toast({ 
             title: "Sign-in failed", 
-            description: error.message,
+            description: error,
             variant: "destructive" 
           });
           return;

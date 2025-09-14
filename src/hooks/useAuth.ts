@@ -137,32 +137,19 @@ export const useAuth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, metadata?: { first_name?: string; last_name?: string; phone?: string; role?: string; dob?: string; handicap?: number; consent_marketing?: boolean }) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
+  const sendOtp = async (email: string): Promise<{ error?: string }> => {
+    const { error } = await supabase.auth.signInWithOtp({
       email,
-      password,
       options: {
-        emailRedirectTo: redirectUrl,
-        data: metadata
-      }
+        emailRedirectTo: `${window.location.origin}/auth/callback?continue=/entry-success`,
+      },
     });
     
     if (error) {
-      toast({
-        title: "Sign up failed",
-        description: error.message,
-        variant: "destructive"
-      });
-    } else {
-      toast({
-        title: "Check your email",
-        description: "We've sent you a confirmation link to complete your registration."
-      });
+      return { error: error.message };
     }
     
-    return { error };
+    return {};
   };
 
   const signIn = async (email: string, password: string) => {
@@ -251,7 +238,7 @@ export const useAuth = () => {
 
   return {
     ...authState,
-    signUp,
+    sendOtp,
     signIn,
     signOut,
     forceRefresh,

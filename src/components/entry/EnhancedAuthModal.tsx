@@ -27,7 +27,7 @@ export const EnhancedAuthModal = ({
   onSuccess,
   redirectUrl 
 }: EnhancedAuthModalProps) => {
-  const { user, signUp } = useAuth();
+  const { user, sendOtp } = useAuth();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
 
@@ -59,14 +59,9 @@ export const EnhancedAuthModal = ({
     setLoading(true);
     try {
       // Send secure entry link for email authentication
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`
-        }
-      });
+      const { error } = await sendOtp(email);
 
-      if (error) throw error;
+      if (error) throw new Error(error);
 
       toast({
         title: "Check your email",

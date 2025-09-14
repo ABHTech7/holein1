@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,12 +9,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Mail, Smartphone, Calendar, Target, AlertCircle } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import useAuth from "@/hooks/useAuth";
+import { Mail, User, Phone, Calendar, Target, AlertCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import useAuth from "@/hooks/useAuth";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface AuthModalProps {
   open: boolean;
@@ -22,7 +20,7 @@ interface AuthModalProps {
   onSuccess: (userId: string) => void;
 }
 
-interface ProfileFormData {
+interface ProfileForm {
   firstName: string;
   lastName: string;
   email: string;
@@ -33,11 +31,18 @@ interface ProfileFormData {
 }
 
 export const AuthModal = ({ open, onOpenChange, onSuccess }: AuthModalProps) => {
-  const { user, signUp, signIn } = useAuth();
+  const { user, signIn, sendOtp } = useAuth();
   const [step, setStep] = useState<'login' | 'signup' | 'profile'>('login');
   const [loading, setLoading] = useState(false);
-  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
-  const [profileForm, setProfileForm] = useState<ProfileFormData>({
+  const [emailSent, setEmailSent] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  
+  const [loginForm, setLoginForm] = useState({
+    email: '',
+    password: ''
+  });
+
+  const [profileForm, setProfileForm] = useState<ProfileForm>({
     firstName: '',
     lastName: '',
     email: '',
@@ -47,11 +52,17 @@ export const AuthModal = ({ open, onOpenChange, onSuccess }: AuthModalProps) => 
     consentMarketing: false
   });
 
-  const handleEmailLogin = async () => {
+  useEffect(() => {
+    if (user) {
+      onSuccess(user.id);
+      onOpenChange(false);
+    }
+  }, [user, onSuccess, onOpenChange]);
+
+  const handleLogin = async () => {
     if (!loginForm.email || !loginForm.password) {
       toast({
-        title: "Missing information",
-        description: "Please enter your email and password",
+        title: "Please enter email and password",
         variant: "destructive"
       });
       return;
@@ -65,56 +76,48 @@ export const AuthModal = ({ open, onOpenChange, onSuccess }: AuthModalProps) => 
         setStep('signup');
         setProfileForm(prev => ({ ...prev, email: loginForm.email }));
       }
-    } else if (user) {
-      onSuccess(user.id);
-      onOpenChange(false);
     }
+    
     setLoading(false);
   };
 
-  const handleSignup = async () => {
-    // Validate required fields
-    if (!profileForm.firstName || !profileForm.lastName || !profileForm.email || 
-        !profileForm.phone || !profileForm.dob || !profileForm.handicap) {
+  const handleSendOtp = async (isResend = false) => {
+    if (!profileForm.email || !profileForm.email.includes('@')) {
       toast({
-        title: "Missing information",
-        description: "Please fill in all required fields",
+        title: "Invalid email",
+        description: "Please enter a valid email address",
         variant: "destructive"
       });
       return;
     }
 
-    // Validate handicap eligibility
-    const handicapValue = parseFloat(profileForm.handicap);
-    if (handicapValue <= 0) {
+    if (isResend) {
+      setResendLoading(true);
+    } else {
+      setLoading(true);
+    }
+
+    const { error } = await sendOtp(profileForm.email);
+
+    if (error) {
       toast({
-        title: "Eligibility Check Failed",
-        description: "Players with handicap 0 or below are not eligible to enter competitions. Contact support if you believe this is an error.",
+        title: isResend ? "Failed to resend link" : "Authentication failed",
+        description: error,
         variant: "destructive"
       });
-      return;
+    } else {
+      setEmailSent(true);
+      toast({
+        title: isResend ? "Link resent!" : "Check your email",
+        description: "We've sent you a secure entry link.",
+      });
     }
 
-    setLoading(true);
-    const { error } = await signUp(
-      profileForm.email,
-      'temp-password-' + Date.now(),
-      {
-        first_name: profileForm.firstName,
-        last_name: profileForm.lastName,
-        phone: profileForm.phone,
-        role: 'PLAYER',
-        dob: profileForm.dob,
-        handicap: handicapValue,
-        consent_marketing: profileForm.consentMarketing
-      }
-    );
-
-    if (!error && user) {
-      onSuccess(user.id);
-      onOpenChange(false);
+    if (isResend) {
+      setResendLoading(false);
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const renderLoginStep = () => (
@@ -128,7 +131,7 @@ export const AuthModal = ({ open, onOpenChange, onSuccess }: AuthModalProps) => 
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">Email address</Label>
+          <Label htmlFor="email">Email</Label>
           <Input
             id="email"
             type="email"
@@ -137,7 +140,7 @@ export const AuthModal = ({ open, onOpenChange, onSuccess }: AuthModalProps) => 
             onChange={(e) => setLoginForm(prev => ({ ...prev, email: e.target.value }))}
           />
         </div>
-
+        
         <div className="space-y-2">
           <Label htmlFor="password">Password</Label>
           <Input
@@ -150,165 +153,202 @@ export const AuthModal = ({ open, onOpenChange, onSuccess }: AuthModalProps) => 
         </div>
 
         <Button
-          onClick={handleEmailLogin}
+          onClick={handleLogin}
           disabled={loading}
           className="w-full"
         >
-          {loading ? "Signing in..." : "Continue"}
+          {loading ? "Signing in..." : "Sign In"}
         </Button>
-
-        <div className="text-center">
-          <Button
-            variant="link"
-            onClick={() => {
-              setStep('signup');
-              setProfileForm(prev => ({ ...prev, email: loginForm.email }));
-            }}
-            className="text-sm"
-          >
-            Don't have an account? Sign up
-          </Button>
-        </div>
       </div>
-    </div>
-  );
-
-  const renderSignupStep = () => (
-    <div className="space-y-6">
-      <div className="text-center space-y-2">
-        <h3 className="text-lg font-semibold">Create your account</h3>
-        <p className="text-sm text-muted-foreground">
-          We need some information to verify your eligibility
-        </p>
-      </div>
-
-      {/* Eligibility Warning */}
-      <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5" />
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                Eligibility Requirement
-              </p>
-              <p className="text-sm text-amber-700 dark:text-amber-300">
-                Players with handicap 0 or below cannot enter competitions
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="firstName">First name *</Label>
-          <Input
-            id="firstName"
-            placeholder="John"
-            value={profileForm.firstName}
-            onChange={(e) => setProfileForm(prev => ({ ...prev, firstName: e.target.value }))}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="lastName">Last name *</Label>
-          <Input
-            id="lastName"
-            placeholder="Smith"
-            value={profileForm.lastName}
-            onChange={(e) => setProfileForm(prev => ({ ...prev, lastName: e.target.value }))}
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="email">Email address *</Label>
-        <Input
-          id="email"
-          type="email"
-          placeholder="john@example.com"
-          value={profileForm.email}
-          onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="phone">Phone number *</Label>
-        <Input
-          id="phone"
-          type="tel"
-          placeholder="+44 7700 900000"
-          value={profileForm.phone}
-          onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="dob">Date of birth *</Label>
-        <Input
-          id="dob"
-          type="date"
-          value={profileForm.dob}
-          onChange={(e) => setProfileForm(prev => ({ ...prev, dob: e.target.value }))}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="handicap">Golf handicap *</Label>
-        <Input
-          id="handicap"
-          type="number"
-          step="0.1"
-          placeholder="18.5"
-          value={profileForm.handicap}
-          onChange={(e) => setProfileForm(prev => ({ ...prev, handicap: e.target.value }))}
-        />
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="marketing"
-          checked={profileForm.consentMarketing}
-          onCheckedChange={(checked) => 
-            setProfileForm(prev => ({ ...prev, consentMarketing: checked as boolean }))
-          }
-        />
-        <Label htmlFor="marketing" className="text-sm">
-          I'd like to receive marketing emails about competitions and offers
-        </Label>
-      </div>
-
-      <Button
-        onClick={handleSignup}
-        disabled={loading}
-        className="w-full"
-      >
-        {loading ? "Creating account..." : "Create Account & Enter"}
-      </Button>
 
       <div className="text-center">
         <Button
           variant="link"
-          onClick={() => setStep('login')}
+          onClick={() => {
+            setStep('signup');
+            setProfileForm(prev => ({ ...prev, email: loginForm.email }));
+          }}
           className="text-sm"
         >
-          Already have an account? Sign in
+          Don't have an account? Sign up instead
         </Button>
       </div>
     </div>
   );
 
+  const renderSignupStep = () => {
+    if (emailSent) {
+      return (
+        <div className="space-y-4">
+          <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    Check your email
+                  </p>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    We've sent a secure entry link to <strong>{profileForm.email}</strong>. Open it on this device to continue.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="text-center space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Didn't get it? Check spam or try again.
+            </p>
+            
+            <div className="flex flex-col gap-2">
+              <Button
+                onClick={() => handleSendOtp(true)}
+                disabled={resendLoading}
+                variant="outline"
+                className="w-full"
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                {resendLoading ? "Resending..." : "Resend Link"}
+              </Button>
+              
+              <Button
+                variant="link"
+                onClick={() => {
+                  setEmailSent(false);
+                  setLoading(false);
+                  setResendLoading(false);
+                }}
+                className="text-sm"
+              >
+                Use a different email address
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="text-center space-y-2">
+          <h3 className="text-lg font-semibold">Enter Competition</h3>
+          <p className="text-sm text-muted-foreground">
+            We'll send you a secure entry link to verify and complete your entry
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="firstName" className="flex items-center gap-2">
+                <User className="w-4 h-4" />
+                First name *
+              </Label>
+              <Input
+                id="firstName"
+                placeholder="John"
+                value={profileForm.firstName}
+                onChange={(e) => setProfileForm(prev => ({ ...prev, firstName: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">Last name *</Label>
+              <Input
+                id="lastName"
+                placeholder="Smith"
+                value={profileForm.lastName}
+                onChange={(e) => setProfileForm(prev => ({ ...prev, lastName: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email" className="flex items-center gap-2">
+              <Mail className="w-4 h-4" />
+              Email address *
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="john@example.com"
+              value={profileForm.email}
+              onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone" className="flex items-center gap-2">
+              <Phone className="w-4 h-4" />
+              Phone number *
+            </Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="+44 7700 900000"
+              value={profileForm.phone}
+              onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="dob" className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Date of birth *
+              </Label>
+              <Input
+                id="dob"
+                type="date"
+                value={profileForm.dob}
+                onChange={(e) => setProfileForm(prev => ({ ...prev, dob: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="handicap" className="flex items-center gap-2">
+                <Target className="w-4 h-4" />
+                Golf handicap *
+              </Label>
+              <Input
+                id="handicap"
+                type="number"
+                step="0.1"
+                placeholder="18.5"
+                min="0.1"
+                max="54"
+                value={profileForm.handicap}
+                onChange={(e) => setProfileForm(prev => ({ ...prev, handicap: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <Button
+            onClick={() => handleSendOtp()}
+            disabled={loading}
+            className="w-full"
+          >
+            <Mail className="w-5 h-5 mr-3" />
+            {loading ? "Sending..." : "Send Secure Entry Link"}
+          </Button>
+
+          <p className="text-xs text-center text-muted-foreground px-4">
+            By continuing, you agree to our Terms of Service and Privacy Policy.
+            We'll send you a secure link to verify and complete your entry.
+          </p>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="font-['Montserrat']">
-            {step === 'login' ? 'Welcome back' : 'Join Hole in 1 Challenge'}
+        <DialogHeader className="text-center pb-4">
+          <DialogTitle className="text-2xl font-['Montserrat']">
+            Welcome
           </DialogTitle>
           <DialogDescription>
-            {step === 'login' 
-              ? 'Sign in to your account to enter competitions'
-              : 'Create your account to start entering competitions'
-            }
+            Quick and secure authentication to enter competitions
           </DialogDescription>
         </DialogHeader>
 
