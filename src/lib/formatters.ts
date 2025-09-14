@@ -89,74 +89,19 @@ export const getCompetitionStatusColor = (status: string) => {
 };
 
 export const copyToClipboard = async (text: string): Promise<boolean> => {
-  console.log('Attempting to copy:', text);
-  
-  // First try modern clipboard API
-  if (navigator.clipboard && window.isSecureContext) {
-    try {
-      console.log('Using navigator.clipboard');
-      await navigator.clipboard.writeText(text);
-      console.log('Copy successful with navigator.clipboard');
-      return true;
-    } catch (error) {
-      console.error('navigator.clipboard failed:', error);
-    }
-  }
-  
-  // Fallback method
-  console.log('Using fallback copy method');
-  return copyFallback(text);
-};
-
-const copyFallback = (text: string): boolean => {
   try {
-    // Create a temporary input element that's visible
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    
-    // Make it visible but off-screen
-    textArea.style.position = 'absolute';
-    textArea.style.left = '-9999px';
-    textArea.style.top = '0';
-    textArea.style.width = '1px';
-    textArea.style.height = '1px';
-    textArea.style.border = 'none';
-    textArea.style.outline = 'none';
-    textArea.style.boxShadow = 'none';
-    textArea.style.background = 'transparent';
-    
-    document.body.appendChild(textArea);
-    
-    // Focus and select
-    textArea.focus();
-    textArea.select();
-    textArea.setSelectionRange(0, text.length);
-    
-    // Try to copy
-    let result = false;
-    try {
-      result = document.execCommand('copy');
-      console.log('document.execCommand copy result:', result);
-    } catch (err) {
-      console.error('document.execCommand failed:', err);
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
     }
-    
-    // Clean up
-    document.body.removeChild(textArea);
-    
-    // If document.execCommand failed, try one more approach
-    if (!result && navigator.clipboard) {
-      try {
-        navigator.clipboard.writeText(text);
-        return true;
-      } catch (err) {
-        console.error('Final clipboard attempt failed:', err);
-      }
-    }
-    
-    return result;
-  } catch (fallbackError) {
-    console.error('Fallback copy method failed:', fallbackError);
-    return false;
-  }
+  } catch {}
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  const ok = document.execCommand('copy');
+  document.body.removeChild(ta);
+  return ok;
 };

@@ -70,14 +70,14 @@ export const EnhancedAuthModal = ({
 
       toast({
         title: "Check your email",
-        description: "We've sent you a magic link to sign in",
+        description: "We've sent you a secure entry link. Open it on this device to continue.",
       });
       
       onOpenChange(false);
     } catch (error: any) {
       toast({
         title: "Authentication failed", 
-        description: error.message || "Failed to send magic link",
+        description: error.message || "Failed to send secure link",
         variant: "destructive"
       });
     } finally {
@@ -92,7 +92,7 @@ export const EnhancedAuthModal = ({
           Enter Competition
         </h3>
         <p className="text-sm text-muted-foreground">
-          We'll send you a magic link to sign in
+          We'll send you a secure entry link. Open it on this device to continue.
         </p>
       </div>
 

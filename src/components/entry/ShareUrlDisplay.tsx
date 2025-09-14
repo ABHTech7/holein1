@@ -46,7 +46,7 @@ export const ShareUrlDisplay = ({ competitionId, competitionName, clubId, holeNu
     const success = await copyToClipboard(shareUrl);
     if (success) {
       toast({
-        title: "Copied!",
+        title: "Link copied",
         description: "Share URL copied to clipboard",
       });
       onCopy?.();

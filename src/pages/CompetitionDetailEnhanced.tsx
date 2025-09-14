@@ -277,7 +277,7 @@ const CompetitionDetailEnhanced = () => {
     
     if (success) {
       toast({
-        title: 'Share Link Copied!',
+        title: 'Link copied',
         description: 'Use this URL in your external QR code generator',
       });
     } else {

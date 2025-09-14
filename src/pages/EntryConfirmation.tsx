@@ -363,7 +363,7 @@ const EntryConfirmation = () => {
             <div>
               <p className="text-muted-foreground">Loading entry details...</p>
               <p className="text-sm text-muted-foreground/70 mt-1">
-                This may take a moment after clicking your magic link
+                This may take a moment after clicking your secure link
               </p>
             </div>
           </div>

@@ -23,28 +23,28 @@ const AuthCallback = () => {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        // Check if this is a magic link token verification
+        // Check if this is a secure entry link token verification
         const token = searchParams.get('token');
         
         if (token) {
           
-          // Verify the custom magic link token
+          // Verify the custom secure entry link token
           const { data, error } = await supabase.functions.invoke('verify-magic-link', {
             body: { token }
           });
 
           if (error) {
-            console.error('Magic link verification error:', error);
-            throw new Error(error.message || 'Failed to verify magic link');
+            console.error('Secure link verification error:', error);
+            throw new Error(error.message || 'Failed to verify secure link');
           }
 
           if (!data?.success) {
-            const errorMessage = data?.error || 'Invalid magic link';
-            console.error('Magic link verification failed:', errorMessage);
+            const errorMessage = data?.error || 'Invalid secure link';
+            console.error('Secure link verification failed:', errorMessage);
             throw new Error(errorMessage);
           }
 
-          console.log('🔍 Magic link verification response:', data);
+          console.log('🔍 Secure link verification response:', data);
 
           // Set the session using the tokens from the response
           if (data.access_token && data.refresh_token) {
@@ -78,7 +78,7 @@ const AuthCallback = () => {
             }
           }
 
-          console.log("Magic link verification successful:", data);
+          console.log("Secure link verification successful:", data);
         
           // Check if we have a redirect URL for the new token-based flow
           if (data.redirect_url) {
@@ -91,7 +91,7 @@ const AuthCallback = () => {
           setStatus('success');
           setMessage(`Welcome ${data.user?.first_name}! Taking you to your golf challenge...`);
           
-          console.log('🔍 Magic link verification response:', data);
+          console.log('🔍 Secure link verification response:', data);
           console.log('📝 Entry ID from response:', data.entry_id);
           console.log('🌐 Competition URL from response:', data.competition_url);
           
@@ -167,9 +167,9 @@ const AuthCallback = () => {
         if (error.message?.includes("12 hours")) {
           setMessage('You must wait 12 hours between entries for the same competition.');
         } else if (error.message?.includes("already been used")) {
-          setMessage('This magic link has already been used. Please request a new one.');
+          setMessage('This secure link has already been used. Please request a new one.');
         } else if (error.message?.includes("expired")) {
-          setMessage('This magic link has expired. Please request a new one.');
+          setMessage('This secure link has expired. Please request a new one.');
         } else {
           setMessage(error.message || 'Authentication failed');
         }

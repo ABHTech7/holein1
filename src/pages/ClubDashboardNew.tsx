@@ -271,7 +271,7 @@ const ClubDashboardNew = () => {
       
       if (success) {
         toast({
-          title: 'Link Copied!',
+          title: 'Link copied',
           description: 'Competition entry link has been copied to clipboard.',
         });
       }
@@ -293,7 +293,7 @@ const ClubDashboardNew = () => {
     
     if (success) {
       toast({
-        title: 'Link Copied!',
+        title: 'Link copied',
         description: 'Competition share link copied to clipboard',
       });
     } else {

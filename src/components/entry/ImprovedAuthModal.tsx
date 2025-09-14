@@ -118,16 +118,16 @@ export const ImprovedAuthModal = ({
       if (data?.success) {
         setEmailSent(true);
         toast({
-          title: isResend ? "Magic link resent!" : "Magic link sent!",
-          description: "Check your email and click the link to complete your entry",
+          title: isResend ? "Link resent!" : "Check your email",
+          description: "We've sent you a secure entry link. Open it on this device to continue.",
         });
       } else {
-        throw new Error(data?.error || "Failed to send magic link");
+        throw new Error(data?.error || "Failed to send secure link");
       }
     } catch (error: any) {
-      console.error('Magic link error:', error);
+      console.error('Secure link error:', error);
       toast({
-        title: isResend ? "Failed to resend magic link" : "Failed to send magic link", 
+        title: isResend ? "Failed to resend link" : "Failed to send secure link", 
         description: error.message || "Please try again",
         variant: "destructive"
       });
@@ -162,7 +162,7 @@ export const ImprovedAuthModal = ({
               Check Your Email
             </DialogTitle>
             <DialogDescription>
-              We've sent a magic link to <strong>{profileForm.email}</strong>
+              We've sent a secure entry link to <strong>{profileForm.email}</strong>. Open it on this device to continue.
             </DialogDescription>
           </DialogHeader>
 
@@ -185,7 +185,7 @@ export const ImprovedAuthModal = ({
 
             <div className="text-center space-y-3">
               <p className="text-sm text-muted-foreground">
-                Didn't receive the email? Check your spam folder
+                Didn't get it? Check spam or try again.
               </p>
               
               <div className="flex flex-col gap-2">
@@ -196,7 +196,7 @@ export const ImprovedAuthModal = ({
                   className="w-full"
                 >
                   <Mail className="w-4 h-4 mr-2" />
-                  {resendLoading ? "Resending..." : "Resend Magic Link"}
+                  {resendLoading ? "Resending..." : "Resend Link"}
                 </Button>
                 
                 <Button
