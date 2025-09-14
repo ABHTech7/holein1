@@ -192,6 +192,30 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
         handicap: formData.handicap,
       });
 
+      // Check if payment providers are available
+      const availableProviders = getAvailablePaymentProviders();
+      
+      if (availableProviders.length === 0) {
+        // No payment providers - skip payment and complete entry
+        await supabase
+          .from('entries')
+          .update({
+            payment_provider: null,
+            paid: false,
+            payment_date: null,
+            status: 'completed' // Mark as completed but unpaid
+          })
+          .eq('id', entry.id);
+
+        toast({ 
+          title: "Entry recorded!", 
+          description: "Your entry has been successfully recorded."
+        });
+
+        onSuccess(entry.id, formData);
+        return;
+      }
+
       // Move to payment step
       setPaymentStep('payment');
       
@@ -206,16 +230,41 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
   const handlePayment = async () => {
     if (!entryId) return;
     
+    const providers = getAvailablePaymentProviders();
+    
+    if (providers.length === 0) {
+      // No payment providers available - complete entry without payment
+      setPaymentStep('processing');
+      
+      try {
+        await supabase
+          .from('entries')
+          .update({
+            payment_provider: null,
+            paid: false,
+            payment_date: null,
+            status: 'completed'
+          })
+          .eq('id', entryId);
+
+        toast({ 
+          title: "Entry recorded!", 
+          description: "Your entry has been successfully recorded."
+        });
+
+        onSuccess(entryId, formData);
+      } catch (error) {
+        console.error('Entry update error:', error);
+        toast({ title: "Entry recording failed", variant: "destructive" });
+        setPaymentStep('payment');
+      }
+      return;
+    }
+    
     setPaymentStep('processing');
     
     try {
-      const providers = getAvailablePaymentProviders();
       const provider = providers[0]; // Use first available provider
-      
-      if (!provider) {
-        toast({ title: "No payment method available", variant: "destructive" });
-        return;
-      }
 
       // Create payment intent
       const paymentIntent = await createPaymentIntent(
@@ -291,6 +340,8 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
   }
 
   if (paymentStep === 'payment') {
+    const availableProviders = getAvailablePaymentProviders();
+    
     return (
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
@@ -312,19 +363,39 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Shield className="h-4 w-4" />
-            <span>Secure payment powered by Stripe</span>
-          </div>
+          {availableProviders.length > 0 ? (
+            <>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Shield className="h-4 w-4" />
+                <span>Secure payment powered by {availableProviders[0].name}</span>
+              </div>
 
-          <Button 
-            onClick={handlePayment}
-            className="w-full h-12 text-lg"
-            size="lg"
-          >
-            <Zap className="h-5 w-5 mr-2" />
-            Pay £{(competition.entry_fee / 100).toFixed(2)} & Enter
-          </Button>
+              <Button 
+                onClick={handlePayment}
+                className="w-full h-12 text-lg"
+                size="lg"
+              >
+                <Zap className="h-5 w-5 mr-2" />
+                Pay £{(competition.entry_fee / 100).toFixed(2)} & Enter
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
+                <p className="text-amber-800 text-sm">
+                  Online payment isn't enabled yet. Your entry is recorded.
+                </p>
+              </div>
+
+              <Button 
+                onClick={handlePayment}
+                className="w-full h-12 text-lg"
+                size="lg"
+              >
+                Complete Entry
+              </Button>
+            </>
+          )}
         </CardContent>
       </Card>
     );
