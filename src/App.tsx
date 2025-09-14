@@ -15,6 +15,7 @@ import CompetitionEntry from "./pages/CompetitionEntry";
 import EntryPageNew from "./pages/EntryPageNew";
 import EntryConfirmation from "./pages/EntryConfirmation";
 import EntrySuccess from "./pages/EntrySuccess";
+import WinClaimPage from "./pages/WinClaimPage";
 
 import DeveloperDemo from "./pages/DeveloperDemo";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -94,6 +95,8 @@ const App = () => {
               } 
             />
             <Route path="/entry/:entryId/confirmation" element={<EntryConfirmation />} />
+            <Route path="/entry-success/:entryId" element={<EntrySuccess />} />
+            <Route path="/win-claim/:entryId" element={<WinClaimPage />} />
             {/* Legacy routes for backward compatibility */}
             <Route path="/enter/:competitionId" element={<CompetitionEntry />} />
             <Route path="/competitions/:id" element={<CompetitionDetail />} />
