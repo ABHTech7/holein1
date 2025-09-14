@@ -10,7 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getFormGreeting } from "@/lib/copyEngine";
 import { getAvailablePaymentProviders, createPaymentIntent, confirmPayment, updateEntryPaymentInfo } from "@/lib/paymentService";
-import { Loader2, CreditCard, Shield, Zap } from "lucide-react";
+import { getPaymentMode } from "@/lib/featureFlags";
+import { Loader2, CreditCard, Shield, Zap, Badge } from "lucide-react";
 import type { Gender } from '@/lib/copyEngine';
 
 interface PlayerJourneyEntryFormProps {
@@ -194,16 +195,19 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
 
       // Check if payment providers are available
       const availableProviders = getAvailablePaymentProviders();
+      const paymentMode = getPaymentMode();
+      
+      console.info('[Payments] Mode:', paymentMode);
       
       if (availableProviders.length === 0) {
-        // No payment providers - skip payment and complete entry
+        // No payment providers - skip payment and mark as active entry
         await supabase
           .from('entries')
           .update({
             payment_provider: null,
             paid: false,
             payment_date: null,
-            status: 'completed' // Mark as completed but unpaid
+            status: 'active' // Mark as active (playable) but unpaid
           })
           .eq('id', entry.id);
 
@@ -243,7 +247,7 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
             payment_provider: null,
             paid: false,
             payment_date: null,
-            status: 'completed'
+            status: 'active'
           })
           .eq('id', entryId);
 
@@ -341,13 +345,20 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
 
   if (paymentStep === 'payment') {
     const availableProviders = getAvailablePaymentProviders();
+    const paymentMode = getPaymentMode();
     
     return (
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Complete Your Entry
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Complete Your Entry
+            </div>
+            <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md text-xs font-medium text-muted-foreground">
+              <Badge className="h-3 w-3" />
+              {paymentMode}
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -394,6 +405,10 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
               >
                 Complete Entry
               </Button>
+              
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                💳 Payment will be handled offline at the clubhouse.
+              </p>
             </>
           )}
         </CardContent>

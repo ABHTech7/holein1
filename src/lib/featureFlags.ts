@@ -35,6 +35,28 @@ export const getFeatureConfig = () => ({
   },
 });
 
+export const getPaymentMode = (): string => {
+  const stripe = isFeatureEnabled('VITE_PAYMENT_PROVIDER_STRIPE_ENABLED');
+  const fondy = isFeatureEnabled('VITE_PAYMENT_PROVIDER_FONDY_ENABLED');
+  const wise = isFeatureEnabled('VITE_PAYMENT_PROVIDER_WISE_ENABLED');
+  
+  // If no payment providers are enabled
+  if (!stripe && !fondy && !wise) {
+    return "No-Payments";
+  }
+  
+  // If Stripe is enabled, check environment mode
+  if (stripe) {
+    return import.meta.env.MODE === 'production' ? "Stripe (Live)" : "Stripe (Test)";
+  }
+  
+  // If other providers are enabled
+  if (fondy) return "Fondy";
+  if (wise) return "Wise";
+  
+  return "Unknown";
+};
+
 // Development utilities
 export const logFeatureFlags = () => {
   console.group('🚩 Feature Flags');
