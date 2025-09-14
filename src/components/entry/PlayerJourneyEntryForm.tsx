@@ -590,6 +590,27 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
             </div>
           </div>
 
+          {/* Row 5: Gender */}
+          <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3 focus-within:border-emerald-300 focus-within:ring-2 focus-within:ring-emerald-500/10">
+            <Label htmlFor="gender" className="text-xs uppercase font-medium text-slate-500 mb-1 block">
+              Gender
+            </Label>
+            <Select
+              value={formData.gender} 
+              onValueChange={(value) => handleInputChange('gender', value)}
+            >
+              <SelectTrigger className="border-0 p-0 text-base font-semibold text-slate-900 focus:ring-0 bg-transparent h-auto">
+                <SelectValue placeholder="Select gender" />
+              </SelectTrigger>
+              <SelectContent className="bg-white border-emerald-200">
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="female">Female</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Terms Checkbox */}
           <div className="flex items-start gap-3 pt-2">
             <Checkbox
