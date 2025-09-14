@@ -81,6 +81,11 @@ const EntryPageNew = () => {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [showProfileForm, setShowProfileForm] = useState(false);
   const [cooldownEnd, setCooldownEnd] = useState<Date | null>(null);
+  const [showPlayerJourney, setShowPlayerJourney] = useState(false);
+  
+  // Use feature flag to determine which entry flow to use
+  const usePlayerJourneyV2 = isFeatureEnabled('VITE_PLAYER_JOURNEY_V2_ENABLED');
+  console.log('🚩 Player Journey V2 enabled:', usePlayerJourneyV2);
 
   useEffect(() => {
     const fetchCompetition = async () => {
@@ -207,11 +212,17 @@ const EntryPageNew = () => {
   };
 
   const handleEnterNow = () => {
-    if (!user) {
-      setAuthModalOpen(true);
+    if (usePlayerJourneyV2) {
+      // Navigate to V2 entry form route
+      navigate(`/competition/${clubSlug}/${competitionSlug}/enter`);
     } else {
-      // Check if profile is complete
-      checkProfileAndProceed();
+      // Legacy flow
+      if (!user) {
+        setAuthModalOpen(true);
+      } else {
+        // Check if profile is complete
+        checkProfileAndProceed();
+      }
     }
   };
 
@@ -429,12 +440,21 @@ const EntryPageNew = () => {
               )}
 
               {/* Enter Now CTA */}
-              <EnterNowCTA
-                onClick={handleEnterNow}
-                disabled={isCooldownActive || entering}
-                loading={entering}
-                entryFee={competition.entry_fee}
-              />
+              {usePlayerJourneyV2 ? (
+                <EnterNowCTA
+                  onClick={handleEnterNow}
+                  disabled={isCooldownActive}
+                  loading={false}
+                  entryFee={competition.entry_fee}
+                />
+              ) : (
+                <EnterNowCTA
+                  onClick={handleEnterNow}
+                  disabled={isCooldownActive || entering}
+                  loading={entering}
+                  entryFee={competition.entry_fee}
+                />
+              )}
             </div>
           </Container>
         </div>
@@ -442,31 +462,36 @@ const EntryPageNew = () => {
 
       <SiteFooter />
 
-      {/* Improved Auth Modal with Profile Collection */}
-      <ImprovedAuthModal
-        open={authModalOpen}
-        onOpenChange={setAuthModalOpen}
-        onSuccess={handleAuthSuccess}
-        redirectUrl={`/competition/${clubSlug}/${competitionSlug}`}
-      />
-
-      {/* Mini Profile Form Modal */}
-      {showProfileForm && user && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <MiniProfileForm
-            userId={user.id}
-            userEmail={user.email || ''}
-            onComplete={handleProfileComplete}
-            onSkip={() => {
-              analytics.profileSkipped(user.id);
-              setShowProfileForm(false);
-              if (user) {
-                // Add small delay to ensure state is stable before navigation
-                setTimeout(() => handleEntry(user.id), 100);
-              }
-            }}
+      {/* Legacy modals - only show when V2 is disabled */}
+      {!usePlayerJourneyV2 && (
+        <>
+          {/* Improved Auth Modal with Profile Collection */}
+          <ImprovedAuthModal
+            open={authModalOpen}
+            onOpenChange={setAuthModalOpen}
+            onSuccess={handleAuthSuccess}
+            redirectUrl={`/competition/${clubSlug}/${competitionSlug}`}
           />
-        </div>
+
+          {/* Mini Profile Form Modal */}
+          {showProfileForm && user && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+              <MiniProfileForm
+                userId={user.id}
+                userEmail={user.email || ''}
+                onComplete={handleProfileComplete}
+                onSkip={() => {
+                  analytics.profileSkipped(user.id);
+                  setShowProfileForm(false);
+                  if (user) {
+                    // Add small delay to ensure state is stable before navigation
+                    setTimeout(() => handleEntry(user.id), 100);
+                  }
+                }}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

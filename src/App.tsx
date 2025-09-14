@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
 import CompetitionEntry from "./pages/CompetitionEntry";
 import EntryPageNew from "./pages/EntryPageNew";
+import PlayerJourneyEntryPage from "./pages/PlayerJourneyEntryPage";
 import EntryConfirmation from "./pages/EntryConfirmation";
 import EntrySuccess from "./pages/EntrySuccess";
 import WinClaimPage from "./pages/WinClaimPage";
@@ -93,6 +94,11 @@ const App = () => {
                   <EntryPageNew />
                 </>
               } 
+            />
+            {/* Player Journey V2 entry form route */}
+            <Route 
+              path="/competition/:clubSlug/:competitionSlug/enter" 
+              element={<PlayerJourneyEntryPage />} 
             />
             <Route path="/entry/:entryId/confirmation" element={<EntryConfirmation />} />
             <Route path="/entry-success/:entryId" element={<EntrySuccess />} />
