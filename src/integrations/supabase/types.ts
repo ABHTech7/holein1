@@ -434,6 +434,7 @@ export type Database = {
           outcome_self: string | null
           paid: boolean
           payment_date: string | null
+          payment_provider: string | null
           player_id: string
           score: number | null
           status: string | null
@@ -460,6 +461,7 @@ export type Database = {
           outcome_self?: string | null
           paid?: boolean
           payment_date?: string | null
+          payment_provider?: string | null
           player_id: string
           score?: number | null
           status?: string | null
@@ -486,6 +488,7 @@ export type Database = {
           outcome_self?: string | null
           paid?: boolean
           payment_date?: string | null
+          payment_provider?: string | null
           player_id?: string
           score?: number | null
           status?: string | null
@@ -663,6 +666,7 @@ export type Database = {
           dob: string | null
           email: string
           first_name: string | null
+          gender: string | null
           handicap: number | null
           id: string
           last_name: string | null
@@ -683,6 +687,7 @@ export type Database = {
           dob?: string | null
           email: string
           first_name?: string | null
+          gender?: string | null
           handicap?: number | null
           id: string
           last_name?: string | null
@@ -703,6 +708,7 @@ export type Database = {
           dob?: string | null
           email?: string
           first_name?: string | null
+          gender?: string | null
           handicap?: number | null
           id?: string
           last_name?: string | null
@@ -755,6 +761,165 @@ export type Database = {
         }
         Relationships: []
       }
+      staff: {
+        Row: {
+          active: boolean
+          club_id: string
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          club_id: string
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          club_id?: string
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      staff_code_attempts: {
+        Row: {
+          attempted_at: string
+          code_prefix: string
+          code_suffix: string
+          entry_id: string
+          id: string
+          ip_address: unknown | null
+          staff_code_id: string | null
+          success: boolean
+          user_agent: string | null
+        }
+        Insert: {
+          attempted_at?: string
+          code_prefix: string
+          code_suffix: string
+          entry_id: string
+          id?: string
+          ip_address?: unknown | null
+          staff_code_id?: string | null
+          success?: boolean
+          user_agent?: string | null
+        }
+        Update: {
+          attempted_at?: string
+          code_prefix?: string
+          code_suffix?: string
+          entry_id?: string
+          id?: string
+          ip_address?: unknown | null
+          staff_code_id?: string | null
+          success?: boolean
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
+      staff_codes: {
+        Row: {
+          active: boolean
+          club_id: string
+          code_prefix: string
+          code_suffix: string
+          competition_id: string | null
+          created_at: string
+          current_uses: number
+          id: string
+          max_uses: number | null
+          staff_id: string | null
+          updated_at: string
+          valid_from: string
+          valid_until: string
+        }
+        Insert: {
+          active?: boolean
+          club_id: string
+          code_prefix: string
+          code_suffix: string
+          competition_id?: string | null
+          created_at?: string
+          current_uses?: number
+          id?: string
+          max_uses?: number | null
+          staff_id?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_until: string
+        }
+        Update: {
+          active?: boolean
+          club_id?: string
+          code_prefix?: string
+          code_suffix?: string
+          competition_id?: string | null
+          created_at?: string
+          current_uses?: number
+          id?: string
+          max_uses?: number | null
+          staff_id?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string
+        }
+        Relationships: []
+      }
+      uploaded_files: {
+        Row: {
+          expires_at: string | null
+          file_size_bytes: number
+          id: string
+          mime_type: string
+          original_filename: string
+          storage_bucket: string
+          storage_path: string
+          upload_purpose: string
+          uploaded_at: string
+          user_id: string
+        }
+        Insert: {
+          expires_at?: string | null
+          file_size_bytes: number
+          id?: string
+          mime_type: string
+          original_filename: string
+          storage_bucket: string
+          storage_path: string
+          upload_purpose: string
+          uploaded_at?: string
+          user_id: string
+        }
+        Update: {
+          expires_at?: string | null
+          file_size_bytes?: number
+          id?: string
+          mime_type?: string
+          original_filename?: string
+          storage_bucket?: string
+          storage_path?: string
+          upload_purpose?: string
+          uploaded_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       venues: {
         Row: {
           club_id: string | null
@@ -792,9 +957,15 @@ export type Database = {
       }
       verifications: {
         Row: {
+          auto_miss_applied: boolean | null
+          auto_miss_at: string | null
           created_at: string
-          entry_id: string | null
+          entry_id: string
+          evidence_captured_at: string | null
+          handicap_proof_url: string | null
           id: string
+          id_document_url: string | null
+          selfie_url: string | null
           staff_code: string | null
           status: string | null
           updated_at: string
@@ -804,9 +975,15 @@ export type Database = {
           witnesses: Json
         }
         Insert: {
+          auto_miss_applied?: boolean | null
+          auto_miss_at?: string | null
           created_at?: string
-          entry_id?: string | null
+          entry_id: string
+          evidence_captured_at?: string | null
+          handicap_proof_url?: string | null
           id?: string
+          id_document_url?: string | null
+          selfie_url?: string | null
           staff_code?: string | null
           status?: string | null
           updated_at?: string
@@ -816,9 +993,15 @@ export type Database = {
           witnesses: Json
         }
         Update: {
+          auto_miss_applied?: boolean | null
+          auto_miss_at?: string | null
           created_at?: string
-          entry_id?: string | null
+          entry_id?: string
+          evidence_captured_at?: string | null
+          handicap_proof_url?: string | null
           id?: string
+          id_document_url?: string | null
+          selfie_url?: string | null
           staff_code?: string | null
           status?: string | null
           updated_at?: string
