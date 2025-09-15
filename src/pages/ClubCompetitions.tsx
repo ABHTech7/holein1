@@ -24,6 +24,8 @@ import {
   ArrowLeft,
   Eye
 } from 'lucide-react';
+import { ROUTES } from '@/routes';
+import { showSupabaseError } from '@/lib/showSupabaseError';
 import { 
   formatCurrency, 
   formatDate, 
@@ -76,12 +78,7 @@ const ClubCompetitions = () => {
         if (error) throw error;
         setProfile(data);
       } catch (error) {
-        console.error('Error fetching profile:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load user profile',
-          variant: 'destructive',
-        });
+        showSupabaseError(toast, 'Failed to load user profile', error);
       }
     };
 
@@ -126,12 +123,7 @@ const ClubCompetitions = () => {
         setCompetitions(processedCompetitions);
         setFilteredCompetitions(processedCompetitions);
       } catch (error) {
-        console.error('Error fetching competitions:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load competitions',
-          variant: 'destructive',
-        });
+        showSupabaseError(toast, 'Failed to load competitions', error);
       } finally {
         setLoading(false);
       }
@@ -188,7 +180,7 @@ const ClubCompetitions = () => {
             {/* Back Button */}
             <Button
               variant="outline"
-              onClick={() => navigate('/dashboard/club')}
+              onClick={() => navigate(ROUTES.CLUB.DASHBOARD)}
               className="flex items-center gap-2 mb-6"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -265,7 +257,7 @@ const ClubCompetitions = () => {
                             <div>
                               <button 
                                 className="font-medium text-left hover:text-primary cursor-pointer"
-                                onClick={() => navigate(`/competitions/${competition.id}`)}
+                                onClick={() => navigate(ROUTES.DETAIL.COMPETITION_CLUB(competition.id))}
                               >
                                 {competition.name}
                               </button>

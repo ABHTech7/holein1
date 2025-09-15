@@ -47,7 +47,7 @@ import {
   getCompetitionStatusColor,
   copyToClipboard
 } from '@/lib/formatters';
-import { cn } from '@/lib/utils';
+import { showSupabaseError } from '@/lib/showSupabaseError';
 
 interface Profile {
   id: string;
@@ -164,15 +164,22 @@ const CompetitionDetailEnhanced = () => {
       if (!id || !profile) return;
 
       try {
-        // Fetch competition details
-        const { data: competitionData, error: competitionError } = await supabase
+        let competitionQuery = supabase
           .from('competitions')
           .select(`
-            *,
+            id, name, description, hole_number, status, start_date, end_date, 
+            entry_fee, commission_amount, prize_pool, is_year_round, archived, 
+            club_id, hero_image_url,
             clubs:clubs(id, name)
           `)
-          .eq('id', id)
-          .single();
+          .eq('id', id);
+
+        // Add RLS guard for club users
+        if (profile.role === 'CLUB' && profile.club_id) {
+          competitionQuery = competitionQuery.eq('club_id', profile.club_id);
+        }
+
+        const { data: competitionData, error: competitionError } = await competitionQuery.single();
 
         if (competitionError) throw competitionError;
 
@@ -245,12 +252,7 @@ const CompetitionDetailEnhanced = () => {
         });
 
       } catch (error) {
-        console.error('Error fetching competition:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load competition details',
-          variant: 'destructive',
-        });
+        showSupabaseError(toast, 'Failed to load competition details', error);
       } finally {
         setLoading(false);
       }

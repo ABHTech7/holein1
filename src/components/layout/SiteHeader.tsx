@@ -22,7 +22,7 @@ const SiteHeader = () => {
       try {
         const { data: club, error } = await supabase
           .from('clubs')
-          .select('*')
+          .select('id, name, logo_url, website, active, created_at, updated_at')
           .eq('id', profile.club_id)
           .single();
 
