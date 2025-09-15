@@ -70,10 +70,6 @@ interface Competition {
   archived: boolean;
   club_id: string;
   hero_image_url?: string | null;
-  clubs: {
-    id: string;
-    name: string;
-  };
 }
 
 interface Entry {
@@ -169,8 +165,7 @@ const CompetitionDetailEnhanced = () => {
           .select(`
             id, name, description, hole_number, status, start_date, end_date, 
             entry_fee, commission_amount, prize_pool, is_year_round, archived, 
-            club_id, hero_image_url,
-            clubs:clubs(id, name)
+            club_id, hero_image_url
           `)
           .eq('id', id);
 
@@ -459,7 +454,7 @@ const CompetitionDetailEnhanced = () => {
               <div>
                 <h1 className="font-display text-3xl font-bold text-foreground">{competition.name}</h1>
                 <p className="text-muted-foreground mt-1">
-                  {competition.clubs.name} • Hole #{competition.hole_number}
+                  Hole #{competition.hole_number}
                 </p>
               </div>
               
