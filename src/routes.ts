@@ -24,6 +24,7 @@ export const ROUTES = {
     ENTRIES: '/dashboard/club/entries',
     BANKING: '/dashboard/club/banking',
     COMPETITIONS: '/dashboard/club/competitions',
+    COMPETITIONS_NEW: '/dashboard/club/competitions/new',
     SUPPORT: '/dashboard/club/support',
     CLAIMS: '/dashboard/club/claims',
   },
