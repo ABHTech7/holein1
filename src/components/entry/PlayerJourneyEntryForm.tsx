@@ -560,7 +560,7 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
                 type="number"
                 min="13"
                 max="120"
-                value={formData.age ?? ''}
+                value={formData.age === null ? '' : String(formData.age)}
                 onChange={(e) => handleInputChange('age', e.target.value === '' ? null : Number(e.target.value))}
                 onBlur={handleAgeBlur}
                 placeholder="Enter age"
@@ -578,7 +578,7 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
                 Handicap
               </Label>
               <Select
-                value={formData.handicap === null ? 'none' : formData.handicap.toString()} 
+                value={formData.handicap === null ? 'none' : String(formData.handicap)}
                 onValueChange={(value) => handleInputChange('handicap', value === 'none' ? null : Number(value))}
               >
                 <SelectTrigger className="border-0 p-0 text-base font-semibold text-slate-900 focus:ring-0 bg-transparent h-auto">

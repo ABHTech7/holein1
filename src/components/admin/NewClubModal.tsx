@@ -72,64 +72,28 @@ const NewClubModal = ({ isOpen, onClose, onSuccess }: NewClubModalProps) => {
 
       if (clubError) throw clubError;
 
-      // Create the manager user account
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // Send OTP invitation to the manager
+      const { error: otpError } = await supabase.auth.signInWithOtp({
         email: data.managerEmail,
-        password: `TempPass_${Date.now()}`, // Temporary password
         options: {
-          emailRedirectTo: `${window.location.origin}/auth`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?continue=/dashboard/club`,
           data: {
             first_name: data.managerFirstName,
             last_name: data.managerLastName,
             phone: data.managerPhone || '',
-            role: 'CLUB'
+            role: 'CLUB',
+            club_id: clubData.id
           }
         }
       });
 
-      if (authError) {
-        // If user already exists, try to find them and update their profile
-        if (authError.message.includes('already registered')) {
-          // Get existing user profile
-          const { data: existingProfile, error: profileError } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('email', data.managerEmail)
-            .single();
-
-          if (profileError) throw profileError;
-
-          // Update their role and club assignment
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({
-              role: 'CLUB',
-              club_id: clubData.id,
-              first_name: data.managerFirstName,
-              last_name: data.managerLastName,
-              phone: data.managerPhone || null
-            })
-            .eq('id', existingProfile.id);
-
-          if (updateError) throw updateError;
-        } else {
-          throw authError;
-        }
-      } else if (authData.user) {
-        // Update the profile with club assignment
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            club_id: clubData.id
-          })
-          .eq('id', authData.user.id);
-
-        if (profileError) throw profileError;
+      if (otpError) {
+        throw new Error(`Failed to send invitation email: ${otpError.message}`);
       }
 
       toast({
-        title: "Success",
-        description: "Club and manager created successfully. The manager will receive an email to set up their account.",
+        title: "Club created successfully!",
+        description: `Invitation sent to ${data.managerEmail}. They will receive a secure entry link to complete setup.`,
       });
 
       form.reset();

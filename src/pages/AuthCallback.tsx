@@ -12,7 +12,7 @@ import { getAvailablePaymentProviders } from '@/lib/paymentService';
 /**
  * Test checklist for AuthCallback:
  * - New email: submit form → toast "secure entry link" → click email → AuthCallback creates profile + entry → routed to /entry-success/:id
- * - Existing email: same flow, no "User creation failed" popup
+ * - Existing email: same flow, profiles are created/updated as needed
  * - No providers: entry status becomes `active` (not `completed`), UI shows "offline payment at clubhouse"
  * - Admin "Copy link" buttons copy to clipboard with success toast
  */

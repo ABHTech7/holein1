@@ -114,11 +114,11 @@ const UserManagement = () => {
     e.preventDefault();
     
     try {
-      // Create user account with Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
+      // Send OTP invitation to user
+      const { error: otpError } = await supabase.auth.signInWithOtp({
         email: newUser.email,
-        password: newUser.password,
         options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?continue=/dashboard`,
           data: {
             first_name: newUser.firstName,
             last_name: newUser.lastName,
@@ -129,11 +129,11 @@ const UserManagement = () => {
         }
       });
 
-      if (error) {
-        console.error('Error creating user:', error);
+      if (otpError) {
+        console.error('Error sending invitation:', otpError);
         toast({
-          title: "Error",
-          description: `Failed to create user: ${error.message}`,
+          title: "Error", 
+          description: `Failed to send invitation: ${otpError.message}`,
           variant: "destructive"
         });
         return;

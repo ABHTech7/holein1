@@ -59,6 +59,35 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+- Supabase (PostgreSQL, Auth, Storage, Edge Functions)
+
+## Supabase Authentication Configuration
+
+**Important**: For the OTP-based authentication to work properly, you must configure these settings in your Supabase project:
+
+### Authentication URL Configuration
+
+Navigate to Supabase Dashboard → Authentication → URL Configuration and add:
+
+**Site URL**: Set to your application URL
+- Development: `http://localhost:5173`
+- Staging: `https://demo.holein1challenge.co.uk`  
+- Production: `https://officialholein1.com`
+
+**Redirect URLs**: Add all environments where auth callbacks need to work
+```
+http://localhost:5173/auth/callback
+https://demo.holein1challenge.co.uk/auth/callback
+https://officialholein1.com/auth/callback
+```
+
+### Optional Branding Improvements
+
+For a better user experience, you can also:
+
+1. **Custom SMTP**: Set up custom email sender domain in Authentication → Settings
+2. **Email Templates**: Customize OTP email templates in Authentication → Email Templates  
+3. **Password Protection**: Enable leaked password protection in Authentication → Settings
 
 ## How can I deploy this project?
 
