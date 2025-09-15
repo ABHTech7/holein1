@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import SiteHeader from "@/components/layout/SiteHeader";
@@ -11,8 +12,19 @@ const ClubBankingPage = () => {
   const { profile } = useAuth();
 
   // Redirect if not a club user
-  if (profile?.role !== 'CLUB' || !profile?.club_id) {
-    navigate('/dashboard');
+  useEffect(() => {
+    if (profile?.role !== 'CLUB' || !profile?.club_id) {
+      navigate('/dashboard');
+    }
+  }, [profile, navigate]);
+
+  // Show loading while profile is being determined
+  if (!profile) {
+    return null;
+  }
+
+  // Don't render if not authorized
+  if (profile.role !== 'CLUB' || !profile.club_id) {
     return null;
   }
 
