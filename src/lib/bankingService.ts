@@ -38,7 +38,7 @@ export class SecureBankingService {
         .from('club_banking')
         .select('*')
         .eq('club_id', clubId)
-        .single();
+        .maybeSingle();
 
       // DIAGNOSTIC: Log full Supabase response
       console.log('🏦 Supabase response (getClubBankingDetails):', {
@@ -57,6 +57,10 @@ export class SecureBankingService {
         const errorMessage = showSupabaseError(error, 'getClubBankingDetails');
         console.error('🏦 Formatted error:', errorMessage);
         throw new Error(errorMessage);
+      }
+
+      if (!data) {
+        console.log('🏦 No banking details found for club - this is expected for new clubs');
       }
 
       return data;
