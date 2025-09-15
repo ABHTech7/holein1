@@ -50,6 +50,9 @@ import PartnershipApplication from "./pages/PartnershipApplication";
 // Auth components
 import RoleGuard from "./components/auth/RoleGuard";
 
+// Dev components
+import DebugHud from "./components/dev/DebugHud";
+
 // Policy Pages
 import PrivacyPolicy from "./pages/policies/PrivacyPolicy";
 import TermsOfService from "./pages/policies/TermsOfService";
@@ -323,12 +326,13 @@ const App = () => {
           <Route path="/404" element={<NotFound />} />
           <Route path="/500" element={<ErrorPage />} />
           
-          {/* Catch-all route - must be last */}
-          <Route path="*" element={<ErrorPage />} errorElement={<ErrorPage />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+           {/* Catch-all route - must be last */}
+           <Route path="*" element={<ErrorPage />} errorElement={<ErrorPage />} />
+         </Routes>
+       </BrowserRouter>
+       <DebugHud />
+     </TooltipProvider>
+   </QueryClientProvider>
   );
 };
 
