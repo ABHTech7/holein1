@@ -13,30 +13,6 @@ const SiteHeader = () => {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, profile, signOut } = useAuth();
-  const [clubData, setClubData] = useState<any>(null);
-
-  useEffect(() => {
-    const fetchClubData = async () => {
-      if (!profile?.club_id || profile?.role !== 'CLUB') return;
-      
-      try {
-        const { data: club, error } = await supabase
-          .from('clubs')
-          .select('id, name, logo_url, website, active, created_at, updated_at')
-          .eq('id', profile.club_id)
-          .single();
-
-        if (error) throw error;
-        setClubData(club);
-      } catch (error) {
-        console.error('Error fetching club data:', error);
-      }
-    };
-
-    if (profile) {
-      fetchClubData();
-    }
-  }, [profile]);
 
   const navigation = [
     // Only show Home on non-admin pages

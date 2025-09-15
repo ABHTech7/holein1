@@ -84,7 +84,6 @@ const ClubDashboardNew = () => {
   });
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [recentEntries, setRecentEntries] = useState<Entry[]>([]);
-  const [clubData, setClubData] = useState<any>(null);
 
   // Fetch user profile and check permissions
   useEffect(() => {
@@ -121,17 +120,7 @@ const ClubDashboardNew = () => {
       }
 
       try {
-        // Fetch club data first
-        const { data: club, error: clubError } = await supabase
-          .from('clubs')
-          .select('id, name, logo_url, address, email, phone, website')
-          .eq('id', clubId)
-          .single();
-
-        if (clubError) throw clubError;
-        setClubData(club);
-
-        // Fetch competitions for this club (ids only for performance)
+        // Fetch competitions for this club (with basic club info from first competition)
         const { data: comps, error: compsErr } = await supabase
           .from('competitions')
           .select('id, status, start_date, end_date, name, hole_number, entry_fee')
@@ -257,8 +246,8 @@ const ClubDashboardNew = () => {
 
 
       } catch (error) {
-        const msg = showSupabaseError(error, 'Failed to load dashboard data');
-        toast({ title: "Error", description: msg, variant: "destructive" });
+        const msg = showSupabaseError(error, 'Club dashboard load');
+        toast({ title: 'Error', description: msg, variant: 'destructive' });
       }
     };
 
@@ -324,21 +313,13 @@ const ClubDashboardNew = () => {
                 <p className="text-muted-foreground mt-1">Manage your Hole in 1 Challenge competitions</p>
               </div>
               
-              {/* Club Info */}
-              {clubData && (
-                <div className="flex items-center gap-3">
-                  {clubData.logo_url && (
-                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-background flex items-center justify-center border border-border/20">
-                      <img 
-                        src={clubData.logo_url} 
-                        alt={`${clubData.name} logo`} 
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                  )}
-                  <h2 className="text-xl font-semibold text-foreground">{clubData.name}</h2>
+              {/* Club Info - Use profile.club_id for minimal display */}
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg overflow-hidden bg-gradient-primary flex items-center justify-center border border-border/20">
+                  <Trophy className="w-6 h-6 text-primary-foreground" />
                 </div>
-              )}
+                <h2 className="text-xl font-semibold text-foreground">Club Dashboard</h2>
+              </div>
               
               {/* Date Range Filter */}
               <div className="flex justify-end">
