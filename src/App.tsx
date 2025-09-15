@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
 
 // Pages
 import Home from "./pages/Home";
@@ -69,6 +70,21 @@ const queryClient = new QueryClient();
 
 const App = () => {
   console.log('🔧 App component rendering, current URL:', window.location.href);
+
+  // Development-only RLS probe
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production') {
+      const runProbe = async () => {
+        const { probeRLS } = await import('@/lib/rlsProbe');
+        await probeRLS('AppMount');
+      };
+      
+      // Small delay to ensure auth is initialized
+      const timer = setTimeout(runProbe, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
