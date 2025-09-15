@@ -54,19 +54,21 @@ const SiteSettingsModal = ({ isOpen, onClose }: SiteSettingsModalProps) => {
     setStripeConnected(false);
   };
 
-  const loadSettings = () => {
-    // Load settings from localStorage or API
-    const savedSettings = localStorage.getItem('siteSettings');
+  const loadSettings = async () => {
+    // Load settings from secure storage or API
+    const { SecureStorage } = await import('@/lib/secureStorage');
+    const savedSettings = SecureStorage.getItem('siteSettings');
     if (savedSettings) {
-      setSettings(JSON.parse(savedSettings));
+      setSettings(savedSettings);
     }
   };
 
   const handleSaveSettings = async () => {
     setLoading(true);
     try {
-      // Save to localStorage for now - could be saved to Supabase table
-      localStorage.setItem('siteSettings', JSON.stringify(settings));
+      // Save to secure storage - consider moving to Supabase table for production
+      const { SecureStorage } = await import('@/lib/secureStorage');
+      SecureStorage.setItem('siteSettings', settings, 60 * 24); // 24 hour expiration
       
       toast({
         title: "Settings Saved",

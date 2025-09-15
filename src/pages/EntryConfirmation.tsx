@@ -85,10 +85,11 @@ const EntryConfirmation = () => {
           return;
         }
 
-        // Check localStorage as fallback
-        const storedSession = localStorage.getItem('sb-srnbylbbsdckkwatfqjg-auth-token');
-        if (storedSession) {
-          console.log('⚠️ EntryConfirmation: Found stored session, waiting for auth sync...');
+        // Check secure storage as fallback
+        const { SecureStorage } = await import('@/lib/secureStorage');
+        const hasAuthData = SecureStorage.getAuthData('session_check');
+        if (hasAuthData) {
+          console.log('⚠️ EntryConfirmation: Found auth indicator, waiting for sync...');
           // Give auth hook time to sync
           setTimeout(async () => {
             const { data: { session } } = await supabase.auth.getSession();

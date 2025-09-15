@@ -38,10 +38,12 @@ export const EnhancedAuthModal = ({
     }
   }, [user, onSuccess, onOpenChange]);
 
-  // Store redirect URL in localStorage for OAuth flows
+  // Store redirect URL securely with expiration for OAuth flows
   useEffect(() => {
     if (open && redirectUrl) {
-      localStorage.setItem('auth_redirect_url', redirectUrl);
+      import('@/lib/secureStorage').then(({ SecureStorage }) => {
+        SecureStorage.setAuthData('redirect_url', redirectUrl);
+      });
     }
   }, [open, redirectUrl]);
 

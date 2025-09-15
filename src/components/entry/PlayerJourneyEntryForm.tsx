@@ -159,12 +159,22 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
       if (!userId) {
         console.warn('[Auth] About to send OTP for', formData.email);
         
-        // Store form data in localStorage to restore after auth
-        localStorage.setItem('pending_entry_form', JSON.stringify({
-          ...formData,
-          competitionId: competition.id,
-          termsAccepted
-        }));
+        // Store form data securely with 30-minute expiration
+        try {
+          const { SecureStorage } = await import('@/lib/secureStorage');
+          SecureStorage.setAuthData('pending_entry_form', {
+            ...formData,
+            competitionId: competition.id,
+            termsAccepted
+          });
+        } catch (error) {
+          console.warn('Failed to use secure storage, falling back to localStorage');
+          localStorage.setItem('pending_entry_form', JSON.stringify({
+            ...formData,
+            competitionId: competition.id,
+            termsAccepted
+          }));
+        }
         
         const { error } = await sendOtp(formData.email);
         

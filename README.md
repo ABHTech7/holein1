@@ -1,26 +1,31 @@
-# Welcome to your Lovable project
+# Hole in 1 Challenge Platform
 
-## Project info
+A comprehensive golf competition platform built with React, TypeScript, and Supabase.
 
-**URL**: https://lovable.dev/projects/8827c06e-8992-4ae5-9558-fb4646a35362
+## Security Features Implemented ✅
 
-## How can I edit this code?
+This platform includes comprehensive security measures:
 
-There are several ways of editing your application.
+- **Input Sanitization**: All user inputs sanitized to prevent XSS/SQL injection
+- **Secure Storage**: Enhanced localStorage with automatic expiration and cleanup
+- **Rate Limiting**: API endpoints protected against abuse (5 requests/minute)
+- **Security Headers**: OWASP-recommended headers on all Edge Functions
+- **Audit Trails**: Complete logging of sensitive operations and data access
+- **Row Level Security**: Database-level access control with non-recursive policies
 
-**Use Lovable**
+## Required Supabase Configuration
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/8827c06e-8992-4ae5-9558-fb4646a35362) and start prompting.
+Add these redirect URLs in **Authentication → URL Configuration**:
+- `http://localhost:5173/auth/callback`
+- `https://demo.holein1challenge.co.uk/auth/callback` 
+- `https://officialholein1.com/auth/callback`
 
-Changes made via Lovable will be committed automatically to this repo.
+### Manual Security Actions Needed:
+1. Enable "Check for leaked passwords" in Supabase Auth settings
+2. Update database extensions in Supabase Dashboard
+3. Review RLS policies quarterly for any needed updates
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Tech Stack
 
 ```sh
 # Step 1: Clone the repository using the project's Git URL.

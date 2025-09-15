@@ -181,10 +181,16 @@ export const useAuth = () => {
         loading: false,
       });
       
-      // Force clear localStorage tokens as additional safety measure
+      // Force clear all auth-related storage as additional safety measure
       try {
+        // Clear Supabase auth tokens
         localStorage.removeItem('sb-srnbylbbsdckkwatfqjg-auth-token');
         sessionStorage.clear();
+        
+        // Clear our secure auth storage (async import)
+        import('@/lib/secureStorage').then(({ SecureStorage }) => {
+          SecureStorage.clearAuthData();
+        }).catch(console.warn);
       } catch (storageError) {
         console.log('Storage clear error (non-critical):', storageError);
       }

@@ -73,12 +73,13 @@ const AuthCallback = () => {
         const continueUrl = searchParams.get('continue') || '/';
 
         // Check for pending entry form
-        const pendingFormData = localStorage.getItem('pending_entry_form');
+        const { SecureStorage } = await import('@/lib/secureStorage');
+        const pendingFormData = SecureStorage.getAuthData('pending_entry_form');
         
         if (pendingFormData && session.user) {
           console.log('[AuthCallback] Processing pending entry form...');
           
-          const formData: PendingEntryForm = JSON.parse(pendingFormData);
+          const formData: PendingEntryForm = pendingFormData;
 
           // Upsert profile with stored form data
           const { error: profileError } = await supabase
@@ -149,7 +150,7 @@ const AuthCallback = () => {
           }
 
           // Clear pending form data
-          localStorage.removeItem('pending_entry_form');
+          SecureStorage.removeItem('auth_pending_entry_form');
 
           console.log('[AuthCallback] Entry created successfully:', entry.id);
           

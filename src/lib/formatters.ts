@@ -89,19 +89,39 @@ export const getCompetitionStatusColor = (status: string) => {
 };
 
 export const copyToClipboard = async (text: string): Promise<boolean> => {
+  if (!text) return false;
+
   try {
+    // Modern clipboard API (preferred)
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(text);
       return true;
     }
-  } catch {}
-  const ta = document.createElement('textarea');
-  ta.value = text;
-  ta.style.position = 'fixed';
-  ta.style.opacity = '0';
-  document.body.appendChild(ta);
-  ta.select();
-  const ok = document.execCommand('copy');
-  document.body.removeChild(ta);
-  return ok;
+  } catch (error) {
+    console.warn('Modern clipboard API failed, falling back to legacy method');
+  }
+
+  // Enhanced fallback for older browsers
+  try {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    textarea.style.top = '-9999px';
+    textarea.style.opacity = '0';
+    textarea.setAttribute('readonly', '');
+    textarea.setAttribute('aria-hidden', 'true');
+    
+    document.body.appendChild(textarea);
+    textarea.select();
+    textarea.setSelectionRange(0, text.length);
+    
+    const success = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    
+    return success;
+  } catch (error) {
+    console.error('Clipboard copy failed:', error);
+    return false;
+  }
 };
