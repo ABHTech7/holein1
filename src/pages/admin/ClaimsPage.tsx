@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, ArrowLeft, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { showSupabaseError } from "@/lib/showSupabaseError";
 import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
 import { useAdminClaims } from "@/hooks/useClaims";
@@ -35,12 +36,7 @@ const ClaimsPage = () => {
       });
       refetch();
     } catch (error) {
-      console.error('Error approving claim:', error);
-      toast({
-        title: "Error", 
-        description: "Failed to approve claim.",
-        variant: "destructive"
-      });
+      showSupabaseError(toast, 'Failed to approve claim', error);
     }
   };
 
@@ -55,12 +51,7 @@ const ClaimsPage = () => {
       });
       refetch();
     } catch (error) {
-      console.error('Error rejecting claim:', error);
-      toast({
-        title: "Error",
-        description: "Failed to reject claim.",
-        variant: "destructive"
-      });
+      showSupabaseError(toast, 'Failed to reject claim', error);
     }
   };
 

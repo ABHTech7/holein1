@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/formatters";
+import { showSupabaseError } from "@/lib/showSupabaseError";
 import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
 import NewClubModal from "@/components/admin/NewClubModal";
@@ -60,7 +61,10 @@ const ClubsPage = () => {
 
       const { data: clubsData, error } = await supabase
         .from('clubs')
-        .select('*')
+        .select(`
+          id, name, address, email, phone, website, logo_url,
+          active, created_at, updated_at, archived, contract_signed
+        `)
         .eq('archived', showArchived)
         .order('created_at', { ascending: false });
 
@@ -140,12 +144,7 @@ const ClubsPage = () => {
 
       setClubs(clubsWithStats);
     } catch (error) {
-      console.error('Error fetching clubs:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load clubs data.",
-        variant: "destructive"
-      });
+      showSupabaseError(toast, 'Failed to load clubs data', error);
     } finally {
       setLoading(false);
     }

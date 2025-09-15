@@ -12,6 +12,7 @@ import { Search, ArrowLeft, Clock, CheckCircle, XCircle, DollarSign, FileText, T
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate, formatCurrency, formatDateTime } from "@/lib/formatters";
+import { showSupabaseError } from "@/lib/showSupabaseError";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
@@ -69,20 +70,15 @@ const EntriesPage = () => {
       const { data: entriesData, error } = await supabase
         .from('entries')
         .select(`
-          *,
-          profiles!entries_player_id_fkey(
-            id,
-            first_name,
-            last_name,
-            email,
-            age_years,
-            handicap
+          id, entry_date, paid, status, outcome_self, outcome_official, 
+          amount_minor, attempt_window_start, attempt_window_end,
+          location_latitude, location_longitude,
+          profiles:profiles!entries_player_id_fkey(
+            id, first_name, last_name, email, age_years, handicap
           ),
-          competitions!inner(
-            id,
-            name,
-            entry_fee,
-            clubs!inner(name)
+          competitions:competitions!inner(
+            id, name, entry_fee,
+            clubs:clubs!inner(id, name)
           )
         `)
         .order('entry_date', { ascending: false });
@@ -103,18 +99,13 @@ const EntriesPage = () => {
           id: entry.competitions?.id || '',
           name: entry.competitions?.name || 'Unknown Competition',
           entry_fee: entry.competitions?.entry_fee || 0,
-          club_name: (entry.competitions?.clubs as any)?.name || 'Unknown Club'
+          club_name: entry.competitions?.clubs?.name || 'Unknown Club'
         }
       }));
 
       setEntries(formattedEntries);
     } catch (error) {
-      console.error('Error fetching entries:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load entries data.",
-        variant: "destructive"
-      });
+      showSupabaseError(toast, 'Failed to load entries data', error);
     } finally {
       setLoading(false);
     }

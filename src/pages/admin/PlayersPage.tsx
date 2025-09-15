@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/formatters";
+import { showSupabaseError } from "@/lib/showSupabaseError";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
@@ -92,12 +93,7 @@ const PlayersPage = () => {
 
       setPlayers(playersWithStats);
     } catch (error) {
-      console.error('Error fetching players:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load players data.",
-        variant: "destructive"
-      });
+      showSupabaseError(toast, 'Failed to load players data', error);
     } finally {
       setLoading(false);
     }
