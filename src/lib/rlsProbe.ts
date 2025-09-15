@@ -18,7 +18,8 @@ export async function probeRLS(label: string) {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, role, club_id')
-      .single();
+      .eq('id', (await supabase.auth.getUser()).data.user?.id || '')
+      .maybeSingle();
 
     console.log(`🔍 [RLS Probe: ${label}] Profile:`, { 
       ok: !profileError, 

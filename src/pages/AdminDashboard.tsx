@@ -17,6 +17,7 @@ import { Users, Calendar, Trophy, TrendingUp, Plus, Settings, PoundSterling } fr
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate, formatRelativeTime } from "@/lib/formatters";
+import { showSupabaseError } from "@/lib/showSupabaseError";
 import { ROUTES } from "@/routes";
 
 interface DashboardStats {
@@ -71,10 +72,10 @@ const AdminDashboard = () => {
 
         // Fetch basic stats with proper error handling
         const [playersRes, newPlayersRes, clubsRes, activeCompsRes] = await Promise.all([
-          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'PLAYER'),
-          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'PLAYER').gte('created_at', monthStart),
-          supabase.from('clubs').select('*', { count: 'exact', head: true }),
-          supabase.from('competitions').select('*').eq('status', 'ACTIVE')
+          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'PLAYER'),
+          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'PLAYER').gte('created_at', monthStart),
+          supabase.from('clubs').select('id', { count: 'exact', head: true }),
+          supabase.from('competitions').select('id, name, status').eq('status', 'ACTIVE')
         ]);
 
         // Fetch revenue data for different periods
@@ -115,13 +116,13 @@ const AdminDashboard = () => {
         ]);
 
         // Log any errors for debugging
-        if (playersRes.error) console.error('Players query error:', playersRes.error);
-        if (newPlayersRes.error) console.error('New players query error:', newPlayersRes.error);
-        if (clubsRes.error) console.error('Clubs query error:', clubsRes.error);
-        if (activeCompsRes.error) console.error('Active competitions error:', activeCompsRes.error);
-        if (todayEntriesRes.error) console.error('Today entries query error:', todayEntriesRes.error);
-        if (monthlyEntriesRes.error) console.error('Monthly entries query error:', monthlyEntriesRes.error);
-        if (yearlyEntriesRes.error) console.error('Yearly entries query error:', yearlyEntriesRes.error);
+        if (playersRes.error) console.error('Players query error:', showSupabaseError(playersRes.error, 'fetchDashboardData players'));
+        if (newPlayersRes.error) console.error('New players query error:', showSupabaseError(newPlayersRes.error, 'fetchDashboardData newPlayers'));
+        if (clubsRes.error) console.error('Clubs query error:', showSupabaseError(clubsRes.error, 'fetchDashboardData clubs'));
+        if (activeCompsRes.error) console.error('Active competitions error:', showSupabaseError(activeCompsRes.error, 'fetchDashboardData activeComps'));
+        if (todayEntriesRes.error) console.error('Today entries query error:', showSupabaseError(todayEntriesRes.error, 'fetchDashboardData todayEntries'));
+        if (monthlyEntriesRes.error) console.error('Monthly entries query error:', showSupabaseError(monthlyEntriesRes.error, 'fetchDashboardData monthlyEntries'));
+        if (yearlyEntriesRes.error) console.error('Yearly entries query error:', showSupabaseError(yearlyEntriesRes.error, 'fetchDashboardData yearlyEntries'));
 
         // Calculate revenue for different periods
         const todayRevenue = (todayEntriesRes.data || []).reduce((sum, entry) => {
@@ -161,7 +162,7 @@ const AdminDashboard = () => {
           .limit(5);
 
         if (compsError) {
-          console.error('Recent competitions query error:', compsError);
+          console.error('Recent competitions query error:', showSupabaseError(compsError, 'fetchDashboardData recentComps'));
         }
 
         if (recentComps) {
@@ -187,13 +188,13 @@ const AdminDashboard = () => {
           // Get actual new players for this specific month
           const { count: monthlyCount, error: monthlyPlayersError } = await supabase
             .from('profiles')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact', head: true })
             .eq('role', 'PLAYER')
             .gte('created_at', monthStart)
             .lte('created_at', monthEnd);
 
           if (monthlyPlayersError) {
-            console.error('Error fetching monthly players:', monthlyPlayersError);
+            console.error('Error fetching monthly players:', showSupabaseError(monthlyPlayersError, 'fetchDashboardData monthlyPlayers'));
           }
 
           const newPlayersThisMonth = monthlyCount || 0;
@@ -218,9 +219,10 @@ const AdminDashboard = () => {
 
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        const errorMessage = showSupabaseError(error, 'fetchDashboardData');
         toast({
           title: 'Error',
-          description: 'Failed to load dashboard data. Please refresh the page.',
+          description: `Failed to load dashboard data: ${errorMessage}`,
           variant: 'destructive'
         });
       } finally {
