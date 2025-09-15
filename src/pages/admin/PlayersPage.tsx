@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/formatters";
 import { showSupabaseError } from "@/lib/showSupabaseError";
+import { useAuth } from "@/hooks/useAuth";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
@@ -30,6 +31,7 @@ interface Player {
 
 const PlayersPage = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [players, setPlayers] = useState<Player[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -52,6 +54,24 @@ const PlayersPage = () => {
   const fetchPlayers = async () => {
     try {
       setLoading(true);
+
+      // Development diagnostic logging
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('🔍 [PlayersPage.fetchPlayers] Starting players data fetch', {
+          userProfile: { 
+            role: profile?.role, 
+            id: profile?.id, 
+            club_id: profile?.club_id 
+          },
+          operation: 'Fetching players with entry statistics',
+          queryParams: { 
+            tables: ['profiles', 'entries'],
+            filters: { role: 'PLAYER' },
+            joins: ['entries (for statistics)'],
+            orderBy: 'created_at desc'
+          }
+        });
+      }
 
       const { data: playersData, error } = await supabase
         .from('profiles')
@@ -76,8 +96,18 @@ const PlayersPage = () => {
             .eq('player_id', player.id)
             .order('entry_date', { ascending: false });
 
-          if (entriesError) {
-            console.error('Error fetching entries for player:', player.id, entriesError);
+          if (entriesError && process.env.NODE_ENV !== 'production') {
+            console.error("ADMIN PAGE ERROR:", {
+              location: "PlayersPage.fetchPlayers.entries",
+              userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+              operation: `Fetching entries for player: ${player.email}`,
+              queryParams: { table: 'entries', filters: { player_id: player.id } },
+              code: entriesError.code,
+              message: entriesError.message,
+              details: entriesError.details,
+              hint: entriesError.hint,
+              fullError: entriesError
+            });
           }
 
           const totalEntries = entries?.length || 0;
@@ -93,8 +123,27 @@ const PlayersPage = () => {
 
       setPlayers(playersWithStats);
     } catch (error) {
-      const msg = showSupabaseError(error, 'Failed to load players data');
-      toast({ title: "Error", description: msg, variant: "destructive" });
+      // Enhanced error handling with comprehensive logging
+      if (process.env.NODE_ENV !== 'production') {
+        console.error("ADMIN PAGE ERROR:", {
+          location: "PlayersPage.fetchPlayers.general",
+          userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+          operation: "General players data fetching operation",
+          queryParams: { tables: 'profiles with entries join', operation: 'comprehensive players fetch' },
+          code: (error as any)?.code,
+          message: (error as any)?.message,
+          details: (error as any)?.details,
+          hint: (error as any)?.hint,
+          fullError: error
+        });
+      }
+
+      const msg = showSupabaseError(error, 'PlayersPage.fetchPlayers');
+      toast({ 
+        title: "Failed to load players data", 
+        description: `${msg}${(error as any)?.code ? ` (Code: ${(error as any).code})` : ''}`, 
+        variant: "destructive" 
+      });
     } finally {
       setLoading(false);
     }

@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/formatters";
 import { showSupabaseError } from "@/lib/showSupabaseError";
+import { useAuth } from "@/hooks/useAuth";
 import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
 import NewClubModal from "@/components/admin/NewClubModal";
@@ -34,6 +35,7 @@ interface Club {
 
 const ClubsPage = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [clubs, setClubs] = useState<Club[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -59,6 +61,23 @@ const ClubsPage = () => {
     try {
       setLoading(true);
 
+      // Development diagnostic logging
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('🔍 [ClubsPage.fetchClubs] Starting clubs data fetch', {
+          userProfile: { 
+            role: profile?.role, 
+            id: profile?.id, 
+            club_id: profile?.club_id 
+          },
+          operation: 'Fetching clubs with competitions, entries, and manager statistics',
+          queryParams: { 
+            tables: ['clubs', 'competitions', 'entries', 'profiles'],
+            filters: { archived: showArchived },
+            joins: ['competitions -> entries (revenue calc)', 'profiles (managers)']
+          }
+        });
+      }
+
       const { data: clubsData, error } = await supabase
         .from('clubs')
         .select(`
@@ -78,8 +97,18 @@ const ClubsPage = () => {
             .select('id, entry_fee, commission_amount')
             .eq('club_id', club.id);
 
-          if (competitionsError) {
-            console.error('Error fetching competitions for club:', club.id, competitionsError);
+          if (competitionsError && process.env.NODE_ENV !== 'production') {
+            console.error("ADMIN PAGE ERROR:", {
+              location: "ClubsPage.fetchClubs.competitions",
+              userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+              operation: `Fetching competitions for club: ${club.name}`,
+              queryParams: { table: 'competitions', filters: { club_id: club.id } },
+              code: competitionsError.code,
+              message: competitionsError.message,
+              details: competitionsError.details,
+              hint: competitionsError.hint,
+              fullError: competitionsError
+            });
           }
 
           // Get manager details (first club member)
@@ -90,8 +119,18 @@ const ClubsPage = () => {
             .eq('role', 'CLUB')
             .limit(1);
 
-          if (managersError) {
-            console.error('Error fetching managers for club:', club.id, managersError);
+          if (managersError && process.env.NODE_ENV !== 'production') {
+            console.error("ADMIN PAGE ERROR:", {
+              location: "ClubsPage.fetchClubs.managers",
+              userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+              operation: `Fetching managers for club: ${club.name}`,
+              queryParams: { table: 'profiles', filters: { club_id: club.id, role: 'CLUB' } },
+              code: managersError.code,
+              message: managersError.message,
+              details: managersError.details,
+              hint: managersError.hint,
+              fullError: managersError
+            });
           }
 
           // Calculate total revenue and commission from actual paid entries
@@ -105,8 +144,18 @@ const ClubsPage = () => {
                 .select('id, paid')
                 .eq('competition_id', competition.id);
 
-              if (entriesError) {
-                console.error('Error fetching entries for competition:', competition.id, entriesError);
+              if (entriesError && process.env.NODE_ENV !== 'production') {
+                console.error("ADMIN PAGE ERROR:", {
+                  location: "ClubsPage.fetchClubs.entries",
+                  userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+                  operation: `Fetching entries for competition: ${competition.id}`,
+                  queryParams: { table: 'entries', filters: { competition_id: competition.id } },
+                  code: entriesError.code,
+                  message: entriesError.message,
+                  details: entriesError.details,
+                  hint: entriesError.hint,
+                  fullError: entriesError
+                });
                 return { revenue: 0, commission: 0 };
               }
 
@@ -144,8 +193,27 @@ const ClubsPage = () => {
 
       setClubs(clubsWithStats);
     } catch (error) {
-      const msg = showSupabaseError(error, 'Failed to load clubs data');
-      toast({ title: "Error", description: msg, variant: "destructive" });
+      // Enhanced error handling with comprehensive logging
+      if (process.env.NODE_ENV !== 'production') {
+        console.error("ADMIN PAGE ERROR:", {
+          location: "ClubsPage.fetchClubs.general",
+          userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+          operation: "General clubs data fetching operation",
+          queryParams: { tables: 'clubs with nested joins', operation: 'comprehensive clubs fetch' },
+          code: (error as any)?.code,
+          message: (error as any)?.message,
+          details: (error as any)?.details,
+          hint: (error as any)?.hint,
+          fullError: error
+        });
+      }
+
+      const msg = showSupabaseError(error, 'ClubsPage.fetchClubs');
+      toast({ 
+        title: "Failed to load clubs data", 
+        description: `${msg}${(error as any)?.code ? ` (Code: ${(error as any).code})` : ''}`, 
+        variant: "destructive" 
+      });
     } finally {
       setLoading(false);
     }

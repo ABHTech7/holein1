@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate, formatCurrency, formatDateTime } from "@/lib/formatters";
 import { showSupabaseError } from "@/lib/showSupabaseError";
+import { useAuth } from "@/hooks/useAuth";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
@@ -48,6 +49,7 @@ interface Entry {
 
 const EntriesPage = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [filteredEntries, setFilteredEntries] = useState<Entry[]>([]);
@@ -66,6 +68,23 @@ const EntriesPage = () => {
   const fetchEntries = async () => {
     try {
       setLoading(true);
+
+      // Development diagnostic logging
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('🔍 [EntriesPage.fetchEntries] Starting entries data fetch', {
+          userProfile: { 
+            role: profile?.role, 
+            id: profile?.id, 
+            club_id: profile?.club_id 
+          },
+          operation: 'Fetching entries with player and competition details',
+          queryParams: { 
+            tables: ['entries', 'profiles', 'competitions', 'clubs'],
+            joins: ['profiles (player details)', 'competitions -> clubs'],
+            orderBy: 'entry_date desc'
+          }
+        });
+      }
       
       const { data: entriesData, error } = await supabase
         .from('entries')
@@ -105,8 +124,27 @@ const EntriesPage = () => {
 
       setEntries(formattedEntries);
     } catch (error) {
-      const msg = showSupabaseError(error, 'Failed to load entries data');
-      toast({ title: "Error", description: msg, variant: "destructive" });
+      // Enhanced error handling with comprehensive logging
+      if (process.env.NODE_ENV !== 'production') {
+        console.error("ADMIN PAGE ERROR:", {
+          location: "EntriesPage.fetchEntries.general",
+          userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+          operation: "General entries data fetching operation",
+          queryParams: { tables: 'entries with complex joins', operation: 'comprehensive entries fetch' },
+          code: (error as any)?.code,
+          message: (error as any)?.message,
+          details: (error as any)?.details,
+          hint: (error as any)?.hint,
+          fullError: error
+        });
+      }
+
+      const msg = showSupabaseError(error, 'EntriesPage.fetchEntries');
+      toast({ 
+        title: "Failed to load entries data", 
+        description: `${msg}${(error as any)?.code ? ` (Code: ${(error as any).code})` : ''}`, 
+        variant: "destructive" 
+      });
     } finally {
       setLoading(false);
     }

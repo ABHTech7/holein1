@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, ArrowLeft, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { showSupabaseError } from "@/lib/showSupabaseError";
+import { useAuth } from "@/hooks/useAuth";
 import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
 import { useAdminClaims } from "@/hooks/useClaims";
@@ -17,6 +18,7 @@ import { ROUTES } from "@/routes";
 
 const ClaimsPage = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<'all' | VerificationStatus>("all");
   
@@ -27,6 +29,19 @@ const ClaimsPage = () => {
 
   const handleApprove = async (id: string) => {
     try {
+      // Development diagnostic logging
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('🔍 [ClaimsPage.handleApprove] Starting claim approval', {
+          userProfile: { 
+            role: profile?.role, 
+            id: profile?.id, 
+            club_id: profile?.club_id 
+          },
+          operation: `Approving claim with ID: ${id}`,
+          queryParams: { table: 'verifications', action: 'update status to verified' }
+        });
+      }
+
       const { error } = await approveClaim(id);
       if (error) throw error;
       
@@ -36,24 +51,75 @@ const ClaimsPage = () => {
       });
       refetch();
     } catch (error) {
-      const msg = showSupabaseError(error, 'Failed to approve claim');
-      toast({ title: "Error", description: msg, variant: "destructive" });
+      // Enhanced error handling with comprehensive logging
+      if (process.env.NODE_ENV !== 'production') {
+        console.error("ADMIN PAGE ERROR:", {
+          location: "ClaimsPage.handleApprove",
+          userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+          operation: `Approving claim with ID: ${id}`,
+          queryParams: { table: 'verifications', action: 'update status to verified' },
+          code: (error as any)?.code,
+          message: (error as any)?.message,
+          details: (error as any)?.details,
+          hint: (error as any)?.hint,
+          fullError: error
+        });
+      }
+
+      const msg = showSupabaseError(error, 'ClaimsPage.handleApprove');
+      toast({ 
+        title: "Failed to approve claim", 
+        description: `${msg}${(error as any)?.code ? ` (Code: ${(error as any).code})` : ''}`, 
+        variant: "destructive" 
+      });
     }
   };
 
   const handleReject = async (id: string) => {
     try {
+      // Development diagnostic logging
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('🔍 [ClaimsPage.handleReject] Starting claim rejection', {
+          userProfile: { 
+            role: profile?.role, 
+            id: profile?.id, 
+            club_id: profile?.club_id 
+          },
+          operation: `Rejecting claim with ID: ${id}`,
+          queryParams: { table: 'verifications', action: 'update status to rejected' }
+        });
+      }
+
       const { error } = await rejectClaim(id);
       if (error) throw error;
       
       toast({
         title: "Success",
         description: "Claim rejected successfully.", 
-      });
+      }); 
       refetch();
     } catch (error) {
-      const msg = showSupabaseError(error, 'Failed to reject claim');
-      toast({ title: "Error", description: msg, variant: "destructive" });
+      // Enhanced error handling with comprehensive logging
+      if (process.env.NODE_ENV !== 'production') {
+        console.error("ADMIN PAGE ERROR:", {
+          location: "ClaimsPage.handleReject",
+          userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+          operation: `Rejecting claim with ID: ${id}`,
+          queryParams: { table: 'verifications', action: 'update status to rejected' },
+          code: (error as any)?.code,
+          message: (error as any)?.message,
+          details: (error as any)?.details,
+          hint: (error as any)?.hint,
+          fullError: error
+        });
+      }
+
+      const msg = showSupabaseError(error, 'ClaimsPage.handleReject');
+      toast({ 
+        title: "Failed to reject claim", 
+        description: `${msg}${(error as any)?.code ? ` (Code: ${(error as any).code})` : ''}`, 
+        variant: "destructive" 
+      });
     }
   };
 

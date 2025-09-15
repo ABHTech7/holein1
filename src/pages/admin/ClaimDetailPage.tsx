@@ -9,6 +9,7 @@ import { ArrowLeft, Camera, ExternalLink, User, Trophy, MapPin, Calendar, CheckC
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate, formatDateTime } from "@/lib/formatters";
+import { showSupabaseError } from "@/lib/showSupabaseError";
 import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
 import { StatusBadge } from "@/components/claims/StatusBadge";
@@ -33,6 +34,22 @@ const ClaimDetailPage = () => {
   const fetchClaimDetails = async () => {
     try {
       setIsLoading(true);
+
+      // Development diagnostic logging
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('🔍 [ClaimDetailPage.fetchClaimDetails] Starting claim details fetch', {
+          userProfile: { 
+            role: profile?.role, 
+            id: profile?.id, 
+            club_id: profile?.club_id 
+          },
+          operation: `Fetching claim details for verification ID: ${verificationId}`,
+          queryParams: { 
+            tables: ['verifications', 'entries', 'profiles', 'competitions', 'clubs'],
+            joins: ['entries -> profiles', 'entries -> competitions -> clubs']
+          }
+        });
+      }
       
       const { data, error } = await supabase
         .from('verifications')
@@ -83,10 +100,25 @@ const ClaimDetailPage = () => {
         setNewStatus(claimRow.status);
       }
     } catch (error) {
-      console.error('Error fetching claim details:', error);
+      // Enhanced error handling with comprehensive logging
+      if (process.env.NODE_ENV !== 'production') {
+        console.error("ADMIN PAGE ERROR:", {
+          location: "ClaimDetailPage.fetchClaimDetails",
+          userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+          operation: `Fetching claim details for verification ID: ${verificationId}`,
+          queryParams: { tables: 'verifications with complex joins', operation: 'claim details fetch' },
+          code: (error as any)?.code,
+          message: (error as any)?.message,
+          details: (error as any)?.details,
+          hint: (error as any)?.hint,
+          fullError: error
+        });
+      }
+
+      const errorMessage = showSupabaseError(error, 'ClaimDetailPage.fetchClaimDetails');
       toast({
-        title: "Error",
-        description: "Failed to load claim details.",
+        title: "Failed to load claim details",
+        description: `${errorMessage}${(error as any)?.code ? ` (Code: ${(error as any).code})` : ''}`,
         variant: "destructive"
       });
     } finally {
@@ -99,6 +131,19 @@ const ClaimDetailPage = () => {
 
     try {
       setIsUpdating(true);
+
+      // Development diagnostic logging
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('🔍 [ClaimDetailPage.handleStatusUpdate] Starting status update', {
+          userProfile: { 
+            role: profile?.role, 
+            id: profile?.id, 
+            club_id: profile?.club_id 
+          },
+          operation: `Updating claim status from ${claim.status} to ${newStatus}`,
+          queryParams: { table: 'verifications', action: 'update status and verification metadata' }
+        });
+      }
       
       const updateData: any = { status: newStatus };
       
@@ -122,10 +167,25 @@ const ClaimDetailPage = () => {
         description: "Claim status updated successfully.",
       });
     } catch (error) {
-      console.error('Error updating claim status:', error);
+      // Enhanced error handling with comprehensive logging
+      if (process.env.NODE_ENV !== 'production') {
+        console.error("ADMIN PAGE ERROR:", {
+          location: "ClaimDetailPage.handleStatusUpdate",
+          userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+          operation: `Updating claim status from ${claim.status} to ${newStatus}`,
+          queryParams: { table: 'verifications', action: 'update status and verification metadata' },
+          code: (error as any)?.code,
+          message: (error as any)?.message,
+          details: (error as any)?.details,
+          hint: (error as any)?.hint,
+          fullError: error
+        });
+      }
+
+      const errorMessage = showSupabaseError(error, 'ClaimDetailPage.handleStatusUpdate');
       toast({
-        title: "Error",
-        description: "Failed to update claim status.",
+        title: "Failed to update claim status",
+        description: `${errorMessage}${(error as any)?.code ? ` (Code: ${(error as any).code})` : ''}`,
         variant: "destructive"
       });
     } finally {

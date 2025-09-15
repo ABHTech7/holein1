@@ -10,6 +10,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate } from "@/lib/formatters";
+import { showSupabaseError } from "@/lib/showSupabaseError";
+import { useAuth } from "@/hooks/useAuth";
 import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
 import { ROUTES } from "@/routes";
@@ -33,6 +35,7 @@ interface Competition {
 
 const CompetitionsPage = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -57,6 +60,23 @@ const CompetitionsPage = () => {
     try {
       setLoading(true);
 
+      // Development diagnostic logging
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('🔍 [CompetitionsPage.fetchCompetitions] Starting competitions data fetch', {
+          userProfile: { 
+            role: profile?.role, 
+            id: profile?.id, 
+            club_id: profile?.club_id 
+          },
+          operation: 'Fetching competitions with club and entry statistics',
+          queryParams: { 
+            tables: ['competitions', 'clubs', 'entries'],
+            filters: { archived: showArchived },
+            joins: ['clubs(name)', 'entries(id, paid)']
+          }
+        });
+      }
+
       const { data: competitionsData, error } = await supabase
         .from('competitions')
         .select(`
@@ -76,8 +96,18 @@ const CompetitionsPage = () => {
             .select('id, paid')
             .eq('competition_id', competition.id);
 
-          if (entriesError) {
-            console.error('Error fetching entries for competition:', competition.id, entriesError);
+          if (entriesError && process.env.NODE_ENV !== 'production') {
+            console.error("ADMIN PAGE ERROR:", {
+              location: "CompetitionsPage.fetchCompetitions.entries",
+              userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+              operation: `Fetching entries for competition: ${competition.name}`,
+              queryParams: { table: 'entries', filters: { competition_id: competition.id } },
+              code: entriesError.code,
+              message: entriesError.message,
+              details: entriesError.details,
+              hint: entriesError.hint,
+              fullError: entriesError
+            });
           }
 
           const totalEntries = entries?.length || 0;
@@ -116,10 +146,25 @@ const CompetitionsPage = () => {
 
       setCompetitions(competitionsWithStats);
     } catch (error) {
-      console.error('Error fetching competitions:', error);
+      // Enhanced error handling with comprehensive logging
+      if (process.env.NODE_ENV !== 'production') {
+        console.error("ADMIN PAGE ERROR:", {
+          location: "CompetitionsPage.fetchCompetitions.general",
+          userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+          operation: "General competitions data fetching operation",
+          queryParams: { tables: 'competitions with joins', operation: 'comprehensive competitions fetch' },
+          code: (error as any)?.code,
+          message: (error as any)?.message,
+          details: (error as any)?.details,
+          hint: (error as any)?.hint,
+          fullError: error
+        });
+      }
+
+      const errorMessage = showSupabaseError(error, 'CompetitionsPage.fetchCompetitions');
       toast({
-        title: "Error",
-        description: "Failed to load competitions data.",
+        title: "Failed to load competitions data",
+        description: `${errorMessage}${(error as any)?.code ? ` (Code: ${(error as any).code})` : ''}`,
         variant: "destructive"
       });
     } finally {

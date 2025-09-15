@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate, formatRelativeTime } from "@/lib/formatters";
 import { showSupabaseError } from "@/lib/showSupabaseError";
+import { useAuth } from "@/hooks/useAuth";
 import { ROUTES } from "@/routes";
 
 interface DashboardStats {
@@ -42,6 +43,7 @@ interface Competition {
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [showSiteSettings, setShowSiteSettings] = useState(false);
   const [showNewUser, setShowNewUser] = useState(false);
@@ -62,6 +64,22 @@ const AdminDashboard = () => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
+
+        // Development diagnostic logging
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('🔍 [AdminDashboard.fetchDashboardData] Starting dashboard data fetch', {
+            userProfile: { 
+              role: profile?.role, 
+              id: profile?.id, 
+              club_id: profile?.club_id 
+            },
+            operation: 'Fetching comprehensive admin dashboard data',
+            queryParams: { 
+              tables: ['profiles', 'clubs', 'competitions', 'entries'],
+              filters: { role: 'PLAYER', status: 'ACTIVE', paid: true }
+            }
+          });
+        }
 
         // Get current dates for revenue calculations
         const now = new Date();
@@ -115,14 +133,46 @@ const AdminDashboard = () => {
             .gte('entry_date', yearStart)
         ]);
 
-        // Log any errors for debugging
-        if (playersRes.error) console.error('Players query error:', showSupabaseError(playersRes.error, 'fetchDashboardData players'));
-        if (newPlayersRes.error) console.error('New players query error:', showSupabaseError(newPlayersRes.error, 'fetchDashboardData newPlayers'));
-        if (clubsRes.error) console.error('Clubs query error:', showSupabaseError(clubsRes.error, 'fetchDashboardData clubs'));
-        if (activeCompsRes.error) console.error('Active competitions error:', showSupabaseError(activeCompsRes.error, 'fetchDashboardData activeComps'));
-        if (todayEntriesRes.error) console.error('Today entries query error:', showSupabaseError(todayEntriesRes.error, 'fetchDashboardData todayEntries'));
-        if (monthlyEntriesRes.error) console.error('Monthly entries query error:', showSupabaseError(monthlyEntriesRes.error, 'fetchDashboardData monthlyEntries'));
-        if (yearlyEntriesRes.error) console.error('Yearly entries query error:', showSupabaseError(yearlyEntriesRes.error, 'fetchDashboardData yearlyEntries'));
+        // Enhanced error logging with comprehensive diagnostic details
+        if (playersRes.error && process.env.NODE_ENV !== 'production') {
+          console.error("ADMIN PAGE ERROR:", {
+            location: "AdminDashboard.fetchDashboardData.players",
+            userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+            operation: "Fetching total player count",
+            queryParams: { table: 'profiles', filters: { role: 'PLAYER' } },
+            code: playersRes.error.code,
+            message: playersRes.error.message,
+            details: playersRes.error.details,
+            hint: playersRes.error.hint,
+            fullError: playersRes.error
+          });
+        }
+        if (newPlayersRes.error && process.env.NODE_ENV !== 'production') {
+          console.error("ADMIN PAGE ERROR:", {
+            location: "AdminDashboard.fetchDashboardData.newPlayers",
+            userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+            operation: "Fetching new players this month",
+            queryParams: { table: 'profiles', filters: { role: 'PLAYER', created_at: 'gte monthStart' } },
+            code: newPlayersRes.error.code,
+            message: newPlayersRes.error.message,
+            details: newPlayersRes.error.details,
+            hint: newPlayersRes.error.hint,
+            fullError: newPlayersRes.error
+          });
+        }
+        if (clubsRes.error && process.env.NODE_ENV !== 'production') {
+          console.error("ADMIN PAGE ERROR:", {
+            location: "AdminDashboard.fetchDashboardData.clubs",
+            userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+            operation: "Fetching total club count",
+            queryParams: { table: 'clubs', filters: {} },
+            code: clubsRes.error.code,
+            message: clubsRes.error.message,
+            details: clubsRes.error.details,
+            hint: clubsRes.error.hint,
+            fullError: clubsRes.error
+          });
+        }
 
         // Calculate revenue for different periods
         const todayRevenue = (todayEntriesRes.data || []).reduce((sum, entry) => {
@@ -161,8 +211,18 @@ const AdminDashboard = () => {
           .order('created_at', { ascending: false })
           .limit(5);
 
-        if (compsError) {
-          console.error('Recent competitions query error:', showSupabaseError(compsError, 'fetchDashboardData recentComps'));
+        if (compsError && process.env.NODE_ENV !== 'production') {
+          console.error("ADMIN PAGE ERROR:", {
+            location: "AdminDashboard.fetchDashboardData.recentCompetitions",
+            userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+            operation: "Fetching recent competitions with entry counts",
+            queryParams: { table: 'competitions', joins: ['clubs', 'entries'], limit: 5 },
+            code: compsError.code,
+            message: compsError.message,
+            details: compsError.details,
+            hint: compsError.hint,
+            fullError: compsError
+          });
         }
 
         if (recentComps) {
@@ -193,8 +253,18 @@ const AdminDashboard = () => {
             .gte('created_at', monthStart)
             .lte('created_at', monthEnd);
 
-          if (monthlyPlayersError) {
-            console.error('Error fetching monthly players:', showSupabaseError(monthlyPlayersError, 'fetchDashboardData monthlyPlayers'));
+          if (monthlyPlayersError && process.env.NODE_ENV !== 'production') {
+            console.error("ADMIN PAGE ERROR:", {
+              location: "AdminDashboard.fetchDashboardData.monthlyPlayers",
+              userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+              operation: `Fetching players for month: ${monthName}`,
+              queryParams: { table: 'profiles', filters: { role: 'PLAYER', created_at: `${monthStart} to ${monthEnd}` } },
+              code: monthlyPlayersError.code,
+              message: monthlyPlayersError.message,
+              details: monthlyPlayersError.details,
+              hint: monthlyPlayersError.hint,
+              fullError: monthlyPlayersError
+            });
           }
 
           const newPlayersThisMonth = monthlyCount || 0;
@@ -218,11 +288,25 @@ const AdminDashboard = () => {
         });
 
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        const errorMessage = showSupabaseError(error, 'fetchDashboardData');
+        // Enhanced error handling with comprehensive logging
+        if (process.env.NODE_ENV !== 'production') {
+          console.error("ADMIN PAGE ERROR:", {
+            location: "AdminDashboard.fetchDashboardData.general",
+            userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+            operation: "General dashboard data fetching operation",
+            queryParams: { tables: 'multiple', operation: 'comprehensive dashboard fetch' },
+            code: (error as any)?.code,
+            message: (error as any)?.message,
+            details: (error as any)?.details,
+            hint: (error as any)?.hint,
+            fullError: error
+          });
+        }
+
+        const errorMessage = showSupabaseError(error, 'AdminDashboard.fetchDashboardData');
         toast({
-          title: 'Error',
-          description: `Failed to load dashboard data: ${errorMessage}`,
+          title: 'Failed to load dashboard data',
+          description: `${errorMessage}${(error as any)?.code ? ` (Code: ${(error as any).code})` : ''}`,
           variant: 'destructive'
         });
       } finally {
