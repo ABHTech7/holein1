@@ -90,8 +90,9 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <Routes>
+       <BrowserRouter>
+         <DebugHud />
+         <Routes>
             {/* Main Routes */}
             <Route path="/" element={<Home />} />
             <Route path="/partnership" element={<PartnershipApplication />} />
@@ -346,7 +347,6 @@ const App = () => {
            <Route path="*" element={<ErrorPage />} errorElement={<ErrorPage />} />
          </Routes>
        </BrowserRouter>
-       <DebugHud />
      </TooltipProvider>
    </QueryClientProvider>
   );
