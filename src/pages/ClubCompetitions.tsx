@@ -78,7 +78,8 @@ const ClubCompetitions = () => {
         if (error) throw error;
         setProfile(data);
       } catch (error) {
-        showSupabaseError(toast, 'Failed to load user profile', error);
+        const msg = showSupabaseError(error, 'Failed to load user profile');
+        toast({ title: "Error", description: msg, variant: "destructive" });
       }
     };
 
@@ -123,7 +124,8 @@ const ClubCompetitions = () => {
         setCompetitions(processedCompetitions);
         setFilteredCompetitions(processedCompetitions);
       } catch (error) {
-        showSupabaseError(toast, 'Failed to load competitions', error);
+        const msg = showSupabaseError(error, 'Failed to load competitions');
+        toast({ title: "Error", description: msg, variant: "destructive" });
       } finally {
         setLoading(false);
       }

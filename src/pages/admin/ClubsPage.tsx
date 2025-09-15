@@ -144,7 +144,8 @@ const ClubsPage = () => {
 
       setClubs(clubsWithStats);
     } catch (error) {
-      showSupabaseError(toast, 'Failed to load clubs data', error);
+      const msg = showSupabaseError(error, 'Failed to load clubs data');
+      toast({ title: "Error", description: msg, variant: "destructive" });
     } finally {
       setLoading(false);
     }

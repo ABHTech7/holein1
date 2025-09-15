@@ -252,7 +252,8 @@ const CompetitionDetailEnhanced = () => {
         });
 
       } catch (error) {
-        showSupabaseError(toast, 'Failed to load competition details', error);
+        const msg = showSupabaseError(error, 'Failed to load competition details');
+        toast({ title: "Error", description: msg, variant: "destructive" });
       } finally {
         setLoading(false);
       }

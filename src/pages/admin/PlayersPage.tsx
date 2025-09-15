@@ -93,7 +93,8 @@ const PlayersPage = () => {
 
       setPlayers(playersWithStats);
     } catch (error) {
-      showSupabaseError(toast, 'Failed to load players data', error);
+      const msg = showSupabaseError(error, 'Failed to load players data');
+      toast({ title: "Error", description: msg, variant: "destructive" });
     } finally {
       setLoading(false);
     }

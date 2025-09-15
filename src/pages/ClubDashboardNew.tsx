@@ -101,7 +101,8 @@ const ClubDashboardNew = () => {
         if (error) throw error;
         setProfile(data);
       } catch (error) {
-        showSupabaseError(toast, 'Failed to load user profile', error);
+        const msg = showSupabaseError(error, 'Failed to load user profile');
+        toast({ title: "Error", description: msg, variant: "destructive" });
       } finally {
         setLoading(false);
       }
@@ -256,7 +257,8 @@ const ClubDashboardNew = () => {
 
 
       } catch (error) {
-        showSupabaseError(toast, 'Failed to load dashboard data', error);
+        const msg = showSupabaseError(error, 'Failed to load dashboard data');
+        toast({ title: "Error", description: msg, variant: "destructive" });
       }
     };
 

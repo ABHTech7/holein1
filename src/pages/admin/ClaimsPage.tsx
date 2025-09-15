@@ -36,7 +36,8 @@ const ClaimsPage = () => {
       });
       refetch();
     } catch (error) {
-      showSupabaseError(toast, 'Failed to approve claim', error);
+      const msg = showSupabaseError(error, 'Failed to approve claim');
+      toast({ title: "Error", description: msg, variant: "destructive" });
     }
   };
 
@@ -51,7 +52,8 @@ const ClaimsPage = () => {
       });
       refetch();
     } catch (error) {
-      showSupabaseError(toast, 'Failed to reject claim', error);
+      const msg = showSupabaseError(error, 'Failed to reject claim');
+      toast({ title: "Error", description: msg, variant: "destructive" });
     }
   };
 

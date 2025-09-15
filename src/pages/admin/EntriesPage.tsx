@@ -105,7 +105,8 @@ const EntriesPage = () => {
 
       setEntries(formattedEntries);
     } catch (error) {
-      showSupabaseError(toast, 'Failed to load entries data', error);
+      const msg = showSupabaseError(error, 'Failed to load entries data');
+      toast({ title: "Error", description: msg, variant: "destructive" });
     } finally {
       setLoading(false);
     }
