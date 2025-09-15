@@ -13,6 +13,8 @@ import { ArrowLeft, Calendar, TrendingUp, Filter, Download } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate } from "@/lib/formatters";
+import { showSupabaseError } from "@/lib/showSupabaseError";
+import { useAuth } from "@/hooks/useAuth";
 
 interface EntryDetail {
   id: string;
@@ -35,6 +37,7 @@ interface RevenueStats {
 
 const RevenueBreakdown = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<EntryDetail[]>([]);
   const [filteredEntries, setFilteredEntries] = useState<EntryDetail[]>([]);
@@ -64,6 +67,15 @@ const RevenueBreakdown = () => {
     try {
       setLoading(true);
 
+      // Diagnostic logging for development
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("ADMIN REVENUE BREAKDOWN - Starting data fetch:", {
+          userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+          timestamp: new Date().toISOString(),
+          operation: "fetchData"
+        });
+      }
+
       // Fetch all entries with related data
       const { data: entriesData, error } = await supabase
         .from('entries')
@@ -78,17 +90,43 @@ const RevenueBreakdown = () => {
         .order('entry_date', { ascending: false });
 
       if (error) {
-        console.error('Error fetching entries:', error);
+        if (process.env.NODE_ENV !== 'production') {
+          console.error("ADMIN REVENUE BREAKDOWN ERROR:", {
+            location: "RevenueBreakdown.fetchData - entries",
+            userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+            operation: "Fetching all entries",
+            queryParams: { table: "entries", order: "entry_date desc" },
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            fullError: error
+          });
+        }
+        
+        const errorMessage = showSupabaseError(error, "Revenue Breakdown - Entries");
         toast({
           title: "Error",
           description: "Failed to load revenue data",
           variant: "destructive"
         });
+        toast({
+          title: "Technical Details",
+          description: errorMessage,
+          variant: "destructive"
+        });
         return;
       }
 
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("ADMIN REVENUE BREAKDOWN SUCCESS - Entries fetched:", {
+          count: entriesData?.length || 0,
+          operation: "Fetching all entries"
+        });
+      }
+
       // Fetch competitions data separately
-      const { data: competitionsData } = await supabase
+      const { data: competitionsData, error: competitionsError } = await supabase
         .from('competitions')
         .select(`
           id,
@@ -97,8 +135,37 @@ const RevenueBreakdown = () => {
           clubs!inner(name)
         `);
 
+      if (competitionsError) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error("ADMIN REVENUE BREAKDOWN ERROR:", {
+            location: "RevenueBreakdown.fetchData - competitions",
+            userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+            operation: "Fetching competitions with clubs",
+            queryParams: { table: "competitions", joins: "clubs" },
+            code: competitionsError.code,
+            message: competitionsError.message,
+            details: competitionsError.details,
+            hint: competitionsError.hint,
+            fullError: competitionsError
+          });
+        }
+        
+        const errorMessage = showSupabaseError(competitionsError, "Revenue Breakdown - Competitions");
+        toast({
+          title: "Error",
+          description: "Failed to load competition data",
+          variant: "destructive"
+        });
+        toast({
+          title: "Technical Details",
+          description: errorMessage,
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Fetch profiles data separately  
-      const { data: profilesData } = await supabase
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select(`
           id,
@@ -106,6 +173,43 @@ const RevenueBreakdown = () => {
           last_name,
           email
         `);
+
+      if (profilesError) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error("ADMIN REVENUE BREAKDOWN ERROR:", {
+            location: "RevenueBreakdown.fetchData - profiles",
+            userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+            operation: "Fetching player profiles",
+            queryParams: { table: "profiles" },
+            code: profilesError.code,
+            message: profilesError.message,
+            details: profilesError.details,
+            hint: profilesError.hint,
+            fullError: profilesError
+          });
+        }
+        
+        const errorMessage = showSupabaseError(profilesError, "Revenue Breakdown - Profiles");
+        toast({
+          title: "Error",
+          description: "Failed to load player data",
+          variant: "destructive"
+        });
+        toast({
+          title: "Technical Details",
+          description: errorMessage,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("ADMIN REVENUE BREAKDOWN SUCCESS - All data fetched:", {
+          competitions: competitionsData?.length || 0,
+          profiles: profilesData?.length || 0,
+          operation: "Data transformation starting"
+        });
+      }
 
       // Transform the data by joining with competitions and profiles
       const transformedEntries: EntryDetail[] = (entriesData || []).map(entry => {
@@ -161,13 +265,42 @@ const RevenueBreakdown = () => {
       setClubs(uniqueClubs);
 
     } catch (error) {
-      console.error('Error in fetchData:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error("ADMIN REVENUE BREAKDOWN ERROR:", {
+          location: "RevenueBreakdown.fetchData - main catch",
+          userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+          operation: "Complete data fetch and processing",
+          timestamp: new Date().toISOString(),
+          fullError: error
+        });
+      }
+      
+      const errorMessage = showSupabaseError(error, "Revenue Breakdown");
+      toast({
+        title: "Error",
+        description: "Failed to load revenue breakdown data",
+        variant: "destructive"
+      });
+      toast({
+        title: "Technical Details",
+        description: errorMessage,
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const applyFilters = () => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log("ADMIN REVENUE BREAKDOWN - Applying filters:", {
+        userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+        filters: { timeFrame, dateFrom, dateTo, clubFilter },
+        totalEntries: entries.length,
+        operation: "applyFilters"
+      });
+    }
+    
     let filtered = [...entries];
 
     // Time frame filter
@@ -202,6 +335,14 @@ const RevenueBreakdown = () => {
     }
 
     setFilteredEntries(filtered);
+    
+    if (process.env.NODE_ENV !== 'production') {
+      console.log("ADMIN REVENUE BREAKDOWN - Filters applied:", {
+        filteredCount: filtered.length,
+        originalCount: entries.length,
+        appliedFilters: { timeFrame, dateFrom, dateTo, clubFilter }
+      });
+    }
   };
 
   const handleTimeFrameChange = (value: string) => {

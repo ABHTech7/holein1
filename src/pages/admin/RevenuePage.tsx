@@ -9,6 +9,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/formatters";
 import { toast } from "@/hooks/use-toast";
+import { showSupabaseError } from "@/lib/showSupabaseError";
+import { useAuth } from "@/hooks/useAuth";
 
 import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
@@ -25,6 +27,7 @@ interface ClubRevenue {
 
 const RevenuePage = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [clubRevenues, setClubRevenues] = useState<ClubRevenue[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -47,13 +50,44 @@ const RevenuePage = () => {
     try {
       setLoading(true);
 
+      // Diagnostic logging for development
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("ADMIN REVENUE PAGE - Starting revenue data fetch:", {
+          userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+          timestamp: new Date().toISOString(),
+          operation: "fetchRevenueData"
+        });
+      }
+
       // Get all clubs
       const { data: clubs, error: clubsError } = await supabase
         .from('clubs')
         .select('id, name')
         .eq('active', true);
 
-      if (clubsError) throw clubsError;
+      if (clubsError) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error("ADMIN REVENUE ERROR:", {
+            location: "RevenuePage.fetchRevenueData",
+            userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+            operation: "Fetching active clubs",
+            queryParams: { table: "clubs", active: true },
+            code: clubsError.code,
+            message: clubsError.message,
+            details: clubsError.details,
+            hint: clubsError.hint,
+            fullError: clubsError
+          });
+        }
+        throw clubsError;
+      }
+
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("ADMIN REVENUE SUCCESS - Clubs fetched:", {
+          count: clubs?.length || 0,
+          operation: "Fetching active clubs"
+        });
+      }
 
       const clubRevenueData = await Promise.all(
         (clubs || []).map(async (club) => {
@@ -64,7 +98,20 @@ const RevenuePage = () => {
             .eq('club_id', club.id);
 
           if (competitionsError) {
-            console.error('Error fetching competitions for club:', club.id, competitionsError);
+            if (process.env.NODE_ENV !== 'production') {
+              console.error("ADMIN REVENUE ERROR:", {
+                location: "RevenuePage.fetchRevenueData - club competitions",
+                userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+                operation: "Fetching competitions for club",
+                queryParams: { table: "competitions", club_id: club.id },
+                clubInfo: { id: club.id, name: club.name },
+                code: competitionsError.code,
+                message: competitionsError.message,
+                details: competitionsError.details,
+                hint: competitionsError.hint,
+                fullError: competitionsError
+              });
+            }
             return {
               id: club.id,
               name: club.name,
@@ -89,7 +136,21 @@ const RevenuePage = () => {
               .in('competition_id', competitionIds);
 
             if (entriesError) {
-              console.error('Error fetching entries for club:', club.id, entriesError);
+              if (process.env.NODE_ENV !== 'production') {
+                console.error("ADMIN REVENUE ERROR:", {
+                  location: "RevenuePage.fetchRevenueData - club entries",
+                  userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+                  operation: "Fetching entries for club competitions",
+                  queryParams: { table: "entries", competition_ids: competitionIds },
+                  clubInfo: { id: club.id, name: club.name },
+                  competitionCount: competitionIds.length,
+                  code: entriesError.code,
+                  message: entriesError.message,
+                  details: entriesError.details,
+                  hint: entriesError.hint,
+                  fullError: entriesError
+                });
+              }
             } else {
               totalEntries = entries?.length || 0;
               paidEntries = entries?.filter(entry => entry.paid).length || 0;
@@ -129,10 +190,25 @@ const RevenuePage = () => {
       setTotalRevenue(grandTotal);
 
     } catch (error) {
-      console.error('Error fetching revenue data:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error("ADMIN REVENUE ERROR:", {
+          location: "RevenuePage.fetchRevenueData - main catch",
+          userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+          operation: "Complete revenue data fetch",
+          timestamp: new Date().toISOString(),
+          fullError: error
+        });
+      }
+      
+      const errorMessage = showSupabaseError(error, "Revenue Page");
       toast({
         title: "Error",
         description: "Failed to load revenue data.",
+        variant: "destructive"
+      });
+      toast({
+        title: "Technical Details",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
