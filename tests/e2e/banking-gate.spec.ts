@@ -40,7 +40,7 @@ test.describe('Banking Gate', () => {
     // await loginAs(page, 'CLUB_NO_BANKING');
     
     // Try to navigate directly to competition creation
-    await page.goto('/dashboard/admin/competitions/new');
+    await page.goto('/dashboard/club/competitions/new');
     
     // Should redirect to banking page (for club users)
     // Note: This test may need adjustment based on actual routing behavior
