@@ -242,25 +242,25 @@ const ClubBankingSection: React.FC<ClubBankingSectionProps> = ({ clubId }) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bank_iban">IBAN</Label>
+              <Label htmlFor="bank_iban">IBAN <span className="text-muted-foreground text-sm">(Optional)</span></Label>
               <Input
                 id="bank_iban"
                 value={isEditing ? (formData.bank_iban || '') : (displayDetails?.bank_iban || '')}
                 onChange={(e) => handleInputChange('bank_iban', e.target.value)}
                 disabled={!isEditing}
-                placeholder="GB29 NWBK 6016 1331 9268 19"
+                placeholder="GB29 NWBK 6016 1331 9268 19 (Optional)"
                 type={showSensitive || isEditing ? "text" : "password"}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bank_swift">SWIFT/BIC</Label>
+              <Label htmlFor="bank_swift">SWIFT/BIC <span className="text-muted-foreground text-sm">(Optional)</span></Label>
               <Input
                 id="bank_swift"
                 value={isEditing ? (formData.bank_swift || '') : (displayDetails?.bank_swift || '')}
                 onChange={(e) => handleInputChange('bank_swift', e.target.value)}
                 disabled={!isEditing}
-                placeholder="NWBKGB2L"
+                placeholder="NWBKGB2L (Optional)"
               />
             </div>
           </div>
