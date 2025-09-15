@@ -25,6 +25,7 @@ interface Entry {
   status: string;
   outcome_self: string | null;
   completed_at: string | null;
+  player_id: string;
   player_email: string;
   player_name: string;
   competition_id: string;
@@ -135,7 +136,7 @@ const ClubEntries = () => {
       if (error) throw error;
 
       const processedEntries = entriesData?.map((entry) => {
-        // Better name fallback logic
+        // Enhanced name fallback logic
         let playerName = 'Unknown User';
         
         if (entry.profiles) {
@@ -154,6 +155,9 @@ const ClubEntries = () => {
             const emailPrefix = email.split('@')[0];
             playerName = emailPrefix.replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
           }
+        } else {
+          // If no profile data at all, try to get some identifier
+          playerName = 'User Not Found';
         }
         
         return {
@@ -163,6 +167,7 @@ const ClubEntries = () => {
           status: entry.status || 'pending',
           outcome_self: entry.outcome_self,
           completed_at: entry.completed_at,
+          player_id: entry.player_id,
           player_email: entry.profiles?.email || 'unknown@email.com',
           player_name: playerName,
           competition_id: entry.competitions?.id,
@@ -392,10 +397,18 @@ const ClubEntries = () => {
                            const entryStatus = getEntryStatus(entry);
                            
                            return (
-                             <TableRow key={entry.id}>
-                               <TableCell className="font-medium">
-                                 {entry.player_name}
-                               </TableCell>
+                              <TableRow key={entry.id}>
+                                <TableCell className="font-medium">
+                                  <button
+                                    onClick={() => navigate(`/dashboard/admin/players/${entry.player_id || ''}`)}
+                                    className="font-medium hover:text-primary hover:underline focus:outline-none focus:text-primary text-left"
+                                  >
+                                    {entry.player_name}
+                                  </button>
+                                  <div className="text-xs text-muted-foreground">
+                                    {entry.player_email}
+                                  </div>
+                                </TableCell>
                                <TableCell>{entry.competition_name}</TableCell>
                                <TableCell className="text-center font-mono">
                                  {entry.competition_hole_number}

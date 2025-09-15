@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
+import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 import NewUserModal from "@/components/admin/NewUserModal";
 
@@ -122,13 +123,13 @@ const PlayersPage = () => {
             <Button 
               variant="outline" 
               onClick={() => navigate('/dashboard/admin')}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 text-primary-foreground border-none"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Dashboard
             </Button>
             <Button 
-              className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2"
+              className="bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 text-primary-foreground gap-2 border-none"
               onClick={() => setShowNewUser(true)}
             >
               <Plus className="w-4 h-4" />
@@ -244,6 +245,8 @@ const PlayersPage = () => {
           </Card>
         </div>
       </Section>
+
+      <SiteFooter />
 
       <NewUserModal 
         isOpen={showNewUser}

@@ -13,6 +13,7 @@ import { User, Mail, Phone, Calendar, Trophy, FileText, PoundSterling, Plus, Sav
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate, formatCurrency, formatDateTime } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
+import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 import { useAuth } from "@/hooks/useAuth";
 import { trackPlayerChanges } from "@/lib/auditTracker";
@@ -27,6 +28,8 @@ interface Player {
   created_at: string;
   role: string;
   club_id: string | null;
+  age_years: number | null;
+  handicap: number | null;
 }
 
 interface Entry {
@@ -85,7 +88,18 @@ const PlayerDetailPage = () => {
       // Fetch player details
       const { data: playerData, error: playerError } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          id,
+          email,
+          first_name,
+          last_name,
+          phone,
+          created_at,
+          role,
+          club_id,
+          age_years,
+          handicap
+        `)
         .eq('id', playerId)
         .single();
 
@@ -333,7 +347,7 @@ const PlayerDetailPage = () => {
               <Button 
                 variant="outline" 
                 onClick={() => navigate(backButtonPath)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 text-primary-foreground border-none"
               >
                 <ArrowLeft className="w-4 h-4" />
                 {backButtonText}
@@ -359,9 +373,9 @@ const PlayerDetailPage = () => {
                   </Button>
                 </div>
               ) : (
-                <Button onClick={() => setEditMode(true)}>
-                  Edit Player
-                </Button>
+                 <Button onClick={() => setEditMode(true)} className="bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 text-primary-foreground border-none">
+                   Edit Player
+                 </Button>
               )}
             </div>
           </div>
@@ -449,20 +463,35 @@ const PlayerDetailPage = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Registration Date</Label>
-                      <div className="text-sm text-muted-foreground p-2 bg-muted rounded">
-                        {formatDate(player.created_at, 'long')}
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Role</Label>
-                      <div className="text-sm text-muted-foreground p-2 bg-muted rounded">
-                        {player.role}
-                      </div>
-                    </div>
-                  </div>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                       <Label>Age</Label>
+                       <div className="text-sm text-muted-foreground p-2 bg-muted rounded">
+                         {player.age_years ? `${player.age_years} years` : 'Not provided'}
+                       </div>
+                     </div>
+                     <div className="space-y-2">
+                       <Label>Handicap</Label>
+                       <div className="text-sm text-muted-foreground p-2 bg-muted rounded">
+                         {player.handicap !== null ? player.handicap : 'Not provided'}
+                       </div>
+                     </div>
+                   </div>
+
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                       <Label>Registration Date</Label>
+                       <div className="text-sm text-muted-foreground p-2 bg-muted rounded">
+                         {formatDate(player.created_at, 'long')}
+                       </div>
+                     </div>
+                     <div className="space-y-2">
+                       <Label>Role</Label>
+                       <div className="text-sm text-muted-foreground p-2 bg-muted rounded">
+                         {player.role}
+                       </div>
+                     </div>
+                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -611,6 +640,8 @@ const PlayerDetailPage = () => {
           </Tabs>
         </div>
       </Section>
+      
+      <SiteFooter />
     </div>
   );
 };

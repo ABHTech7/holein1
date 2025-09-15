@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate, formatCurrency, formatDateTime } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
+import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 
 interface Entry {
@@ -32,6 +33,8 @@ interface Entry {
     first_name: string | null;
     last_name: string | null;
     email: string;
+    age_years: number | null;
+    handicap: number | null;
   };
   competition: {
     id: string;
@@ -70,7 +73,9 @@ const EntriesPage = () => {
             id,
             first_name,
             last_name,
-            email
+            email,
+            age_years,
+            handicap
           ),
           competitions!inner(
             id,
@@ -86,16 +91,18 @@ const EntriesPage = () => {
       const formattedEntries = (entriesData || []).map(entry => ({
         ...entry,
         player: {
-          id: entry.profiles.id,
-          first_name: entry.profiles.first_name,
-          last_name: entry.profiles.last_name,
-          email: entry.profiles.email
+          id: entry.profiles?.id || '',
+          first_name: entry.profiles?.first_name || null,
+          last_name: entry.profiles?.last_name || null,
+          email: entry.profiles?.email || 'unknown@email.com',
+          age_years: entry.profiles?.age_years || null,
+          handicap: entry.profiles?.handicap || null
         },
         competition: {
-          id: entry.competitions.id,
-          name: entry.competitions.name,
-          entry_fee: entry.competitions.entry_fee,
-          club_name: (entry.competitions.clubs as any).name
+          id: entry.competitions?.id || '',
+          name: entry.competitions?.name || 'Unknown Competition',
+          entry_fee: entry.competitions?.entry_fee || 0,
+          club_name: (entry.competitions?.clubs as any)?.name || 'Unknown Club'
         }
       }));
 
@@ -202,13 +209,13 @@ const EntriesPage = () => {
               <Button 
                 variant="outline" 
                 onClick={() => navigate('/dashboard/admin')}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 text-primary-foreground border-none"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span className="hidden sm:inline">Back to Dashboard</span>
               </Button>
               <div>
-                <h1 className="text-xl md:text-2xl font-bold">Entry Management</h1>
+                <h1 className="text-xl md:text-2xl font-bold text-foreground">Entry Management</h1>
                 <p className="text-sm text-muted-foreground">Monitor and manage all competition entries</p>
               </div>
             </div>
@@ -312,75 +319,90 @@ const EntriesPage = () => {
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Player</TableHead>
-                        <TableHead className="hidden md:table-cell">Competition</TableHead>
-                        <TableHead className="hidden lg:table-cell">Club</TableHead>
-                        <TableHead>Entry Date</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Payment</TableHead>
-                        <TableHead className="hidden lg:table-cell">Window</TableHead>
-                        <TableHead>Fee</TableHead>
-                      </TableRow>
-                    </TableHeader>
+                     <TableHeader>
+                       <TableRow>
+                         <TableHead>Player</TableHead>
+                         <TableHead className="hidden md:table-cell">Competition</TableHead>
+                         <TableHead className="hidden lg:table-cell">Club</TableHead>
+                         <TableHead className="hidden xl:table-cell">Age</TableHead>
+                         <TableHead className="hidden xl:table-cell">Handicap</TableHead>
+                         <TableHead>Entry Date</TableHead>
+                         <TableHead>Status</TableHead>
+                         <TableHead>Payment</TableHead>
+                         <TableHead className="hidden lg:table-cell">Window</TableHead>
+                         <TableHead>Fee</TableHead>
+                       </TableRow>
+                     </TableHeader>
                     <TableBody>
                       {filteredEntries.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                            {searchTerm || statusFilter !== "all" || paymentFilter !== "all" 
-                              ? 'No entries found matching your filters.' 
-                              : 'No entries found.'}
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredEntries.map((entry) => {
-                          const window = getAttemptWindow(entry);
-                          return (
-                            <TableRow key={entry.id} className="cursor-pointer hover:bg-muted/50">
-                              <TableCell className="font-medium">
-                                <div>
-                                  <button
-                                    onClick={() => navigate(`/dashboard/admin/players/${entry.player.id}`)}
-                                    className="font-medium hover:text-primary hover:underline focus:outline-none focus:text-primary text-left"
-                                  >
-                                    {getPlayerName(entry.player)}
-                                  </button>
-                                  <div className="text-xs text-muted-foreground md:hidden">
-                                    {entry.competition.name}
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell className="hidden md:table-cell">{entry.competition.name}</TableCell>
-                              <TableCell className="hidden lg:table-cell">{entry.competition.club_name}</TableCell>
-                              <TableCell>
-                                <div className="text-sm">
-                                  {formatDate(entry.entry_date, 'short')}
-                                </div>
-                              </TableCell>
+                       {searchTerm || statusFilter !== "all" || paymentFilter !== "all" 
+                               ? 'No entries found matching your filters.' 
+                               : 'No entries found.'}
+                           </TableCell>
+                         </TableRow>
+                       ) : (
+                         filteredEntries.map((entry) => {
+                           const window = getAttemptWindow(entry);
+                           return (
+                             <TableRow key={entry.id} className="cursor-pointer hover:bg-muted/50">
+                               <TableCell className="font-medium">
+                                 <div>
+                                   <button
+                                     onClick={() => navigate(`/dashboard/admin/players/${entry.player.id}`)}
+                                     className="font-medium hover:text-primary hover:underline focus:outline-none focus:text-primary text-left"
+                                   >
+                                     {getPlayerName(entry.player)}
+                                   </button>
+                                   <div className="text-xs text-muted-foreground">
+                                     {entry.player.email}
+                                   </div>
+                                   <div className="text-xs text-muted-foreground md:hidden">
+                                     {entry.competition.name}
+                                   </div>
+                                 </div>
+                               </TableCell>
+                               <TableCell className="hidden md:table-cell">{entry.competition.name}</TableCell>
+                               <TableCell className="hidden lg:table-cell">{entry.competition.club_name}</TableCell>
+                               <TableCell className="hidden xl:table-cell">
+                                 <div className="text-sm">
+                                   {entry.player.age_years ? `${entry.player.age_years} years` : 'Not provided'}
+                                 </div>
+                               </TableCell>
+                               <TableCell className="hidden xl:table-cell">
+                                 <div className="text-sm">
+                                   {entry.player.handicap !== null ? entry.player.handicap : 'Not provided'}
+                                 </div>
+                               </TableCell>
                                <TableCell>
-                                <Badge variant={getStatusColor(entry.status, entry.outcome_self)}>
-                                  {getStatusDisplay(entry.status, entry.outcome_self)}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant={entry.paid ? "default" : "destructive"}>
-                                  {entry.paid ? "Paid" : "Unpaid"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="hidden lg:table-cell">
-                                <div className="text-xs">
-                                  <Badge variant={window.status === 'active' ? 'default' : 'secondary'}>
-                                    {window.text}
-                                  </Badge>
-                                </div>
-                              </TableCell>
-                              <TableCell className="font-medium">
-                                {formatCurrency(entry.competition.entry_fee)}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })
+                                 <div className="text-sm">
+                                   {formatDate(entry.entry_date, 'short')}
+                                 </div>
+                               </TableCell>
+                                <TableCell>
+                                 <Badge variant={getStatusColor(entry.status, entry.outcome_self)}>
+                                   {getStatusDisplay(entry.status, entry.outcome_self)}
+                                 </Badge>
+                               </TableCell>
+                               <TableCell>
+                                 <Badge variant={entry.paid ? "default" : "destructive"}>
+                                   {entry.paid ? "Paid" : "Unpaid"}
+                                 </Badge>
+                               </TableCell>
+                               <TableCell className="hidden lg:table-cell">
+                                 <div className="text-xs">
+                                   <Badge variant={window.status === 'active' ? 'default' : 'secondary'}>
+                                     {window.text}
+                                   </Badge>
+                                 </div>
+                               </TableCell>
+                               <TableCell className="font-medium">
+                                 {formatCurrency(entry.competition.entry_fee)}
+                               </TableCell>
+                             </TableRow>
+                           );
+                         })
                       )}
                     </TableBody>
                   </Table>
@@ -390,6 +412,8 @@ const EntriesPage = () => {
           </Card>
         </div>
       </Section>
+      
+      <SiteFooter />
     </div>
   );
 };
