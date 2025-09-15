@@ -13,6 +13,7 @@ import { formatCurrency } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
 import NewClubModal from "@/components/admin/NewClubModal";
+import { ROUTES } from "@/routes";
 
 interface Club {
   id: string;
@@ -163,7 +164,7 @@ const ClubsPage = () => {
             <div className="flex items-center justify-between gap-4">
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/dashboard/admin')}
+                onClick={() => navigate(ROUTES.ADMIN.DASHBOARD)}
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />

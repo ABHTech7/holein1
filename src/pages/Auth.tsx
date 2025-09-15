@@ -9,6 +9,7 @@ import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 import { Eye, EyeOff } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
+import { ROUTES } from "@/routes";
 
 const Auth = () => {
   const { user, profile, loading, signIn } = useAuth();
@@ -23,13 +24,13 @@ const Auth = () => {
   if (user && profile) {
     switch (profile.role) {
       case 'ADMIN':
-        return <Navigate to="/dashboard/admin" replace />;
+        return <Navigate to={ROUTES.ADMIN.DASHBOARD} replace />;
       case 'CLUB':
-        return <Navigate to="/dashboard/club" replace />;
+        return <Navigate to={ROUTES.CLUB.DASHBOARD} replace />;
       case 'PLAYER':
-        return <Navigate to="/players/entries" replace />;
+        return <Navigate to={ROUTES.PLAYER.ENTRIES} replace />;
       default:
-        return <Navigate to="/" replace />;
+        return <Navigate to={ROUTES.HOME} replace />;
     }
   }
 

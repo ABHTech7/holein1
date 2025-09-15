@@ -17,6 +17,7 @@ import useAuth from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { PlayerGreeting } from "@/components/ui/player-greeting";
 import entryHero from "/img/entry-hero.jpg";
+import { ROUTES } from "@/routes";
 
 interface CompetitionWithClub {
   id: string;
@@ -279,7 +280,7 @@ const CompetitionEntry = () => {
               <p className="text-muted-foreground mb-4">
                 The competition you're looking for doesn't exist or may have been removed.
               </p>
-              <Button onClick={() => navigate('/')} variant="outline">
+              <Button onClick={() => navigate(ROUTES.HOME)} variant="outline">
                 Return Home
               </Button>
             </CardContent>
@@ -319,13 +320,13 @@ const CompetitionEntry = () => {
                 </HeroSubtitle>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
                   <Button 
-                    onClick={() => navigate('/players/entries')}
+                    onClick={() => navigate(ROUTES.PLAYER.ENTRIES)}
                     size="lg"
                   >
                     View Your Entries
                   </Button>
                   <Button 
-                    onClick={() => navigate('/')}
+                    onClick={() => navigate(ROUTES.HOME)}
                     variant="outline"
                     size="lg"
                   >
@@ -500,7 +501,7 @@ const CompetitionEntry = () => {
                        </p>
                       <Button 
                         variant="outline"
-                        onClick={() => navigate('/')}
+                        onClick={() => navigate(ROUTES.HOME)}
                       >
                         View Other Competitions
                       </Button>

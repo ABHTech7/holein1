@@ -14,6 +14,7 @@ import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 import NewUserModal from "@/components/admin/NewUserModal";
+import { ROUTES } from "@/routes";
 
 interface Player {
   id: string;
@@ -122,7 +123,7 @@ const PlayersPage = () => {
           <div className="flex items-center justify-between gap-4">
             <Button 
               variant="outline" 
-              onClick={() => navigate('/dashboard/admin')}
+              onClick={() => navigate(ROUTES.ADMIN.DASHBOARD)}
               className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 text-primary-foreground border-none"
             >
               <ArrowLeft className="w-4 h-4" />

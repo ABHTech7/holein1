@@ -7,6 +7,7 @@ import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 import Container from "@/components/layout/Container";
+import { ROUTES } from "@/routes";
 
 const ClubSupport = () => {
   const { profile } = useAuth();
@@ -44,7 +45,7 @@ ${profile?.first_name || ''} ${profile?.last_name || ''}`;
               {/* Back Button */}
               <Button
                 variant="outline"
-                onClick={() => navigate('/dashboard/club')}
+                onClick={() => navigate(ROUTES.CLUB.DASHBOARD)}
                 className="flex items-center gap-2 mb-6"
               >
                 <ArrowLeft className="w-4 h-4" />

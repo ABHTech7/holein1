@@ -16,6 +16,7 @@ import Section from "@/components/layout/Section";
 import Container from "@/components/layout/Container";
 import StatsCard from "@/components/ui/stats-card";
 import EmptyState from "@/components/ui/empty-state";
+import { ROUTES } from "@/routes";
 
 interface RevenueEntry {
   id: string;
@@ -259,7 +260,7 @@ const ClubRevenue = () => {
               {/* Back Button */}
               <Button
                 variant="outline"
-                onClick={() => navigate('/dashboard/club')}
+                onClick={() => navigate(ROUTES.CLUB.DASHBOARD)}
                 className="flex items-center gap-2 mb-6"
               >
                 <ArrowLeft className="w-4 h-4" />

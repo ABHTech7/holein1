@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
+import { ROUTES } from "@/routes";
 
 interface Competition {
   id: string;
@@ -153,7 +154,7 @@ const CompetitionsPage = () => {
             <div className="flex items-center gap-4">
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/dashboard/admin')}
+                onClick={() => navigate(ROUTES.ADMIN.DASHBOARD)}
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -176,7 +177,7 @@ const CompetitionsPage = () => {
                 </Button>
                 
                 <Button 
-                  onClick={() => navigate('/dashboard/admin/competitions/new')}
+                  onClick={() => navigate(ROUTES.ADMIN.COMPETITIONS_NEW)}
                   className="flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />

@@ -12,6 +12,7 @@ import { useAdminClaims } from "@/hooks/useClaims";
 import { ClaimsTable } from "@/components/claims/ClaimsTable";
 import { approveClaim, rejectClaim } from "@/lib/claimsActions";
 import { VerificationStatus } from "@/types/claims";
+import { ROUTES } from "@/routes";
 
 const ClaimsPage = () => {
   const navigate = useNavigate();
@@ -78,7 +79,7 @@ const ClaimsPage = () => {
             <div className="flex items-center gap-4">
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/dashboard/admin')}
+                onClick={() => navigate(ROUTES.ADMIN.DASHBOARD)}
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />

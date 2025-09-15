@@ -15,6 +15,7 @@ import { formatDate, formatCurrency, formatDateTime } from "@/lib/formatters";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
+import { ROUTES } from "@/routes";
 
 interface Entry {
   id: string;
@@ -208,7 +209,7 @@ const EntriesPage = () => {
             <div className="flex items-center gap-4">
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/dashboard/admin')}
+                onClick={() => navigate(ROUTES.ADMIN.DASHBOARD)}
                 className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary-glow hover:opacity-90 text-primary-foreground border-none"
               >
                 <ArrowLeft className="w-4 h-4" />
