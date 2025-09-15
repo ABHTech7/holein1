@@ -258,35 +258,12 @@ const ClubDashboardNew = () => {
   }, [profile?.club_id, toast]);
 
   const handleShareCompetition = async (competitionId: string) => {
-    // First get the competition details
-    const { data: competition } = await supabase
-      .from('competitions')
-      .select('club_id, hole_number')
-      .eq('id', competitionId)
-      .single();
+    // Import the function dynamically since it's not imported at the top
+    const { generateCompetitionEntryUrl } = await import('@/lib/competitionUtils');
+    const entryUrl = await generateCompetitionEntryUrl(competitionId);
     
-    if (!competition) {
-      const shareUrl = `${window.location.origin}/enter/${competitionId}`;
-      const success = await copyToClipboard(shareUrl);
-      
-      if (success) {
-        toast({
-          title: 'Link copied',
-          description: 'Competition entry link has been copied to clipboard.',
-        });
-      }
-      return;
-    }
-
-    // Get venue slug for new URL format
-    const { data: venue } = await supabase
-      .from('venues')
-      .select('slug')
-      .eq('club_id', competition.club_id)
-      .single();
-    
-    const shareUrl = venue 
-      ? `${window.location.origin}/enter/${venue.slug}/${competition.hole_number}`
+    const shareUrl = entryUrl 
+      ? `${window.location.origin}${entryUrl}`
       : `${window.location.origin}/enter/${competitionId}`;
     
     const success = await copyToClipboard(shareUrl);

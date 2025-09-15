@@ -262,15 +262,12 @@ const CompetitionDetailEnhanced = () => {
   const handleShareCompetition = async () => {
     if (!competition) return;
     
-    // Get venue data to generate new URL format
-    const { data: venue } = await supabase
-      .from('venues')
-      .select('slug')
-      .eq('club_id', competition.club_id)
-      .single();
+    // Import the function dynamically since it's not imported at the top
+    const { generateCompetitionEntryUrl } = await import('@/lib/competitionUtils');
+    const entryUrl = await generateCompetitionEntryUrl(competition.id);
     
-    const shareUrl = venue 
-      ? `${window.location.origin}/enter/${venue.slug}/${competition.hole_number}`
+    const shareUrl = entryUrl 
+      ? `${window.location.origin}${entryUrl}`
       : `${window.location.origin}/enter/${competition.id}`;
     
     const success = await copyToClipboard(shareUrl);
