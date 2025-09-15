@@ -2,11 +2,10 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Container from "./Container";
-import { Trophy, Menu, User, LogOut, Building } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Trophy, Menu, User, LogOut } from "lucide-react";
+import { useState } from "react";
 import useAuth from "@/hooks/useAuth";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { supabase } from "@/integrations/supabase/client";
 import { ROUTES, getDashboardRoute } from "@/routes";
 
 const SiteHeader = () => {
