@@ -1,17 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { getEntrySuccessMessage } from "@/lib/copyEngine";
-import { getConfig } from "@/lib/featureFlags";
-import { Trophy, Target, Clock, MapPin, Loader2, Zap } from "lucide-react";
-import type { Gender } from '@/lib/copyEngine';
+import { generateCompetitionEntryUrl } from "@/lib/competitionUtils";
+import { 
+  Trophy, 
+  CheckCircle2, 
+  Clock, 
+  MapPin,
+  Loader2,
+  AlertTriangle
+} from "lucide-react";
+import SiteHeader from "@/components/layout/SiteHeader";
+import SiteFooter from "@/components/layout/SiteFooter";
 
 interface EntryData {
   id: string;
+  amount: number;
+  entry_date: string;
   competition: {
     id: string;
     name: string;
@@ -19,18 +29,12 @@ interface EntryData {
     hole_number: number;
     club_name: string;
   };
-  player: {
-    first_name: string;
-    gender?: Gender;
-  };
-  entry_date: string;
-  amount_minor: number;
 }
 
 const EntrySuccess: React.FC = () => {
   const { entryId } = useParams<{ entryId: string }>();
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { toast } = useToast();
   
   const [entryData, setEntryData] = useState<EntryData | null>(null);
@@ -40,134 +44,105 @@ const EntrySuccess: React.FC = () => {
   useEffect(() => {
     const loadEntryData = async () => {
       if (!entryId) return;
-      
+
       try {
-        const { data, error } = await supabase
+        // Get entry with competition and club data
+        const { data: entryRecord, error: entryError } = await supabase
           .from('entries')
           .select(`
             id,
-            entry_date,
             amount_minor,
-            competition:competitions(
+            entry_date,
+            competition:competitions!inner(
               id,
               name,
               prize_pool,
               hole_number,
-              club_name:clubs(name)
-            ),
-            player:profiles(
-              first_name,
-              gender
+              club:clubs!inner(
+                name
+              )
             )
           `)
           .eq('id', entryId)
           .single();
 
-        if (error || !data) {
-          console.error('Failed to load entry data:', error);
-          toast({ 
-            title: "Entry not found", 
-            description: "Unable to load entry details.",
-            variant: "destructive"
-          });
-          navigate('/');
+        if (entryError || !entryRecord) {
+          console.error('Failed to load entry:', entryError);
           return;
         }
 
-        // Transform the data to match our interface
         setEntryData({
-          id: data.id,
+          id: entryRecord.id,
+          amount: entryRecord.amount_minor || 0,
+          entry_date: entryRecord.entry_date,
           competition: {
-            id: data.competition.id,
-            name: data.competition.name,
-            prize_pool: data.competition.prize_pool,
-            hole_number: data.competition.hole_number,
-            club_name: data.competition.club_name?.name || 'Unknown Club',
-          },
-          player: {
-            first_name: data.player.first_name || 'Player',
-            gender: data.player.gender as Gender,
-          },
-          entry_date: data.entry_date,
-          amount_minor: data.amount_minor || 0,
+            id: entryRecord.competition.id,
+            name: entryRecord.competition.name,
+            prize_pool: entryRecord.competition.prize_pool || 0,
+            hole_number: entryRecord.competition.hole_number,
+            club_name: entryRecord.competition.club.name,
+          }
         });
-
       } catch (error) {
-        console.error('Error loading entry data:', error);
-        toast({ title: "Loading failed", variant: "destructive" });
-        navigate('/');
+        console.error('Error loading entry:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
     loadEntryData();
-  }, [entryId, navigate, toast]);
+  }, [entryId]);
 
   const handleReportOutcome = async (outcome: 'win' | 'miss') => {
-    if (!entryData) return;
+    if (!entryData || !user) return;
     
     setActionLoading(outcome);
-    
+
     try {
-      // Update entry with outcome
-      const { error: entryError } = await supabase
-        .from('entries')
-        .update({
-          outcome_self: outcome,
-          outcome_reported_at: new Date().toISOString(),
-          status: outcome === 'win' ? 'pending_verification' : 'completed'
-        })
-        .eq('id', entryData.id);
-
-      if (entryError) {
-        console.error('Failed to update entry:', entryError);
-        toast({ title: "Update failed", variant: "destructive" });
-        return;
-      }
-
       if (outcome === 'win') {
-        // Create verification record for hole-in-one claims
-        const autoMissAt = new Date(Date.now() + 12 * 60 * 60 * 1000); // 12 hours from now
-        
-        const { error: verificationError } = await supabase
-          .from('verifications')
-          .insert({
-            entry_id: entryData.id,
-            witnesses: {},
-            status: 'pending',
-            auto_miss_at: autoMissAt.toISOString(),
-            auto_miss_applied: false,
-          });
+        // Navigate to hole-in-one verification flow
+        navigate(`/win-claim/${entryId}`);
+      } else {
+        // Handle miss - update entry and navigate back to competition
+        const { error } = await supabase
+          .from('entries')
+          .update({
+            outcome_self: 'miss',
+            outcome_reported_at: new Date().toISOString(),
+            status: 'completed'
+          })
+          .eq('id', entryId);
 
-        if (verificationError) {
-          console.error('Failed to create verification:', verificationError);
-          toast({ title: "Verification setup failed", variant: "destructive" });
+        if (error) {
+          console.error('Failed to update entry:', error);
+          toast({
+            title: "Error",
+            description: "Failed to record your shot. Please try again.",
+            variant: "destructive"
+          });
           return;
         }
 
-        toast({ 
-          title: "Congratulations!", 
-          description: "Please provide evidence to verify your hole-in-one!"
+        toast({
+          title: "Better luck next time! ⛳",
+          description: "Your shot has been recorded. Ready for another attempt?"
         });
 
-        // Navigate to win claim form
-        navigate(`/win-claim/${entryData.id}`);
-      } else {
-        toast({ 
-          title: "Thanks for playing!", 
-          description: "Better luck next time!"
-        });
-
-        // Navigate back to competition or home
-        setTimeout(() => {
+        // Navigate back to competition page with option to re-enter
+        const competitionUrl = await generateCompetitionEntryUrl(entryData.competition.id);
+        if (competitionUrl) {
+          navigate(competitionUrl);
+        } else {
           navigate('/');
-        }, 2000);
+        }
       }
-
     } catch (error) {
       console.error('Error reporting outcome:', error);
-      toast({ title: "Report failed", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setActionLoading(null);
     }
@@ -175,155 +150,176 @@ const EntrySuccess: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl">
-          <CardContent className="flex items-center justify-center p-8">
-            <Loader2 className="h-8 w-8 animate-spin mr-3" />
-            <span>Loading your entry...</span>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex flex-col bg-background">
+        <SiteHeader />
+        <main className="flex-1 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardContent className="flex items-center justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin mr-3 text-primary" />
+              <span className="text-muted-foreground">Loading your entry...</span>
+            </CardContent>
+          </Card>
+        </main>
+        <SiteFooter />
       </div>
     );
   }
 
   if (!entryData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl">
-          <CardContent className="text-center p-8">
-            <h2 className="text-2xl font-bold mb-4">Entry Not Found</h2>
-            <p className="text-muted-foreground mb-6">We couldn't find your entry details.</p>
-            <Button onClick={() => navigate('/')}>Go Home</Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex flex-col bg-background">
+        <SiteHeader />
+        <main className="flex-1 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardContent className="text-center p-8">
+              <AlertTriangle className="h-12 w-12 text-warning mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Entry Not Found</h2>
+              <p className="text-muted-foreground mb-6">
+                We couldn't find your entry details.
+              </p>
+              <Button onClick={() => navigate('/')}>
+                Go Home
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+        <SiteFooter />
       </div>
     );
   }
 
-  const successMessage = getEntrySuccessMessage({
-    firstName: entryData.player.first_name,
-    gender: entryData.player.gender,
-    competitionName: entryData.competition.name,
-  });
-
-  const { verificationTimeoutHours } = getConfig();
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl space-y-6">
-        {/* Success Message */}
-        <Card className="text-center overflow-hidden">
-          <div className="bg-gradient-to-r from-primary to-primary/80 p-6 text-primary-foreground">
-            <Trophy className="h-16 w-16 mx-auto mb-4" />
-            <h1 className="text-3xl font-bold mb-2">Entry Confirmed!</h1>
-            <p className="text-lg opacity-90">{successMessage}</p>
-          </div>
-          
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div className="flex items-center gap-3">
-                <Target className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-medium">{entryData.competition.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Hole {entryData.competition.hole_number}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <Trophy className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-medium">Prize Pool</p>
-                  <p className="text-sm text-muted-foreground">
-                    £{(entryData.competition.prize_pool / 100).toFixed(2)}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <Clock className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-medium">Verification Window</p>
-                  <p className="text-sm text-muted-foreground">
-                    {verificationTimeoutHours} hours to submit verification
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="font-medium">{entryData.competition.club_name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Entry ID: #{entryData.id.slice(-8).toUpperCase()}
-                  </p>
-                </div>
-              </div>
+    <div className="min-h-screen flex flex-col bg-background">
+      <SiteHeader />
+      
+      <main className="flex-1 py-8 px-4">
+        <div className="max-w-2xl mx-auto space-y-8">
+          {/* Success Header */}
+          <div className="text-center animate-fade-in">
+            <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-6 shadow-medium">
+              <CheckCircle2 className="w-10 h-10 text-primary-foreground" />
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Action Buttons */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-center">Take Your Shot!</CardTitle>
-            <p className="text-center text-muted-foreground">
-              Take your shot and report your result. If you score a hole-in-one, you'll have {verificationTimeoutHours} hours to upload your verification.
+            <h1 className="text-3xl font-display font-bold text-foreground mb-2">
+              Entry Confirmed! 🎯
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              You're officially entered into the competition
             </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button
-                onClick={() => handleReportOutcome('win')}
-                disabled={actionLoading !== null}
-                size="lg"
-                className="h-16 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-lg"
-              >
-                {actionLoading === 'win' ? (
-                  <>
-                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Trophy className="h-6 w-6 mr-2" />
-                    HOLE-IN-ONE! 🎯
-                  </>
-                )}
-              </Button>
-              
-              <Button
-                onClick={() => handleReportOutcome('miss')}
-                disabled={actionLoading !== null}
-                size="lg"
-                variant="outline"
-                className="h-16 font-bold text-lg border-2"
-              >
-                {actionLoading === 'miss' ? (
-                  <>
-                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Target className="h-6 w-6 mr-2" />
-                    I Missed
-                  </>
-                )}
-              </Button>
-            </div>
-            
-            <div className="text-center text-sm text-muted-foreground">
-              <Badge variant="outline" className="mr-2">
-                <Clock className="h-3 w-3 mr-1" />
-                Auto-miss in 15 min
-              </Badge>
-              <span>Remember: Hole-in-ones require witness verification!</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+
+          {/* Competition Details Card */}
+          <Card className="shadow-soft animate-slide-up">
+            <CardContent className="p-6 space-y-6">
+              {/* Competition Info */}
+              <div className="text-center border-b border-border pb-6">
+                <h2 className="text-xl font-semibold text-foreground mb-2">
+                  {entryData.competition.name}
+                </h2>
+                <div className="flex items-center justify-center gap-2 text-muted-foreground mb-4">
+                  <MapPin className="w-4 h-4" />
+                  <span>{entryData.competition.club_name}</span>
+                </div>
+                <div className="flex justify-center gap-6 text-sm">
+                  <div className="text-center">
+                    <div className="font-semibold text-foreground">Hole #{entryData.competition.hole_number}</div>
+                    <div className="text-muted-foreground">Target</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-semibold text-foreground">
+                      £{(entryData.competition.prize_pool / 100).toFixed(2)}
+                    </div>
+                    <div className="text-muted-foreground">Prize Pool</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Entry Details */}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="text-muted-foreground">Entry ID</div>
+                  <div className="font-mono text-foreground">#{entryData.id.slice(-8).toUpperCase()}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Entry Fee</div>
+                  <div className="font-semibold text-foreground">£{(entryData.amount / 100).toFixed(2)}</div>
+                </div>
+              </div>
+
+              {/* Verification Window Info */}
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Clock className="w-5 h-5 text-primary mt-0.5" />
+                  <div className="text-sm">
+                    <div className="font-semibold text-foreground mb-1">24-Hour Verification Window</div>
+                    <div className="text-muted-foreground">
+                      If you hit a hole-in-one, you'll have 24 hours to submit verification. 
+                      After this time, the entry will automatically be marked as a miss.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Take Your Shot Section */}
+          <Card className="shadow-soft animate-slide-up">
+            <CardContent className="p-8">
+              <div className="text-center mb-8">
+                <Trophy className="w-12 h-12 text-secondary mx-auto mb-4" />
+                <h2 className="text-2xl font-display font-bold text-foreground mb-2">
+                  Time to Take Your Shot!
+                </h2>
+                <p className="text-muted-foreground">
+                  Head to the tee and show us what you've got. Report your result when you're done.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-4">
+                <Button
+                  onClick={() => handleReportOutcome('win')}
+                  disabled={actionLoading !== null}
+                  className="w-full h-16 text-lg font-semibold bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground shadow-medium transition-all duration-200 hover:scale-[1.02]"
+                >
+                  {actionLoading === 'win' ? (
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  ) : (
+                    '🎉'
+                  )}
+                  <span className="ml-2">Yes! I hit the ace</span>
+                </Button>
+
+                <Button
+                  onClick={() => handleReportOutcome('miss')}
+                  disabled={actionLoading !== null}
+                  variant="outline"
+                  className="w-full h-16 text-lg font-semibold border-2 border-border hover:border-primary/30 transition-all duration-200 hover:scale-[1.02]"
+                >
+                  {actionLoading === 'miss' ? (
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  ) : (
+                    '⛳'
+                  )}
+                  <span className="ml-2">Not this time</span>
+                </Button>
+              </div>
+
+              {/* Info Badges */}
+              <div className="flex flex-wrap justify-center gap-2 mt-6">
+                <Badge variant="secondary" className="text-xs">
+                  <Clock className="w-3 h-3 mr-1" />
+                  24hr verification window
+                </Badge>
+                <Badge variant="outline" className="text-xs">
+                  Auto-miss after timeout
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+
+      <SiteFooter />
     </div>
   );
 };
