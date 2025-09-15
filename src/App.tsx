@@ -242,14 +242,6 @@ const App = () => {
             } 
           />
           <Route 
-            path="/dashboard/admin/claims" 
-            element={
-              <RoleGuard allowedRoles={['ADMIN']}>
-                <ClaimsPage />
-              </RoleGuard>
-            } 
-          />
-          <Route 
             path="/dashboard/club" 
             element={
               <RoleGuard allowedRoles={['CLUB']}>
@@ -300,7 +292,7 @@ const App = () => {
           <Route 
             path="/dashboard/club/competitions/new" 
             element={
-              <RoleGuard allowedRoles={['ADMIN']}>
+              <RoleGuard allowedRoles={['CLUB']}>
                 <CompetitionWizardPage />
               </RoleGuard>
             } 
@@ -308,7 +300,7 @@ const App = () => {
           <Route 
             path="/dashboard/club/competitions/:id" 
             element={
-              <RoleGuard allowedRoles={['ADMIN']}>
+              <RoleGuard allowedRoles={['CLUB']}>
                 <CompetitionDetailEnhanced />
               </RoleGuard>
             } 

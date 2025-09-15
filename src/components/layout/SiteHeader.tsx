@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import useAuth from "@/hooks/useAuth";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
+import { ROUTES, getDashboardRoute } from "@/routes";
 
 const SiteHeader = () => {
   const location = useLocation();
@@ -39,24 +40,31 @@ const SiteHeader = () => {
 
   const navigation = [
     // Only show Home on non-admin pages
-    ...(location.pathname.startsWith('/dashboard/admin') ? [] : [{ name: "Home", href: "/" }]),
+    ...(location.pathname.startsWith('/dashboard/admin') ? [] : [{ name: "Home", href: ROUTES.HOME }]),
   ];
 
   const authNavigation = user ? [
-    ...(profile?.role === 'ADMIN' ? [{ name: "Admin", href: "/dashboard/admin" }] : []),
-    ...(profile?.role === 'CLUB' ? [{ name: "Dashboard", href: "/dashboard/club" }] : []),
+    ...(profile?.role === 'ADMIN' ? [{ name: "Admin", href: ROUTES.ADMIN.DASHBOARD }] : []),
+    ...(profile?.role === 'CLUB' ? [{ name: "Dashboard", href: ROUTES.CLUB.DASHBOARD }] : []),
   ] : [
-    { name: "Login", href: "/auth" },
+    { name: "Login", href: ROUTES.AUTH },
   ];
 
   const isActive = (href: string) => location.pathname === href;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header 
+      className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      data-testid="site-header"
+    >
       <Container size="xl">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+          <Link 
+            to={ROUTES.HOME} 
+            className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+            data-testid="site-logo"
+          >
             <div className="flex items-center justify-center w-8 h-8 bg-gradient-primary rounded-lg">
               <Trophy className="w-5 h-5 text-primary-foreground" />
             </div>

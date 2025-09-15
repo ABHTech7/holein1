@@ -363,16 +363,18 @@ const ClubDashboardNew = () => {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => navigate('/dashboard/club/revenue')}
+                onClick={() => navigate(ROUTES.CLUB.REVENUE)}
                 className="gap-2"
+                data-testid="club-revenue-card"
               >
                 <PoundSterling className="w-4 h-4" />
                 Revenue & Payments
               </Button>
               <Button
                 variant="outline"
-                onClick={() => navigate('/dashboard/club/banking')}
+                onClick={() => navigate(ROUTES.CLUB.BANKING)}
                 className="gap-2"
+                data-testid="club-banking-card-btn"
               >
                 <CreditCard className="w-4 h-4" />
                 Banking Details
@@ -400,15 +402,17 @@ const ClubDashboardNew = () => {
                 title="Entries Today"
                 value={stats.entriesToday}
                 icon={Calendar}
-                onClick={() => navigate('/dashboard/club/entries')}
+                onClick={() => navigate(ROUTES.CLUB.ENTRIES)}
                 className="cursor-pointer hover:shadow-md transition-shadow"
+                data-testid="club-entries-card"
               />
               <StatsCard
                 title="Live Competitions"
                 value={stats.liveCompetitions}
                 icon={Users}
-                onClick={() => navigate('/dashboard/club/competitions')}
+                onClick={() => navigate(ROUTES.CLUB.COMPETITIONS)}
                 className="cursor-pointer hover:shadow-md transition-shadow"
+                data-testid="club-competitions-card"
               />
             </div>
 
@@ -428,10 +432,11 @@ const ClubDashboardNew = () => {
                 </span>
               </Button>
               
-              <Button
+               <Button
                 variant="outline"
-                onClick={() => navigate('/dashboard/club/revenue')}
+                onClick={() => navigate(ROUTES.CLUB.REVENUE)}
                 className="h-auto p-6 flex flex-col items-start space-y-2 hover:bg-accent transition-colors"
+                data-testid="club-revenue-card"
               >
                 <div className="flex items-center justify-between w-full">
                   <span className="text-sm font-medium text-muted-foreground">Commission This Month</span>
@@ -442,10 +447,11 @@ const ClubDashboardNew = () => {
                 </span>
               </Button>
               
-              <Button
+               <Button
                 variant="outline"
-                onClick={() => navigate('/dashboard/club/revenue')}
+                onClick={() => navigate(ROUTES.CLUB.REVENUE)}
                 className="h-auto p-6 flex flex-col items-start space-y-2 hover:bg-accent transition-colors"
+                data-testid="club-revenue-month-card"
               >
                 <div className="flex items-center justify-between w-full">
                   <span className="text-sm font-medium text-muted-foreground">Commission Year to Date</span>

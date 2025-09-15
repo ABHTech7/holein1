@@ -17,6 +17,7 @@ import { Users, Calendar, Trophy, TrendingUp, Plus, Settings, PoundSterling } fr
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate, formatRelativeTime } from "@/lib/formatters";
+import { ROUTES } from "@/routes";
 
 interface DashboardStats {
   totalPlayers: number;
@@ -235,7 +236,7 @@ const AdminDashboard = () => {
   };
 
   const handleUserManagement = () => {
-    navigate('/dashboard/admin/users');
+    navigate(ROUTES.ADMIN.USERS);
   };
 
   const handleAddUser = () => {
@@ -243,20 +244,20 @@ const AdminDashboard = () => {
   };
 
   const handlePlayersClick = () => {
-    navigate('/dashboard/admin/players');
+    navigate(ROUTES.ADMIN.PLAYERS);
   };
 
   const handleClubsClick = () => {
-    navigate('/dashboard/admin/clubs');
+    navigate(ROUTES.ADMIN.CLUBS);
   };
 
   const handleCompetitionsClick = () => {
-    console.log('Competition link clicked, navigating to:', '/dashboard/admin/competitions');
-    navigate('/dashboard/admin/competitions');
+    console.log('Competition link clicked, navigating to:', ROUTES.ADMIN.COMPETITIONS);
+    navigate(ROUTES.ADMIN.COMPETITIONS);
   };
 
   const handleRevenueClick = () => {
-    navigate('/dashboard/admin/revenue');
+    navigate(ROUTES.ADMIN.REVENUE);
   };
 
   const clubDistribution = [
@@ -308,7 +309,8 @@ const AdminDashboard = () => {
             {/* Revenue Overview - Top Priority */}
             <Card 
               className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20 cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => navigate('/dashboard/admin/revenue/breakdown')}
+              onClick={() => navigate(ROUTES.ADMIN.REVENUE_BREAKDOWN)}
+              data-testid="admin-revenue-breakdown"
             >
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
