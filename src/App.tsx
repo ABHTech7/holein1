@@ -51,6 +51,9 @@ import PartnershipApplication from "./pages/PartnershipApplication";
 // Auth components
 import RoleGuard from "./components/auth/RoleGuard";
 
+// Routes
+import { ROUTES } from "./routes";
+
 // Dev components
 import DebugHud from "./components/dev/DebugHud";
 
@@ -272,7 +275,7 @@ const App = () => {
             } 
           />
           <Route 
-            path="/dashboard/club" 
+            path={ROUTES.CLUB.DASHBOARD}
             element={
               <RoleGuard allowedRoles={['CLUB']}>
                 <ClubDashboardNew />
@@ -296,7 +299,7 @@ const App = () => {
             } 
           />
           <Route 
-            path="/dashboard/club/banking" 
+            path={ROUTES.CLUB.BANKING}
             element={
               <RoleGuard allowedRoles={['CLUB']}>
                 <ClubBankingPage />
@@ -320,7 +323,7 @@ const App = () => {
             } 
           />
           <Route 
-            path="/dashboard/club/competitions/new" 
+            path={ROUTES.CLUB.COMPETITIONS_NEW}
             element={
               <RoleGuard allowedRoles={['CLUB']}>
                 <CompetitionWizardPage />
