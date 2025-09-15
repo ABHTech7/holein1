@@ -367,7 +367,7 @@ const ClubDashboardNew = () => {
                     navigate(ROUTES.CLUB.BANKING);
                     return;
                   }
-                  navigate(ROUTES.ADMIN.COMPETITIONS_NEW);
+                  navigate(ROUTES.CLUB.COMPETITIONS_NEW);
                 }}
                 disabled={!bankingComplete}
                 className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
