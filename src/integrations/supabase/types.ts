@@ -244,11 +244,6 @@ export type Database = {
           active: boolean
           address: string | null
           archived: boolean
-          bank_account_holder: string | null
-          bank_account_number: string | null
-          bank_iban: string | null
-          bank_sort_code: string | null
-          bank_swift: string | null
           contract_signed: boolean
           contract_signed_by_email: string | null
           contract_signed_by_name: string | null
@@ -267,11 +262,6 @@ export type Database = {
           active?: boolean
           address?: string | null
           archived?: boolean
-          bank_account_holder?: string | null
-          bank_account_number?: string | null
-          bank_iban?: string | null
-          bank_sort_code?: string | null
-          bank_swift?: string | null
           contract_signed?: boolean
           contract_signed_by_email?: string | null
           contract_signed_by_name?: string | null
@@ -290,11 +280,6 @@ export type Database = {
           active?: boolean
           address?: string | null
           archived?: boolean
-          bank_account_holder?: string | null
-          bank_account_number?: string | null
-          bank_iban?: string | null
-          bank_sort_code?: string | null
-          bank_swift?: string | null
           contract_signed?: boolean
           contract_signed_by_email?: string | null
           contract_signed_by_name?: string | null

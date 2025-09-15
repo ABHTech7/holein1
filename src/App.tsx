@@ -39,7 +39,8 @@ import CompetitionDetailEnhanced from "./pages/CompetitionDetailEnhanced";
 import CompetitionEditPage from "./pages/admin/CompetitionEditPage";
 import EntriesPage from "./pages/admin/EntriesPage";
 import ClaimsPage from "./pages/admin/ClaimsPage";
-import ClubClaimsPage from "./pages/club/ClaimsPage"; 
+import ClubClaimsPage from "./pages/club/ClaimsPage";
+import ClubBankingPage from "./pages/club/ClubBankingPage";
 import ClaimDetailPage from "./pages/admin/ClaimDetailPage";
 import CompetitionWizardPage from "./pages/CompetitionWizardPage";
 import Styleguide from "./pages/Styleguide";
@@ -269,6 +270,14 @@ const App = () => {
             element={
               <RoleGuard allowedRoles={['CLUB']}>
                 <ClubEntries />
+              </RoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/club/banking" 
+            element={
+              <RoleGuard allowedRoles={['CLUB']}>
+                <ClubBankingPage />
               </RoleGuard>
             } 
           />

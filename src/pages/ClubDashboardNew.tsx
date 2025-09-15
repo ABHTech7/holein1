@@ -25,7 +25,9 @@ import {
   Plus,
   Download,
   Mail,
-  Share2
+  Share2,
+  CreditCard,
+  PoundSterling
 } from 'lucide-react';
 import { 
   formatCurrency, 
@@ -358,6 +360,22 @@ const ClubDashboardNew = () => {
               >
                 <Plus className="w-4 h-4" />
                 Set Up New Challenge
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/dashboard/club/revenue')}
+                className="gap-2"
+              >
+                <PoundSterling className="w-4 h-4" />
+                Revenue & Payments
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/dashboard/club/banking')}
+                className="gap-2"
+              >
+                <CreditCard className="w-4 h-4" />
+                Banking Details
               </Button>
               <Button variant="outline" onClick={handleDownloadReport} className="gap-2">
                 <Download className="w-4 h-4" />
