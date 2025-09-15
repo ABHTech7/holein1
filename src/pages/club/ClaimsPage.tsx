@@ -8,9 +8,9 @@ import { Search, ArrowLeft, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
-import { useAdminClaims } from "@/hooks/useClaims";
+import { useClubClaims } from "@/hooks/useClaims";
 import { ClaimsTable } from "@/components/claims/ClaimsTable";
-import { approveClaim, rejectClaim } from "@/lib/claimsActions";
+import { moveToUnderReview } from "@/lib/claimsActions";
 import { VerificationStatus } from "@/types/claims";
 
 const ClaimsPage = () => {
@@ -18,46 +18,26 @@ const ClaimsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<'all' | VerificationStatus>("all");
   
-  const { rows, counts, isLoading, error, refetch } = useAdminClaims({
+  const { rows, counts, isLoading, error, refetch } = useClubClaims({
     search: searchTerm,
     status: statusFilter
   });
 
-  const handleApprove = async (id: string) => {
+  const handleMoveToReview = async (id: string) => {
     try {
-      const { error } = await approveClaim(id);
+      const { error } = await moveToUnderReview(id);
       if (error) throw error;
       
       toast({
         title: "Success",
-        description: "Claim approved successfully.",
+        description: "Claim moved to under review.",
       });
       refetch();
     } catch (error) {
-      console.error('Error approving claim:', error);
-      toast({
-        title: "Error", 
-        description: "Failed to approve claim.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleReject = async (id: string) => {
-    try {
-      const { error } = await rejectClaim(id);
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: "Claim rejected successfully.", 
-      });
-      refetch();
-    } catch (error) {
-      console.error('Error rejecting claim:', error);
+      console.error('Error moving claim to review:', error);
       toast({
         title: "Error",
-        description: "Failed to reject claim.",
+        description: "Failed to move claim to review.",
         variant: "destructive"
       });
     }
@@ -78,7 +58,7 @@ const ClaimsPage = () => {
             <div className="flex items-center gap-4">
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/dashboard/admin')}
+                onClick={() => navigate('/dashboard/club')}
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -86,7 +66,7 @@ const ClaimsPage = () => {
               </Button>
               <div>
                 <h1 className="text-xl md:text-2xl font-bold">Claims Management</h1>
-                <p className="text-sm text-muted-foreground">Review and verify hole-in-one claims</p>
+                <p className="text-sm text-muted-foreground">Review hole-in-one claims for your competitions</p>
               </div>
             </div>
           </div>
@@ -167,16 +147,14 @@ const ClaimsPage = () => {
                   rows={rows}
                   isLoading={isLoading}
                   onView={handleView}
-                  onApprove={handleApprove}
-                  onReject={handleReject}
-                  showClubColumn={true}
+                  onMoveToReview={handleMoveToReview}
+                  showClubColumn={false}
                 />
               )}
             </CardContent>
           </Card>
         </div>
       </Section>
-
     </div>
   );
 };

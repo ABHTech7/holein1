@@ -39,6 +39,8 @@ import CompetitionDetailEnhanced from "./pages/CompetitionDetailEnhanced";
 import CompetitionEditPage from "./pages/admin/CompetitionEditPage";
 import EntriesPage from "./pages/admin/EntriesPage";
 import ClaimsPage from "./pages/admin/ClaimsPage";
+import ClubClaimsPage from "./pages/club/ClaimsPage"; 
+import ClaimDetailPage from "./pages/admin/ClaimDetailPage";
 import CompetitionWizardPage from "./pages/CompetitionWizardPage";
 import Styleguide from "./pages/Styleguide";
 import ErrorPage from "./pages/ErrorPage";
@@ -163,6 +165,30 @@ const App = () => {
             element={
               <RoleGuard allowedRoles={['ADMIN']}>
                 <CompetitionEditPage />
+              </RoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/admin/claims" 
+            element={
+              <RoleGuard allowedRoles={['ADMIN']}>
+                <ClaimsPage />
+              </RoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/club/claims" 
+            element={
+              <RoleGuard allowedRoles={['CLUB']}>
+                <ClubClaimsPage />
+              </RoleGuard>
+            } 
+          />
+          <Route 
+            path="/claims/:verificationId" 
+            element={
+              <RoleGuard allowedRoles={['ADMIN', 'CLUB']}>
+                <ClaimDetailPage />
               </RoleGuard>
             } 
           />
