@@ -138,6 +138,7 @@ export type Database = {
           id: string
           last_accessed_at: string | null
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           access_count?: number | null
@@ -152,6 +153,7 @@ export type Database = {
           id?: string
           last_accessed_at?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           access_count?: number | null
@@ -166,6 +168,7 @@ export type Database = {
           id?: string
           last_accessed_at?: string | null
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
