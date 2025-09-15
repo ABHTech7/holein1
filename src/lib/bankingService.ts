@@ -1,5 +1,6 @@
 // Secure banking service for handling financial data with audit logging
 import { supabase } from "@/integrations/supabase/client";
+import { showSupabaseError } from "@/lib/showSupabaseError";
 
 export interface ClubBankingDetails {
   id: string;
@@ -26,21 +27,42 @@ export class SecureBankingService {
    */
   static async getClubBankingDetails(clubId: string): Promise<ClubBankingDetails | null> {
     try {
+      // DIAGNOSTIC: Log query parameters
+      console.log('🏦 SecureBankingService.getClubBankingDetails:', {
+        clubId,
+        query: 'SELECT * FROM club_banking WHERE club_id = $1',
+        timestamp: new Date().toISOString()
+      });
+
       const { data, error } = await supabase
         .from('club_banking')
         .select('*')
         .eq('club_id', clubId)
         .single();
 
+      // DIAGNOSTIC: Log full Supabase response
+      console.log('🏦 Supabase response (getClubBankingDetails):', {
+        success: !error,
+        hasData: !!data,
+        error: error ? {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+          fullError: error
+        } : null
+      });
+
       if (error) {
-        console.error('Error fetching banking details:', error);
-        return null;
+        const errorMessage = showSupabaseError(error, 'getClubBankingDetails');
+        console.error('🏦 Formatted error:', errorMessage);
+        throw new Error(errorMessage);
       }
 
       return data;
     } catch (error: any) {
-      console.error('Unexpected error fetching banking details:', error);
-      return null;
+      console.error('🏦 Unexpected error fetching banking details:', error);
+      throw error;
     }
   }
 
@@ -53,38 +75,103 @@ export class SecureBankingService {
     bankingDetails: Partial<Omit<ClubBankingDetails, 'id' | 'club_id' | 'created_at' | 'updated_at' | 'last_accessed_at' | 'access_count'>>
   ): Promise<{ success: boolean; error?: string }> {
     try {
+      // DIAGNOSTIC: Log redacted update payload
+      const redactedPayload = {
+        ...bankingDetails,
+        bank_account_number: bankingDetails.bank_account_number ? `****${bankingDetails.bank_account_number.slice(-4)}` : bankingDetails.bank_account_number,
+        bank_iban: bankingDetails.bank_iban ? `${bankingDetails.bank_iban.slice(0, 4)}****${bankingDetails.bank_iban.slice(-4)}` : bankingDetails.bank_iban
+      };
+      
+      console.log('🏦 SecureBankingService.updateClubBankingDetails:', {
+        clubId,
+        operation: 'checking_existing_data',
+        redactedPayload,
+        timestamp: new Date().toISOString()
+      });
+
       // Check if banking record exists
       const existingData = await this.getClubBankingDetails(clubId);
 
+      console.log('🏦 Existing data check:', {
+        hasExistingData: !!existingData,
+        operation: existingData ? 'UPDATE' : 'INSERT'
+      });
+
       if (existingData) {
         // Update existing record
+        const updatePayload = {
+          ...bankingDetails,
+          updated_at: new Date().toISOString()
+        };
+        
+        console.log('🏦 Updating existing record:', {
+          clubId,
+          updatePayloadKeys: Object.keys(updatePayload)
+        });
+        
         const { error } = await supabase
           .from('club_banking')
-          .update({
-            ...bankingDetails,
-            updated_at: new Date().toISOString()
-          })
+          .update(updatePayload)
           .eq('club_id', clubId);
 
-        if (error) throw error;
+        // DIAGNOSTIC: Log update response
+        console.log('🏦 Update response:', {
+          success: !error,
+          error: error ? {
+            message: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint,
+            fullError: error
+          } : null
+        });
+
+        if (error) {
+          const errorMessage = showSupabaseError(error, 'updateClubBankingDetails');
+          throw new Error(errorMessage);
+        }
       } else {
         // Create new record
+        const insertPayload = {
+          club_id: clubId,
+          ...bankingDetails
+        };
+        
+        console.log('🏦 Inserting new record:', {
+          clubId,
+          insertPayloadKeys: Object.keys(insertPayload)
+        });
+        
         const { error } = await supabase
           .from('club_banking')
-          .insert({
-            club_id: clubId,
-            ...bankingDetails
-          });
+          .insert(insertPayload);
 
-        if (error) throw error;
+        // DIAGNOSTIC: Log insert response
+        console.log('🏦 Insert response:', {
+          success: !error,
+          error: error ? {
+            message: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint,
+            fullError: error
+          } : null
+        });
+
+        if (error) {
+          const errorMessage = showSupabaseError(error, 'insertClubBankingDetails');
+          throw new Error(errorMessage);
+        }
       }
 
+      console.log('🏦 Banking update successful');
       return { success: true };
     } catch (error: any) {
-      console.error('Error updating banking details:', error);
+      const errorMessage = showSupabaseError(error, 'updateClubBankingDetails');
+      console.error('🏦 Banking update failed:', errorMessage);
       return { 
         success: false, 
-        error: error.message || "Failed to update banking details" 
+        error: errorMessage
       };
     }
   }

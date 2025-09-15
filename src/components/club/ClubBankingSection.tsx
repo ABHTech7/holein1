@@ -24,20 +24,51 @@ const ClubBankingSection: React.FC<ClubBankingSectionProps> = ({ clubId }) => {
   const [formData, setFormData] = useState<Partial<ClubBankingDetails>>({});
 
   useEffect(() => {
+    // DIAGNOSTIC: Log profile state on mount
+    console.log('🏦 ClubBankingSection Mount - Profile Debug:', {
+      profileExists: !!profile,
+      profileRole: profile?.role,
+      profileClubId: profile?.club_id,
+      targetClubId: clubId,
+      roleMatch: profile?.role === 'CLUB',
+      clubIdMatch: profile?.club_id === clubId,
+      canEdit: profile?.role === 'ADMIN' || (profile?.role === 'CLUB' && profile?.club_id === clubId)
+    });
+    
     fetchBankDetails();
-  }, [clubId]);
+  }, [clubId, profile]);
 
   const fetchBankDetails = async () => {
     try {
       setLoading(true);
+      
+      // DIAGNOSTIC: Log request details before API call
+      console.log('🏦 Fetching banking details:', {
+        clubId,
+        userProfile: {
+          role: profile?.role,
+          club_id: profile?.club_id,
+          id: profile?.id
+        },
+        timestamp: new Date().toISOString()
+      });
+      
       const details = await SecureBankingService.getClubBankingDetails(clubId);
+      
+      // DIAGNOSTIC: Log response
+      console.log('🏦 Banking details response:', {
+        success: !!details,
+        hasData: !!details,
+        detailsKeys: details ? Object.keys(details) : null
+      });
+      
       setBankingDetails(details);
       setFormData(details || {});
     } catch (error) {
-      console.error('Error fetching banking details:', error);
+      console.error('🏦 Error fetching banking details:', error);
       toast({
         title: "Error",
-        description: "Failed to load banking details.",
+        description: `Failed to load banking details: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
     } finally {
@@ -49,8 +80,28 @@ const ClubBankingSection: React.FC<ClubBankingSectionProps> = ({ clubId }) => {
     try {
       setSaving(true);
       
+      // DIAGNOSTIC: Log save attempt with redacted payload
+      const redactedFormData = {
+        ...formData,
+        bank_account_number: formData.bank_account_number ? `****${formData.bank_account_number.slice(-4)}` : formData.bank_account_number,
+        bank_iban: formData.bank_iban ? `${formData.bank_iban.slice(0, 4)}****${formData.bank_iban.slice(-4)}` : formData.bank_iban
+      };
+      
+      console.log('🏦 Saving banking details:', {
+        clubId,
+        userProfile: {
+          role: profile?.role,
+          club_id: profile?.club_id,
+          id: profile?.id
+        },
+        payloadKeys: Object.keys(formData),
+        redactedPayload: redactedFormData,
+        timestamp: new Date().toISOString()
+      });
+      
       const validation = SecureBankingService.validateBankingDetails(formData);
       if (!validation.valid) {
+        console.log('🏦 Validation failed:', validation.errors);
         toast({
           title: "Validation Error",
           description: validation.errors.join(", "),
@@ -60,6 +111,11 @@ const ClubBankingSection: React.FC<ClubBankingSectionProps> = ({ clubId }) => {
       }
 
       const result = await SecureBankingService.updateClubBankingDetails(clubId, formData);
+      
+      console.log('🏦 Save result:', {
+        success: result.success,
+        error: result.error
+      });
       
       if (result.success) {
         await fetchBankDetails();
@@ -72,10 +128,10 @@ const ClubBankingSection: React.FC<ClubBankingSectionProps> = ({ clubId }) => {
         throw new Error(result.error);
       }
     } catch (error) {
-      console.error('Error saving banking details:', error);
+      console.error('🏦 Error saving banking details:', error);
       toast({
         title: "Error", 
-        description: "Failed to save banking details.",
+        description: `Failed to save banking details: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
     } finally {
