@@ -6,6 +6,7 @@ import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
 import ClubBankingSection from "@/components/club/ClubBankingSection";
 import { useAuth } from "@/hooks/useAuth";
+import { ROUTES } from "@/routes";
 
 const ClubBankingPage = () => {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ const ClubBankingPage = () => {
   // Redirect if not a club user
   useEffect(() => {
     if (profile?.role !== 'CLUB' || !profile?.club_id) {
-      navigate('/dashboard');
+      navigate(ROUTES.CLUB.DASHBOARD);
     }
   }, [profile, navigate]);
 
@@ -37,7 +38,7 @@ const ClubBankingPage = () => {
           <div className="flex items-center justify-between">
             <Button 
               variant="outline" 
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate(ROUTES.CLUB.DASHBOARD)}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />

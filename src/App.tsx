@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 // Pages
 import Home from "./pages/Home";
@@ -71,6 +71,16 @@ const queryClient = new QueryClient();
 const App = () => {
   console.log('🔧 App component rendering, current URL:', window.location.href);
 
+  // Dev HUD toggle (press "H" to toggle)
+  const [showHud, setShowHud] = useState(true);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'h' || e.key === 'H') setShowHud(prev => !prev);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   // Development-only RLS probe
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production') {
@@ -91,7 +101,7 @@ const App = () => {
         <Toaster />
         <Sonner />
        <BrowserRouter>
-         <DebugHud />
+         {process.env.NODE_ENV === 'development' && showHud && <DebugHud />}
          <Routes>
             {/* Main Routes */}
             <Route path="/" element={<Home />} />
