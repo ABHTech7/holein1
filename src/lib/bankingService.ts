@@ -2,6 +2,21 @@
 import { supabase } from "@/integrations/supabase/client";
 import { showSupabaseError } from "@/lib/showSupabaseError";
 
+// Type alias for banking completeness checks
+export type ClubBanking = {
+  club_id: string;
+  bank_account_holder?: string | null;
+  bank_account_number?: string | null;
+  bank_sort_code?: string | null;
+  bank_iban?: string | null;
+  bank_swift?: string | null;
+  id?: string;
+  created_at?: string;
+  updated_at?: string;
+  last_accessed_at?: string | null;
+  access_count?: number;
+};
+
 export interface ClubBankingDetails {
   id: string;
   club_id: string;
@@ -16,6 +31,34 @@ export interface ClubBankingDetails {
   access_count: number;
 }
 
+// Consider these the minimum required to "go live"
+export function isBankingComplete(b: Partial<ClubBanking> | null | undefined): boolean {
+  if (!b) return false;
+  const required = [
+    b.bank_account_holder,
+    b.bank_account_number,
+    b.bank_sort_code,
+  ];
+  return required.every(v => typeof v === 'string' && v.trim().length > 0);
+}
+
+// Ensure getClubBankingDetails uses maybeSingle and NEVER throws on 0 rows
+export async function getClubBankingDetailsSafe(clubId: string): Promise<ClubBanking | null> {
+  const { data, error } = await supabase
+    .from('club_banking')
+    .select('*')
+    .eq('club_id', clubId)
+    .maybeSingle();
+
+  if (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('🏦 getClubBankingDetailsSafe error', { code: error.code, message: error.message });
+    }
+    throw error;
+  }
+  return (data as ClubBanking | null) ?? null;
+}
+
 /**
  * Secure banking service with comprehensive audit logging
  * All financial data access is logged and monitored
@@ -27,12 +70,13 @@ export class SecureBankingService {
    */
   static async getClubBankingDetails(clubId: string): Promise<ClubBankingDetails | null> {
     try {
-      // DIAGNOSTIC: Log query parameters
-      console.log('🏦 SecureBankingService.getClubBankingDetails:', {
-        clubId,
-        query: 'SELECT * FROM club_banking WHERE club_id = $1',
-        timestamp: new Date().toISOString()
-      });
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('🏦 SecureBankingService.getClubBankingDetails:', {
+          clubId,
+          query: 'SELECT * FROM club_banking WHERE club_id = $1',
+          timestamp: new Date().toISOString()
+        });
+      }
 
       const { data, error } = await supabase
         .from('club_banking')
@@ -40,18 +84,19 @@ export class SecureBankingService {
         .eq('club_id', clubId)
         .maybeSingle();
 
-      // DIAGNOSTIC: Log full Supabase response
-      console.log('🏦 Supabase response (getClubBankingDetails):', {
-        success: !error,
-        hasData: !!data,
-        error: error ? {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint,
-          fullError: error
-        } : null
-      });
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('🏦 Supabase response (getClubBankingDetails):', {
+          success: !error,
+          hasData: !!data,
+          error: error ? {
+            message: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint,
+            fullError: error
+          } : null
+        });
+      }
 
       if (error) {
         const errorMessage = showSupabaseError(error, 'getClubBankingDetails');
@@ -60,7 +105,9 @@ export class SecureBankingService {
       }
 
       if (!data) {
-        console.log('🏦 No banking details found for club - this is expected for new clubs');
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('🏦 No banking details found for club - this is expected for new clubs');
+        }
       }
 
       return data;

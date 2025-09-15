@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { showSupabaseError } from '@/lib/showSupabaseError';
 import useAuth from '@/hooks/useAuth';
+import useBankingStatus from '@/hooks/useBankingStatus';
 import { ROUTES } from '@/routes';
 
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
@@ -12,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import EmptyState from '@/components/ui/empty-state';
 import StatsCard from '@/components/ui/stats-card';
 
@@ -29,7 +31,8 @@ import {
   Mail,
   Share2,
   CreditCard,
-  PoundSterling
+  PoundSterling,
+  ShieldAlert
 } from 'lucide-react';
 import { 
   formatCurrency, 
@@ -68,6 +71,7 @@ interface Entry {
 
 const ClubDashboardNew = () => {
   const { user, loading: authLoading } = useAuth();
+  const { loading: bankingLoading, complete: bankingComplete } = useBankingStatus();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -306,6 +310,20 @@ const ClubDashboardNew = () => {
       <main className="flex-1">
         <Section spacing="lg">
           <div className="max-w-7xl mx-auto space-y-8">
+            {/* Banking Required Banner */}
+            {!bankingLoading && !bankingComplete && (
+              <Alert variant="destructive" data-testid="banking-required-banner">
+                <ShieldAlert className="h-4 w-4" />
+                <AlertTitle>Banking details required</AlertTitle>
+                <AlertDescription>
+                  To take payouts and activate competitions, please add your club's banking details.{' '}
+                  <a href={ROUTES.CLUB.BANKING} className="underline">
+                    Go to Banking Details
+                  </a>.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Header */}
             <div className="flex flex-col gap-4">
               <div>
@@ -339,11 +357,21 @@ const ClubDashboardNew = () => {
             {/* Quick Actions */}
             <div className="flex flex-wrap gap-3">
               <Button 
-                onClick={() => toast({
-                  title: 'Coming Soon',
-                  description: 'Competition setup wizard will be available soon',
-                })}
-                className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2"
+                onClick={() => {
+                  if (!bankingComplete) {
+                    toast({
+                      title: "Banking required",
+                      description: "Please complete banking details before setting up a new challenge.",
+                      variant: "destructive"
+                    });
+                    navigate(ROUTES.CLUB.BANKING);
+                    return;
+                  }
+                  navigate(ROUTES.ADMIN.COMPETITIONS_NEW);
+                }}
+                disabled={!bankingComplete}
+                className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                data-testid="new-competition-cta"
               >
                 <Plus className="w-4 h-4" />
                 Set Up New Challenge

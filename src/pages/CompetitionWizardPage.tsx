@@ -3,6 +3,8 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import useAuth from '@/hooks/useAuth';
+import useBankingStatus from '@/hooks/useBankingStatus';
+import { ROUTES } from '@/routes';
 import SiteHeader from '@/components/layout/SiteHeader';
 import Section from '@/components/layout/Section';
 import CompetitionWizard from '@/components/competitions/CompetitionWizard';
@@ -18,6 +20,7 @@ interface Profile {
 
 const CompetitionWizardPage = () => {
   const { user, loading: authLoading } = useAuth();
+  const { loading: bankingLoading, complete: bankingComplete } = useBankingStatus();
   const { toast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
@@ -56,8 +59,20 @@ const CompetitionWizardPage = () => {
     fetchProfile();
   }, [user, toast]);
 
+  // Hard guard the "create competition" route (defense in depth)
+  useEffect(() => {
+    if (!bankingLoading && !bankingComplete && profile?.role === 'CLUB') {
+      toast({
+        title: "Banking required",
+        description: "Please complete banking details before creating a competition.",
+        variant: "destructive",
+      });
+      navigate(ROUTES.CLUB.BANKING);
+    }
+  }, [bankingLoading, bankingComplete, profile?.role, navigate, toast]);
+
   // Loading states
-  if (authLoading || loading) {
+  if (authLoading || loading || (profile?.role === 'CLUB' && (bankingLoading || !bankingComplete))) {
     return (
       <div className="min-h-screen flex flex-col">
         <SiteHeader />
