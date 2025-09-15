@@ -14,7 +14,8 @@ const ClubBankingPage = () => {
 
   // Redirect if not a club user
   useEffect(() => {
-    if (profile?.role !== 'CLUB' || !profile?.club_id) {
+    if (!profile) return;
+    if (profile.role !== 'CLUB' || !profile.club_id) {
       navigate(ROUTES.CLUB.DASHBOARD);
     }
   }, [profile, navigate]);
