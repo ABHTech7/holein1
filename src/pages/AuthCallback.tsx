@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -29,212 +29,182 @@ interface PendingEntryForm {
   termsAccepted: boolean;
 }
 
-const AuthCallback = () => {
+export default function AuthCallback() {
+  const once = useRef(false);
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState<'loading' | 'processing' | 'error'>('loading');
+  const [params] = useSearchParams();
 
   useEffect(() => {
-    const handleAuth = async () => {
-      console.warn('[AuthCallback] Starting auth callback process...');
+    const go = async () => {
+      if (once.current) return;
+      once.current = true;
+
+      const full = window.location.href;
+      const hash = window.location.hash || '';
+      const cont = params.get('continue') || '/entry-success';
+
+      const qp = new URLSearchParams(hash.replace(/^#/, ''));
+      const err = qp.get('error');
+      const code = qp.get('error_code');
+      const desc = qp.get('error_description');
+
+      if (err || code) {
+        console.warn('Auth callback error', { full, err, code, desc });
+        toast({
+          title: 'Authentication failed',
+          description: desc || code || 'Email link invalid or expired.',
+          variant: 'destructive',
+        });
+        navigate('/auth');
+        return;
+      }
+
+      const { error } = await supabase.auth.exchangeCodeForSession(hash);
+      if (error) {
+        console.error('exchangeCodeForSession error', error, { full });
+        toast({
+          title: 'Authentication failed',
+          description: error.message || 'Email link invalid or expired.',
+          variant: 'destructive',
+        });
+        navigate('/auth');
+        return;
+      }
+
+      // Process pending entry form if exists
+      const { SecureStorage } = await import('@/lib/secureStorage');
+      const pendingFormData = SecureStorage.getAuthData('pending_entry_form');
       
-      try {
-        // Poll for session up to 5 seconds (250ms intervals)
-        let session = null;
-        let attempts = 0;
-        const maxAttempts = 20; // 5 seconds / 250ms
-
-        while (!session && attempts < maxAttempts) {
-          const { data } = await supabase.auth.getSession();
-          session = data.session;
-          
-          if (!session) {
-            await new Promise(resolve => setTimeout(resolve, 250));
-            attempts++;
-          }
-        }
-
+      if (pendingFormData) {
+        console.log('[AuthCallback] Processing pending entry form...');
+        
+        // Get current session after successful auth
+        const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) {
-          console.error('[AuthCallback] No session found after polling');
           toast({
-            title: "Authentication failed",
-            description: "Please try clicking the link again or request a new one.",
-            variant: "destructive"
+            title: 'Authentication failed',
+            description: 'Session not found after authentication.',
+            variant: 'destructive',
           });
           navigate('/auth');
           return;
         }
 
-        console.log('[AuthCallback] Session found, processing entry...');
-        setStatus('processing');
+        const formData: PendingEntryForm = pendingFormData;
 
-        // Get continue URL or default
-        const continueUrl = searchParams.get('continue') || '/';
-
-        // Check for pending entry form
-        const { SecureStorage } = await import('@/lib/secureStorage');
-        const pendingFormData = SecureStorage.getAuthData('pending_entry_form');
-        
-        if (pendingFormData && session.user) {
-          console.log('[AuthCallback] Processing pending entry form...');
-          
-          const formData: PendingEntryForm = pendingFormData;
-
-          // Upsert profile with stored form data
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .upsert({
-              id: session.user.id,
-              email: formData.email,
-              first_name: formData.firstName,
-              last_name: formData.lastName,
-              phone: formData.phone,
-              age_years: formData.age,
-              gender: formData.gender,
-              handicap: formData.handicap,
-            });
-
-          if (profileError) {
-            console.error('[AuthCallback] Profile upsert failed:', profileError);
-            throw profileError;
-          }
-
-          // Get competition details for entry amount
-          const { data: competition, error: competitionError } = await supabase
-            .from('competitions')
-            .select('entry_fee')
-            .eq('id', formData.competitionId)
-            .single();
-
-          if (competitionError || !competition) {
-            console.error('[AuthCallback] Competition not found:', competitionError);
-            throw new Error('Competition not found');
-          }
-
-          // Insert entry record
-          const { data: entry, error: entryError } = await supabase
-            .from('entries')
-            .insert({
-              player_id: session.user.id,
-              competition_id: formData.competitionId,
-              amount_minor: competition.entry_fee * 100,
-              terms_accepted_at: formData.termsAccepted ? new Date().toISOString() : null,
-              terms_version: '2.0',
-              status: 'pending',
-            })
-            .select()
-            .single();
-
-          if (entryError || !entry) {
-            console.error('[AuthCallback] Entry creation failed:', entryError);
-            throw entryError;
-          }
-
-          // Check if payment providers are available
-          const availableProviders = getAvailablePaymentProviders();
-          
-          if (availableProviders.length === 0) {
-            // No payment providers - mark entry as active
-            await supabase
-              .from('entries')
-              .update({
-                payment_provider: null,
-                paid: false,
-                payment_date: null,
-                status: 'active' // Mark as active (playable) but unpaid
-              })
-              .eq('id', entry.id);
-
-            console.log('[AuthCallback] Entry marked as active (no payment providers)');
-          }
-
-          // Clear pending form data
-          SecureStorage.removeItem('auth_pending_entry_form');
-
-          console.log('[AuthCallback] Entry created successfully:', entry.id);
-          
-          toast({
-            title: "Entry confirmed!",
-            description: "Your competition entry has been successfully created.",
+        // Upsert profile with stored form data
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: session.user.id,
+            email: formData.email,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            phone: formData.phone,
+            age_years: formData.age,
+            gender: formData.gender,
+            handicap: formData.handicap,
           });
 
-          // Navigate to entry success page
-          navigate(`/entry-success/${entry.id}`);
+        if (profileError) {
+          console.error('[AuthCallback] Profile upsert failed:', profileError);
+          toast({
+            title: 'Profile creation failed',
+            description: profileError.message || 'Please try again.',
+            variant: 'destructive',
+          });
+          navigate('/auth');
           return;
         }
 
-        // No pending form, just navigate to continue URL
-        console.log('[AuthCallback] No pending form, navigating to:', continueUrl);
-        navigate(continueUrl);
+        // Get competition details for entry amount
+        const { data: competition, error: competitionError } = await supabase
+          .from('competitions')
+          .select('entry_fee')
+          .eq('id', formData.competitionId)
+          .single();
 
-      } catch (error: any) {
-        console.error('[AuthCallback] Error processing auth callback:', error);
-        setStatus('error');
+        if (competitionError || !competition) {
+          console.error('[AuthCallback] Competition not found:', competitionError);
+          toast({
+            title: 'Competition not found',
+            description: 'The competition may no longer be available.',
+            variant: 'destructive',
+          });
+          navigate('/');
+          return;
+        }
+
+        // Insert entry record
+        const { data: entry, error: entryError } = await supabase
+          .from('entries')
+          .insert({
+            player_id: session.user.id,
+            competition_id: formData.competitionId,
+            amount_minor: competition.entry_fee * 100,
+            terms_accepted_at: formData.termsAccepted ? new Date().toISOString() : null,
+            terms_version: '2.0',
+            status: 'pending',
+          })
+          .select()
+          .single();
+
+        if (entryError || !entry) {
+          console.error('[AuthCallback] Entry creation failed:', entryError);
+          toast({
+            title: 'Entry creation failed',
+            description: entryError?.message || 'Please try again.',
+            variant: 'destructive',
+          });
+          navigate('/auth');
+          return;
+        }
+
+        // Check if payment providers are available
+        const availableProviders = getAvailablePaymentProviders();
+        
+        if (availableProviders.length === 0) {
+          // No payment providers - mark entry as active
+          await supabase
+            .from('entries')
+            .update({
+              payment_provider: null,
+              paid: false,
+              payment_date: null,
+              status: 'active' // Mark as active (playable) but unpaid
+            })
+            .eq('id', entry.id);
+
+          console.log('[AuthCallback] Entry marked as active (no payment providers)');
+        }
+
+        // Clear pending form data
+        SecureStorage.removeItem('auth_pending_entry_form');
+
+        console.log('[AuthCallback] Entry created successfully:', entry.id);
         
         toast({
-          title: "Entry processing failed",
-          description: error.message || "Please try again or contact support.",
-          variant: "destructive"
+          title: "Entry confirmed!",
+          description: "Your competition entry has been successfully created.",
         });
-        
-        // Navigate to appropriate fallback
-        navigate('/auth');
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    handleAuth();
-  }, [navigate, searchParams]);
+        // Navigate to entry success page
+        navigate(`/entry-success/${entry.id}`);
+        return;
+      }
+
+      // Clean up URL and navigate to continue path
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+      navigate(cont, { replace: true });
+    };
+    go();
+  }, [navigate, params, toast]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <SiteHeader />
-      
-      <main className="flex-1 flex items-center justify-center p-4">
-        <Container>
-          <Card className="w-full max-w-md mx-auto">
-            <CardContent className="flex flex-col items-center justify-center p-8 text-center space-y-4">
-              {status === 'loading' && (
-                <>
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <h3 className="text-lg font-semibold">Signing you in...</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Please wait while we verify your secure entry link.
-                  </p>
-                </>
-              )}
-              
-              {status === 'processing' && (
-                <>
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <h3 className="text-lg font-semibold">Finalizing your entry...</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Creating your profile and competition entry.
-                  </p>
-                </>
-              )}
-              
-              {status === 'error' && (
-                <>
-                  <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center">
-                    <span className="text-destructive font-bold">!</span>
-                  </div>
-                  <h3 className="text-lg font-semibold">Something went wrong</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Please try clicking the link again or request a new one.
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </Container>
-      </main>
-      
-      <SiteFooter />
+    <div className="mx-auto my-24 max-w-md rounded-2xl p-8 text-center shadow">
+      <div className="mb-3 animate-pulse">⏳</div>
+      <h1 className="text-xl font-semibold">Signing you in…</h1>
+      <p className="text-muted-foreground">Please wait while we verify your secure entry link.</p>
     </div>
   );
-};
-
-export default AuthCallback;
+}
