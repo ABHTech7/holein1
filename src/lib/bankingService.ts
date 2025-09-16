@@ -65,7 +65,7 @@ export async function getClubBankingDetailsSafe(clubId: string): Promise<ClubBan
  */
 export class SecureBankingService {
   /**
-   * Fetch club banking details with automatic audit logging
+   * Fetch club banking details with automatic audit logging and access tracking
    * Only accessible by club owners and admins
    */
   static async getClubBankingDetails(clubId: string): Promise<ClubBankingDetails | null> {
@@ -108,6 +108,35 @@ export class SecureBankingService {
         if (process.env.NODE_ENV !== 'production') {
           console.log('🏦 No banking details found for club - this is expected for new clubs');
         }
+        return null;
+      }
+
+      // Track access: increment access_count and update last_accessed_at
+      try {
+        await supabase
+          .from('club_banking')
+          .update({
+            access_count: (data.access_count || 0) + 1,
+            last_accessed_at: new Date().toISOString()
+          })
+          .eq('club_id', clubId);
+
+        // Log the access to data_access_log for audit trail
+        await supabase
+          .from('data_access_log')
+          .insert({
+            table_name: 'club_banking',
+            record_id: data.id,
+            access_type: 'SELECT',
+            sensitive_fields: ['bank_account_number', 'bank_iban', 'bank_swift']
+          });
+
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('🏦 Access tracking updated successfully');
+        }
+      } catch (trackingError) {
+        // Don't throw on tracking errors, just log them
+        console.error('🏦 Error updating access tracking:', trackingError);
       }
 
       return data;
