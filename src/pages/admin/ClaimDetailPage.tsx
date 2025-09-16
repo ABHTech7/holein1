@@ -21,6 +21,7 @@ const ClaimDetailPage = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [claim, setClaim] = useState<ClaimRow | null>(null);
+  const [entryData, setEntryData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [newStatus, setNewStatus] = useState<VerificationStatus>('pending');
@@ -58,9 +59,9 @@ const ClaimDetailPage = () => {
           selfie_url, id_document_url, verified_at, verified_by,
           entries!inner(
             id, player_id, entry_date,
-            profiles!inner(id, first_name, last_name, email),
+            profiles!inner(id, first_name, last_name, email, age_years, handicap, phone, phone_e164, gender),
             competitions!inner(
-              id, name, hole_number, description,
+              id, name, hole_number, description, prize_pool,
               clubs!inner(id, name)
             )
           )
@@ -75,6 +76,9 @@ const ClaimDetailPage = () => {
         const player = entry.profiles;
         const competition = entry.competitions;
         const club = competition.clubs;
+        
+        // Store entry data for access in render
+        setEntryData(entry);
 
         const claimRow: ClaimRow = {
           id: data.id,
@@ -295,7 +299,7 @@ const ClaimDetailPage = () => {
                       <SelectContent>
                         {availableStatuses.map(status => (
                           <SelectItem key={status} value={status}>
-                            {status === 'initiated' ? 'Pending' : 
+                            {status === 'initiated' ? 'Initiated' : 
                              status === 'pending' ? 'Pending' :
                              status === 'under_review' ? 'Under Review' :
                              status === 'verified' ? 'Verified' :
@@ -342,6 +346,30 @@ const ClaimDetailPage = () => {
                     <p className="text-sm font-medium text-muted-foreground">Email</p>
                     <p>{claim.player_email}</p>
                   </div>
+                  {entryData?.profiles.age_years && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Age</p>
+                      <p>{entryData.profiles.age_years} years</p>
+                    </div>
+                  )}
+                  {entryData?.profiles.handicap && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Handicap</p>
+                      <p>{entryData.profiles.handicap}</p>
+                    </div>
+                  )}
+                  {(entryData?.profiles.phone || entryData?.profiles.phone_e164) && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Mobile</p>
+                      <p>{entryData.profiles.phone || entryData.profiles.phone_e164}</p>
+                    </div>
+                  )}
+                  {entryData?.profiles.gender && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Gender</p>
+                      <p className="capitalize">{entryData.profiles.gender}</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -365,6 +393,12 @@ const ClaimDetailPage = () => {
                     <p className="text-sm font-medium text-muted-foreground">Hole</p>
                     <Badge variant="outline">Hole {claim.hole_number || 'N/A'}</Badge>
                   </div>
+                  {entryData?.competitions.prize_pool && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Prize Pool</p>
+                      <p className="font-medium text-green-600">£{Number(entryData.competitions.prize_pool).toLocaleString()}</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
