@@ -324,11 +324,8 @@ const ClubBankingSection: React.FC<ClubBankingSectionProps> = ({ clubId }) => {
 
         {bankingDetails?.updated_at && (
           <div className="mt-6 pt-4 border-t">
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <div className="flex items-center justify-start text-sm text-muted-foreground">
               <span>Last updated: {new Date(bankingDetails.updated_at).toLocaleDateString()}</span>
-              <Badge variant="secondary">
-                Accessed {bankingDetails.access_count || 0} times
-              </Badge>
             </div>
           </div>
         )}

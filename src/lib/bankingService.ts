@@ -112,12 +112,13 @@ export class SecureBankingService {
       }
 
       // Track access: increment access_count and update last_accessed_at
+      const now = new Date().toISOString();
       try {
         await supabase
           .from('club_banking')
           .update({
             access_count: (data.access_count || 0) + 1,
-            last_accessed_at: new Date().toISOString()
+            last_accessed_at: now
           })
           .eq('club_id', clubId);
 
@@ -139,7 +140,12 @@ export class SecureBankingService {
         console.error('🏦 Error updating access tracking:', trackingError);
       }
 
-      return data;
+      // Return data with immediately updated access count
+      return {
+        ...data,
+        access_count: (data.access_count || 0) + 1,
+        last_accessed_at: now
+      };
     } catch (error: any) {
       console.error('🏦 Unexpected error fetching banking details:', error);
       throw error;

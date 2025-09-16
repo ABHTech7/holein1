@@ -130,16 +130,7 @@ const ClubBankDetailsSection: React.FC<BankDetailsSectionProps> = ({ clubId }) =
             )}
           </CardTitle>
           <CardDescription>
-            Banking information is encrypted and access-logged for security. 
-            {bankDetails?.access_count && (
-              <span className="text-xs text-muted-foreground block mt-1">
-                Accessed {bankDetails.access_count} times • Last: {
-                  bankDetails.last_accessed_at 
-                    ? new Date(bankDetails.last_accessed_at).toLocaleString()
-                    : 'Never'
-                }
-              </span>
-            )}
+            Banking information is encrypted and access-logged for security.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
