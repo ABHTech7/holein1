@@ -362,6 +362,12 @@ const AdminDashboard = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">The Clubhouse HQ</h1>
+                {/* Personal greeting for admin user */}
+                {profile?.first_name && (
+                  <p className="text-lg text-primary mt-1">
+                    Hi {profile.first_name}, welcome back!
+                  </p>
+                )}
                 <p className="text-muted-foreground mt-1 text-sm md:text-base">Keeping score, counting cash, and dodging sand traps.</p>
               </div>
               <div className="flex flex-wrap gap-2 md:gap-3">
