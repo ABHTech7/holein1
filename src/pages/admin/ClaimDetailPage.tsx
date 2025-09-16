@@ -352,12 +352,10 @@ const ClaimDetailPage = () => {
                       <p>{entryData.profiles.age_years} years</p>
                     </div>
                   )}
-                  {entryData?.profiles.handicap && (
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Handicap</p>
-                      <p>{entryData.profiles.handicap}</p>
-                    </div>
-                  )}
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Handicap</p>
+                    <p>{entryData?.profiles.handicap ?? 'Not provided'}</p>
+                  </div>
                   {(entryData?.profiles.phone || entryData?.profiles.phone_e164) && (
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Mobile</p>
@@ -396,7 +394,7 @@ const ClaimDetailPage = () => {
                   {entryData?.competitions.prize_pool && (
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Prize Pool</p>
-                      <p className="font-medium text-green-600">£{Number(entryData.competitions.prize_pool).toLocaleString()}</p>
+                      <p className="font-medium text-green-600">£{(Number(entryData.competitions.prize_pool) / 100).toLocaleString()}</p>
                     </div>
                   )}
                 </CardContent>
