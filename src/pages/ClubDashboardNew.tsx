@@ -70,12 +70,10 @@ interface Entry {
 }
 
 const ClubDashboardNew = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { profile, loading: authLoading } = useAuth();
   const { loading: bankingLoading, complete: bankingComplete } = useBankingStatus();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('7');
   const [stats, setStats] = useState({
     entriesToday: 0,
@@ -89,37 +87,24 @@ const ClubDashboardNew = () => {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [recentEntries, setRecentEntries] = useState<Entry[]>([]);
 
-  // Fetch user profile and check permissions
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!user) return;
 
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, role, club_id')
-          .eq('id', user.id)
-          .single();
-
-        if (error) throw error;
-        setProfile(data);
-      } catch (error) {
-        const msg = showSupabaseError(error, 'Failed to load user profile');
-        toast({ title: "Error", description: msg, variant: "destructive" });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfile();
-  }, [user, toast]);
-
-  // Fetch dashboard data
+  // Fetch dashboard data AFTER profile is loaded and club_id is present
   useEffect(() => {
     const fetchDashboardData = async () => {
       const clubId = profile?.club_id;
+      if (authLoading) {
+        if (process.env.NODE_ENV !== "production") {
+          console.log("⏳ ClubDashboard waiting for profile to load…");
+        }
+        return;
+      }
       if (!clubId) {
-        console.warn('No club_id found in profile, skipping dashboard data fetch');
+        if (process.env.NODE_ENV !== "production") {
+          console.warn("⚠️ ClubDashboard: profile loaded but no club_id; skipping data fetch", {
+            role: profile?.role,
+            club_id: profile?.club_id,
+          });
+        }
         return;
       }
 
@@ -256,7 +241,7 @@ const ClubDashboardNew = () => {
     };
 
     fetchDashboardData();
-  }, [profile?.club_id, toast]);
+  }, [authLoading, profile?.club_id, toast]);
 
   const handleShareCompetition = async (competitionId: string) => {
     // Import the function dynamically since it's not imported at the top
@@ -291,13 +276,15 @@ const ClubDashboardNew = () => {
     });
   };
 
-  // Loading states
-  if (authLoading || loading) {
+  // Improved loading/guarded render
+  if (authLoading) {
+    return <div className="p-6 text-sm text-muted-foreground">Loading your club profile…</div>;
+  }
+  if (!profile?.club_id) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading dashboard...</p>
+      <div className="p-6">
+        <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-amber-900">
+          No club is linked to this account yet. Please contact support to assign a club.
         </div>
       </div>
     );
