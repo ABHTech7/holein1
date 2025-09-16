@@ -81,7 +81,7 @@ interface Entry {
 
 const ClubDashboardNew = () => {
   const { profile, loading: authLoading } = useAuth();
-  const { loading: bankingLoading, complete: bankingComplete } = useBankingStatus();
+  const { loading: bankingLoading, complete: bankingComplete, hasChecked: bankingHasChecked } = useBankingStatus();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [clubData, setClubData] = useState<ClubData | null>(null);
@@ -341,7 +341,7 @@ const ClubDashboardNew = () => {
         <Section spacing="lg">
           <div className="max-w-7xl mx-auto space-y-8">
             {/* Banking Required Banner */}
-            {!bankingLoading && !bankingComplete && (
+            {bankingHasChecked && !bankingComplete && (
               <Alert variant="destructive" data-testid="banking-required-banner">
                 <ShieldAlert className="h-4 w-4" />
                 <AlertTitle>Banking details required</AlertTitle>
