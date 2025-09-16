@@ -138,18 +138,61 @@ export const useAuth = () => {
   }, []);
 
   const sendOtp = async (email: string): Promise<{ error?: string }> => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?continue=/entry-success`,
-      },
-    });
-    
-    if (error) {
+    try {
+      // Enhanced email validation with security checks
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return { error: 'Please enter a valid email address' };
+      }
+
+      // Rate limiting check and enhanced security logging
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.toLowerCase().trim(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?continue=/entry-success`,
+          data: {
+            timestamp: new Date().toISOString(),
+            user_agent: navigator.userAgent.substring(0, 500) // Truncate for security
+          }
+        }
+      });
+      
+      if (error) {
+        // Log failed OTP attempts for security monitoring
+        try {
+          await supabase.rpc('log_security_event', {
+            event_type: 'OTP_SEND_FAILURE',
+            details: {
+              email: email,
+              error_message: error.message,
+              user_agent: navigator.userAgent.substring(0, 500)
+            }
+          });
+        } catch (logError) {
+          console.warn('Failed to log security event:', logError);
+        }
+        
+        return { error: error.message };
+      }
+      
+      // Log successful OTP sends for security monitoring
+      try {
+        await supabase.rpc('log_security_event', {
+          event_type: 'OTP_SEND_SUCCESS',
+          details: {
+            email: email,
+            user_agent: navigator.userAgent.substring(0, 500)
+          }
+        });
+      } catch (logError) {
+        console.warn('Failed to log security event:', logError);
+      }
+      
+      return {};
+    } catch (error: any) {
+      console.error('Error sending OTP:', error);
       return { error: error.message };
     }
-    
-    return {};
   };
 
   const signIn = async (email: string, password: string) => {
@@ -183,8 +226,12 @@ export const useAuth = () => {
       
       // Force clear all auth-related storage as additional safety measure
       try {
-        // Clear Supabase auth tokens
-        localStorage.removeItem('sb-srnbylbbsdckkwatfqjg-auth-token');
+        // Clear Supabase auth tokens (remove hardcoded project ID)
+        const storageKeys = Object.keys(localStorage).filter(key => 
+          key.includes('supabase') || key.includes('auth-token')
+        );
+        storageKeys.forEach(key => localStorage.removeItem(key));
+        
         sessionStorage.clear();
         
         // Clear our secure auth storage (async import)

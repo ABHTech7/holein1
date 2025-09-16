@@ -13,6 +13,7 @@ import ChartWrapper from "@/components/ui/chart-wrapper";
 import SiteSettingsModal from "@/components/admin/SiteSettingsModal";
 import NewUserModal from "@/components/admin/NewUserModal";
 import AdminQuickActions from "@/components/admin/AdminQuickActions";
+import SecurityMonitor from "@/components/security/SecurityMonitor";
 import { Users, Calendar, Trophy, TrendingUp, Plus, Settings, PoundSterling } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";

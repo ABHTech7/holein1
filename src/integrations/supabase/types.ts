@@ -1147,6 +1147,15 @@ export type Database = {
         Args: { phone_text: string }
         Returns: boolean
       }
+      log_security_event: {
+        Args: {
+          details?: Json
+          event_type: string
+          ip_address?: unknown
+          user_id?: string
+        }
+        Returns: boolean
+      }
       log_sensitive_access: {
         Args: {
           access_type: string
@@ -1163,6 +1172,15 @@ export type Database = {
       update_expired_entries: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      validate_file_upload: {
+        Args: {
+          file_size_bytes: number
+          mime_type: string
+          original_filename: string
+          upload_purpose: string
+        }
+        Returns: boolean
       }
       validate_text_input: {
         Args: { input_text: string; max_length?: number }

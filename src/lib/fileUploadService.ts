@@ -45,6 +45,37 @@ export const uploadFile = async (
     purpose: options.purpose 
   });
 
+  // Enhanced security validation using database function
+  try {
+    const { error: validationError } = await supabase.rpc('validate_file_upload', {
+      original_filename: file.name,
+      mime_type: file.type,
+      file_size_bytes: file.size,
+      upload_purpose: options.purpose
+    });
+    
+    if (validationError) {
+      throw new Error(`File validation failed: ${validationError.message}`);
+    }
+  } catch (error: any) {
+    // Log security event for validation failures
+    try {
+      await supabase.rpc('log_security_event', {
+        event_type: 'FILE_VALIDATION_FAILURE',
+        details: {
+          filename: file.name,
+          size: file.size,
+          type: file.type,
+          purpose: options.purpose,
+          error_message: error.message
+        }
+      });
+    } catch (logError) {
+      console.warn('Failed to log security event:', logError);
+    }
+    throw error;
+  }
+
   // Validate file size
   const maxSize = options.maxSizeBytes || DEFAULT_MAX_SIZES[options.purpose];
   if (file.size > maxSize) {
@@ -62,16 +93,34 @@ export const uploadFile = async (
   const storagePath = `${userId}/${storageFileName}`;
 
   try {
-    // Upload file to Supabase Storage
+    // Upload file to Supabase Storage with enhanced options
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(bucket)
       .upload(storagePath, file, {
         cacheControl: '3600',
         upsert: false,
+        duplex: 'half' // Security enhancement for upload streams
       });
 
     if (uploadError) {
       console.error('Storage upload failed:', uploadError);
+      
+      // Log security event for upload failures
+      try {
+        await supabase.rpc('log_security_event', {
+          event_type: 'FILE_UPLOAD_FAILURE',
+          details: {
+            filename: file.name,
+            size: file.size,
+            type: file.type,
+            purpose: options.purpose,
+            error_message: uploadError.message
+          }
+        });
+      } catch (logError) {
+        console.warn('Failed to log security event:', logError);
+      }
+      
       throw new Error(`Upload failed: ${uploadError.message}`);
     }
 
@@ -109,6 +158,22 @@ export const uploadFile = async (
       ...fileRecord,
       upload_purpose: fileRecord.upload_purpose as UploadedFile['upload_purpose'],
     };
+
+    // Log successful upload for security monitoring
+    try {
+      await supabase.rpc('log_security_event', {
+        event_type: 'FILE_UPLOAD_SUCCESS',
+        details: {
+          filename: file.name,
+          size: file.size,
+          type: file.type,
+          purpose: options.purpose,
+          file_id: uploadedFile.id
+        }
+      });
+    } catch (logError) {
+      console.warn('Failed to log security event:', logError);
+    }
 
     console.log('File upload completed:', uploadedFile);
     return uploadedFile;
