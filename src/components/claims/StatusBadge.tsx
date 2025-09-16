@@ -9,10 +9,10 @@ interface StatusBadgeProps {
 
 const statusConfig = {
   initiated: {
-    label: "Pending",
+    label: "Initiated",
     variant: "secondary" as const,
     icon: Clock,
-    className: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+    className: "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
   },
   pending: {
     label: "Pending", 
