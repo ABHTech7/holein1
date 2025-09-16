@@ -32,7 +32,8 @@ import {
   Share2,
   CreditCard,
   PoundSterling,
-  ShieldAlert
+  ShieldAlert,
+  Building
 } from 'lucide-react';
 import { 
   formatCurrency, 
@@ -47,6 +48,15 @@ interface Profile {
   id: string;
   role: 'ADMIN' | 'CLUB' | 'PLAYER';
   club_id?: string;
+}
+
+interface ClubData {
+  id: string;
+  name: string;
+  logo_url?: string;
+  email?: string;
+  phone?: string;
+  website?: string;
 }
 
 interface Competition {
@@ -74,6 +84,8 @@ const ClubDashboardNew = () => {
   const { loading: bankingLoading, complete: bankingComplete } = useBankingStatus();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [clubData, setClubData] = useState<ClubData | null>(null);
+  const [clubLoading, setClubLoading] = useState(true);
   const [dateRange, setDateRange] = useState('7');
   const [stats, setStats] = useState({
     entriesToday: 0,
@@ -87,6 +99,37 @@ const ClubDashboardNew = () => {
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [recentEntries, setRecentEntries] = useState<Entry[]>([]);
 
+
+  // Fetch club data
+  useEffect(() => {
+    const fetchClubData = async () => {
+      const clubId = profile?.club_id;
+      if (authLoading) return;
+      
+      if (!clubId) {
+        setClubLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('clubs')
+          .select('id, name, logo_url, email, phone, website')
+          .eq('id', clubId)
+          .single();
+
+        if (error) throw error;
+        setClubData(data);
+      } catch (error) {
+        const msg = showSupabaseError(error, 'Failed to load club details');
+        toast({ title: "Error", description: msg, variant: "destructive" });
+      } finally {
+        setClubLoading(false);
+      }
+    };
+
+    fetchClubData();
+  }, [authLoading, profile?.club_id, toast]);
 
   // Fetch dashboard data AFTER profile is loaded and club_id is present
   useEffect(() => {
@@ -314,16 +357,43 @@ const ClubDashboardNew = () => {
             {/* Header */}
             <div className="flex flex-col gap-4">
               <div>
-                <h1 className="font-display text-3xl font-bold text-foreground">Club Dashboard</h1>
+                <h1 className="font-display text-3xl font-bold text-foreground">
+                  {clubLoading ? (
+                    <Skeleton className="h-9 w-64" />
+                  ) : (
+                    clubData?.name || 'Club Dashboard'
+                  )}
+                </h1>
                 <p className="text-muted-foreground mt-1">Manage your Hole in 1 Challenge competitions</p>
               </div>
               
-              {/* Club Info - Use profile.club_id for minimal display */}
+              {/* Club Info */}
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-lg overflow-hidden bg-gradient-primary flex items-center justify-center border border-border/20">
-                  <Trophy className="w-6 h-6 text-primary-foreground" />
+                  {clubLoading ? (
+                    <Skeleton className="w-6 h-6 rounded" />
+                  ) : clubData?.logo_url ? (
+                    <img 
+                      src={clubData.logo_url} 
+                      alt={`${clubData.name} logo`}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Building className="w-6 h-6 text-primary-foreground" />
+                  )}
                 </div>
-                <h2 className="text-xl font-semibold text-foreground">Club Dashboard</h2>
+                <div>
+                  <h2 className="text-xl font-semibold text-foreground">
+                    {clubLoading ? (
+                      <Skeleton className="h-6 w-48" />
+                    ) : (
+                      clubData?.name || 'Club Dashboard'
+                    )}
+                  </h2>
+                  {!clubLoading && clubData?.email && (
+                    <p className="text-sm text-muted-foreground">{clubData.email}</p>
+                  )}
+                </div>
               </div>
               
               {/* Date Range Filter */}
