@@ -364,12 +364,18 @@ const ClubDashboardNew = () => {
                     clubData?.name || 'Club Dashboard'
                   )}
                 </h1>
+                {/* Personal greeting for club manager */}
+                {!authLoading && profile?.first_name && (
+                  <p className="text-lg text-primary mt-1">
+                    Hi {profile.first_name}, welcome back!
+                  </p>
+                )}
                 <p className="text-muted-foreground mt-1">Manage your Hole in 1 Challenge competitions</p>
               </div>
               
               {/* Club Info */}
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-lg overflow-hidden bg-gradient-primary flex items-center justify-center border border-border/20">
+                <div className="w-12 h-12 rounded-lg overflow-hidden bg-card flex items-center justify-center border border-border/20">
                   {clubLoading ? (
                     <Skeleton className="w-6 h-6 rounded" />
                   ) : clubData?.logo_url ? (
@@ -379,17 +385,10 @@ const ClubDashboardNew = () => {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <Building className="w-6 h-6 text-primary-foreground" />
+                    <Building className="w-6 h-6 text-muted-foreground" />
                   )}
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-foreground">
-                    {clubLoading ? (
-                      <Skeleton className="h-6 w-48" />
-                    ) : (
-                      clubData?.name || 'Club Dashboard'
-                    )}
-                  </h2>
                   {!clubLoading && clubData?.email && (
                     <p className="text-sm text-muted-foreground">{clubData.email}</p>
                   )}
