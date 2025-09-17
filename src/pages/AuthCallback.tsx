@@ -40,9 +40,11 @@ export default function AuthCallback() {
       }
 
       // Primary path: exchange the hash fragment for a session
+      console.log('[AuthCallback] hash:', hash);
       const { error: exchangeErr } = await supabase.auth.exchangeCodeForSession(
         hash
       );
+      console.log('[AuthCallback] exchange result:', { ok: !exchangeErr, msg: exchangeErr?.message });
 
       if (exchangeErr) {
         console.error("[AuthCallback] exchangeCodeForSession failed:", {
