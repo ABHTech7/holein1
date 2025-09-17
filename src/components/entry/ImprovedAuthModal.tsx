@@ -13,6 +13,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Mail, User, Phone, Calendar, Target, AlertCircle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { ResendMagicLink } from "@/components/auth/ResendMagicLink";
+import { showSupabaseError } from "@/lib/showSupabaseError";
 
 interface ImprovedAuthModalProps {
   open: boolean;
@@ -126,9 +128,10 @@ export const ImprovedAuthModal = ({
       }
     } catch (error: any) {
       console.error('Secure link error:', error);
+      const errorMessage = showSupabaseError(error, 'Secure Link');
       toast({
         title: isResend ? "Failed to resend link" : "Failed to send secure link", 
-        description: error.message || "Please try again",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -184,33 +187,36 @@ export const ImprovedAuthModal = ({
             </Card>
 
             <div className="text-center space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Didn't get it? Check spam or try again.
-              </p>
+              <ResendMagicLink
+                email={profileForm.email}
+                redirectUrl={redirectUrl}
+                showAsCard={false}
+                onResendSuccess={() => {
+                  toast({
+                    title: "Link resent!",
+                    description: "Check your email for the new secure link.",
+                  });
+                }}
+                onResendError={(error) => {
+                  toast({
+                    title: "Failed to resend link",
+                    description: error,
+                    variant: "destructive"
+                  });
+                }}
+              />
               
-              <div className="flex flex-col gap-2">
-                <Button
-                  onClick={() => handleSendMagicLink(true)}
-                  disabled={resendLoading}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <Mail className="w-4 h-4 mr-2" />
-                  {resendLoading ? "Resending..." : "Resend Link"}
-                </Button>
-                
-                <Button
-                  variant="link"
-                  onClick={() => {
-                    setEmailSent(false);
-                    setLoading(false);
-                    setResendLoading(false);
-                  }}
-                  className="text-sm"
-                >
-                  Use a different email address
-                </Button>
-              </div>
+              <Button
+                variant="link"
+                onClick={() => {
+                  setEmailSent(false);
+                  setLoading(false);
+                  setResendLoading(false);
+                }}
+                className="text-sm"
+              >
+                Use a different email address
+              </Button>
             </div>
           </div>
         </DialogContent>

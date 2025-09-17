@@ -159,16 +159,32 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
       if (!userId) {
         console.warn('[Auth] About to send OTP for', formData.email);
         
-        // Store form data securely with 30-minute expiration
+        // Store entry context with enhanced persistence
         try {
-          const { SecureStorage } = await import('@/lib/secureStorage');
-          SecureStorage.setAuthData('pending_entry_form', {
-            ...formData,
+          const { storeEntryContext, storeEntryStep } = await import('@/lib/entryContext');
+          
+          storeEntryContext({
             competitionId: competition.id,
+            clubSlug: window.location.pathname.split('/')[2], // Extract from URL
+            competitionSlug: window.location.pathname.split('/')[3],
+            formData: {
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+              email: formData.email,
+              phone: formData.phone,
+              age: formData.age,
+              gender: formData.gender,
+              handicap: formData.handicap,
+            },
             termsAccepted
           });
+          
+          storeEntryStep({ step: 'otp', data: { email: formData.email } });
+          
+          console.info('[Entry] Stored entry context for post-auth continuation');
         } catch (error) {
-          console.warn('Failed to use secure storage, falling back to localStorage');
+          console.warn('[Entry] Failed to store entry context:', error);
+          // Fallback to legacy storage
           localStorage.setItem('pending_entry_form', JSON.stringify({
             ...formData,
             competitionId: competition.id,
@@ -216,6 +232,14 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
       }
 
       setEntryId(entry.id);
+      
+      // Update entry context with entry ID for post-auth redirect
+      try {
+        const { updateContextWithEntryId } = await import('@/lib/entryContext');
+        updateContextWithEntryId(entry.id);
+      } catch (error) {
+        console.warn('[Entry] Failed to update context with entry ID:', error);
+      }
       
       // Update user profile
       await supabase.from('profiles').upsert({
