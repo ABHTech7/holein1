@@ -102,6 +102,26 @@ export const ImprovedAuthModal = ({
     }
 
     try {
+      // Store entry context and email immediately before sending
+      if (!emailSent) {
+        // Store the pending entry context with 30-min TTL
+        const entryContext = {
+          redirectUrl: redirectUrl,
+          formData: profileForm,
+          timestamp: Date.now(),
+          ttl: 30 * 60 * 1000 // 30 minutes
+        };
+        localStorage.setItem('pending_entry_context', JSON.stringify(entryContext));
+        
+        // Store the email with 30-min TTL
+        localStorage.setItem('last_auth_email', JSON.stringify({
+          email: profileForm.email,
+          timestamp: Date.now()
+        }));
+        
+        console.log('[EntryForm] Stored context and email before navigation');
+      }
+    
       // Call our custom secure entry link edge function
       const { data, error } = await supabase.functions.invoke('send-magic-link', {
         body: {

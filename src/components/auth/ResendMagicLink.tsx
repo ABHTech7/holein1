@@ -79,6 +79,7 @@ export const ResendMagicLink = ({
     
     try {
       console.info('[ResendMagicLink] Attempting to resend OTP for:', email);
+      console.log(`[Resend] started for ${email} to ${redirectUrl || `${window.location.origin}/auth/callback`}`);
       
       const { error } = await sendOtp(email);
       

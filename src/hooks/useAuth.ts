@@ -146,10 +146,12 @@ export const useAuth = () => {
       }
 
       // Rate limiting check and enhanced security logging
+      console.log(`[Auth] requested magic link for ${email} to ${window.location.origin}/auth/callback`);
+      
       const { error } = await supabase.auth.signInWithOtp({
         email: email.toLowerCase().trim(),
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?continue=/entry-success`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             timestamp: new Date().toISOString(),
             user_agent: navigator.userAgent.substring(0, 500) // Truncate for security
