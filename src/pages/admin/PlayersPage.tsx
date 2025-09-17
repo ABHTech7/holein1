@@ -86,6 +86,8 @@ const PlayersPage = () => {
           created_at
         `)
         .eq('role', 'PLAYER')
+        .neq('status', 'deleted')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
