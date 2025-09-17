@@ -1173,6 +1173,18 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      upsert_profile_safe: {
+        Args: {
+          profile_email: string
+          profile_first_name?: string
+          profile_last_name?: string
+          profile_phone?: string
+          profile_phone_e164?: string
+          profile_role?: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Returns: string
+      }
       validate_file_upload: {
         Args: {
           file_size_bytes: number
