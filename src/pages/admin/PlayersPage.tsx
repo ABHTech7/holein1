@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Mail, Calendar, Trophy, ArrowLeft, Phone, Plus } from "lucide-react";
+import { Search, Mail, Calendar, Trophy, ArrowLeft, Phone, Plus, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -16,6 +16,7 @@ import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 import NewUserModal from "@/components/admin/NewUserModal";
+import IncompletePlayersModal from "@/components/admin/IncompletePlayersModal";
 import { ROUTES } from "@/routes";
 
 interface Player {
@@ -37,6 +38,7 @@ const PlayersPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredPlayers, setFilteredPlayers] = useState<Player[]>([]);
   const [showNewUser, setShowNewUser] = useState(false);
+  const [showIncompleteModal, setShowIncompleteModal] = useState(false);
 
   useEffect(() => {
     fetchPlayers();
@@ -182,6 +184,14 @@ const PlayersPage = () => {
               <Plus className="w-4 h-4" />
               Add New Player
             </Button>
+            <Button 
+              variant="outline"
+              className="gap-2 text-destructive hover:text-destructive border-destructive/20"
+              onClick={() => setShowIncompleteModal(true)}
+            >
+              <Trash2 className="w-4 h-4" />
+              Manage Incomplete
+            </Button>
           </div>
 
           <Card>
@@ -298,6 +308,12 @@ const PlayersPage = () => {
       <NewUserModal 
         isOpen={showNewUser}
         onClose={() => setShowNewUser(false)}
+      />
+
+      <IncompletePlayersModal
+        isOpen={showIncompleteModal}
+        onClose={() => setShowIncompleteModal(false)}
+        onPlayersDeleted={fetchPlayers}
       />
     </div>
   );

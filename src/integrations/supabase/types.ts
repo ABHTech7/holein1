@@ -56,13 +56,6 @@ export type Database = {
             foreignKeyName: "audit_events_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "incomplete_players_v1"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "audit_events_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -97,13 +90,6 @@ export type Database = {
           target_user_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "audit_logs_actor_id_fkey"
-            columns: ["actor_id"]
-            isOneToOne: false
-            referencedRelation: "incomplete_players_v1"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "audit_logs_actor_id_fkey"
             columns: ["actor_id"]
@@ -165,13 +151,6 @@ export type Database = {
             columns: ["entry_id"]
             isOneToOne: false
             referencedRelation: "entries"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "claims_verified_by_fkey"
-            columns: ["verified_by"]
-            isOneToOne: false
-            referencedRelation: "incomplete_players_v1"
             referencedColumns: ["id"]
           },
           {
@@ -550,13 +529,6 @@ export type Database = {
             columns: ["competition_id"]
             isOneToOne: false
             referencedRelation: "competitions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "entries_player_id_fkey"
-            columns: ["player_id"]
-            isOneToOne: false
-            referencedRelation: "incomplete_players_v1"
             referencedColumns: ["id"]
           },
           {
@@ -1127,13 +1099,6 @@ export type Database = {
             foreignKeyName: "verifications_verified_by_fkey"
             columns: ["verified_by"]
             isOneToOne: false
-            referencedRelation: "incomplete_players_v1"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "verifications_verified_by_fkey"
-            columns: ["verified_by"]
-            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1141,19 +1106,7 @@ export type Database = {
       }
     }
     Views: {
-      incomplete_players_v1: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          first_name: string | null
-          has_paid_entry: boolean | null
-          has_success_payment: boolean | null
-          id: string | null
-          last_name: string | null
-          onboarding_complete: boolean | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       get_competition_status: {
@@ -1178,6 +1131,19 @@ export type Database = {
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      get_incomplete_players: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          email: string
+          first_name: string
+          has_paid_entry: boolean
+          has_success_payment: boolean
+          id: string
+          last_name: string
+          onboarding_complete: boolean
+        }[]
       }
       get_safe_club_info: {
         Args: { club_uuid: string }
