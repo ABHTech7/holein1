@@ -43,32 +43,77 @@ export default function AuthCallback() {
       const hash = window.location.hash || '';
       const cont = params.get('continue') || '/entry-success';
 
-      const qp = new URLSearchParams(hash.replace(/^#/, ''));
-      const err = qp.get('error');
-      const code = qp.get('error_code');
-      const desc = qp.get('error_description');
+      console.log('[AuthCallback] Processing auth callback', { full, hash, cont });
 
-      if (err || code) {
-        console.warn('Auth callback error', { full, err, code, desc });
-        toast({
-          title: 'Authentication failed',
-          description: desc || code || 'Email link invalid or expired.',
-          variant: 'destructive',
-        });
-        navigate('/auth');
-        return;
+      // Check for magic link token (custom secure links)
+      const token = params.get('token');
+      if (token) {
+        console.log('[AuthCallback] Processing magic link token');
+        try {
+          const { data, error } = await supabase.functions.invoke('verify-magic-link', {
+            body: { token }
+          });
+
+          if (error || !data?.success) {
+            console.error('[AuthCallback] Magic link verification failed:', error || data);
+            toast({
+              title: 'Authentication failed',
+              description: 'Magic link invalid or expired.',
+              variant: 'destructive',
+            });
+            navigate('/auth');
+            return;
+          }
+
+          console.log('[AuthCallback] Magic link verified successfully');
+          toast({
+            title: "Authentication successful",
+            description: "You have been signed in successfully.",
+          });
+          navigate(data.redirectUrl || cont, { replace: true });
+          return;
+        } catch (err) {
+          console.error('[AuthCallback] Magic link error:', err);
+          toast({
+            title: 'Authentication failed',
+            description: 'Failed to verify magic link.',
+            variant: 'destructive',
+          });
+          navigate('/auth');
+          return;
+        }
       }
 
-      const { error } = await supabase.auth.exchangeCodeForSession(hash);
-      if (error) {
-        console.error('exchangeCodeForSession error', error, { full });
-        toast({
-          title: 'Authentication failed',
-          description: error.message || 'Email link invalid or expired.',
-          variant: 'destructive',
-        });
-        navigate('/auth');
-        return;
+      // Handle Supabase OTP/email auth (hash fragments)
+      if (hash) {
+        const qp = new URLSearchParams(hash.replace(/^#/, ''));
+        const err = qp.get('error');
+        const code = qp.get('error_code');
+        const desc = qp.get('error_description');
+
+        if (err || code) {
+          console.warn('[AuthCallback] Hash error detected', { err, code, desc });
+          toast({
+            title: 'Authentication failed',
+            description: desc || code || 'Email link invalid or expired.',
+            variant: 'destructive',
+          });
+          navigate('/auth');
+          return;
+        }
+
+        console.log('[AuthCallback] Processing Supabase OTP hash');
+        const { error } = await supabase.auth.exchangeCodeForSession(hash);
+        if (error) {
+          console.error('[AuthCallback] exchangeCodeForSession error', error);
+          toast({
+            title: 'Authentication failed',
+            description: error.message || 'Email link invalid or expired.',
+            variant: 'destructive',
+          });
+          navigate('/auth');
+          return;
+        }
       }
 
       // Process pending entry form if exists
@@ -198,7 +243,7 @@ export default function AuthCallback() {
       navigate(cont, { replace: true });
     };
     go();
-  }, [navigate, params, toast]);
+  }, [navigate, params]);
 
   return (
     <div className="mx-auto my-24 max-w-md rounded-2xl p-8 text-center shadow">
