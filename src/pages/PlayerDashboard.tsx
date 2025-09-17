@@ -305,14 +305,14 @@ const PlayerDashboard = () => {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-                <Button asChild size="lg" className="bg-gradient-primary hover:opacity-90">
+                <Button asChild size="lg" className="bg-gradient-primary hover:opacity-90" data-testid="browse-competitions-btn">
                   <Link to="/competitions">
                     <Play className="w-4 h-4 mr-2" />
-                    Enter New Competition
+                    Browse Competitions
                   </Link>
                 </Button>
-                <Button asChild variant="outline" size="lg">
-                  <Link to="/players/entries">View All Entries</Link>
+                <Button asChild variant="outline" size="lg" data-testid="player-dashboard-btn">
+                  <Link to="/players/entries">My Dashboard</Link>
                 </Button>
               </div>
             </div>

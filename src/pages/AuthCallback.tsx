@@ -36,6 +36,24 @@ export default function AuthCallback() {
           error_description,
           fullUrl,
         });
+        
+        // Handle expired/invalid links with proper UI
+        if (error === 'expired_token' || error === 'invalid_grant' || error_description?.includes('expired')) {
+          // Store the email if available for the expired link page
+          const emailMatch = fullUrl.match(/[?&]email=([^&]*)/);
+          const email = emailMatch ? decodeURIComponent(emailMatch[1]) : null;
+          
+          if (email) {
+            localStorage.setItem('last_auth_email', JSON.stringify({
+              email,
+              timestamp: Date.now()
+            }));
+          }
+          
+          navigate("/auth/expired-link", { replace: true });
+          return;
+        }
+        
         toast({
           title: "Authentication failed",
           description: error_description || "Email link invalid or expired.",
@@ -57,6 +75,13 @@ export default function AuthCallback() {
           message: exchangeErr.message,
           fullUrl,
         });
+        
+        // Handle expired/invalid tokens with proper UI
+        if (exchangeErr.message?.includes('expired') || exchangeErr.message?.includes('invalid_grant')) {
+          navigate("/auth/expired-link", { replace: true });
+          return;
+        }
+        
         toast({
           title: "Authentication failed",
           description: exchangeErr.message || "Email link invalid or expired.",
