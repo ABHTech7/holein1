@@ -81,7 +81,7 @@ interface Entry {
 
 const ClubDashboardNew = () => {
   const { profile, loading: authLoading } = useAuth();
-  const { loading: bankingLoading, complete: bankingComplete, hasChecked: bankingHasChecked } = useBankingStatus();
+  const { status: bankingStatus, complete: bankingComplete, hasChecked: bankingHasChecked } = useBankingStatus();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [clubData, setClubData] = useState<ClubData | null>(null);
@@ -340,19 +340,21 @@ const ClubDashboardNew = () => {
       <main className="flex-1">
         <Section spacing="lg">
           <div className="max-w-7xl mx-auto space-y-8">
-            {/* Banking Required Banner */}
-            {bankingHasChecked && !bankingLoading && !bankingComplete && (
-              <Alert variant="destructive" data-testid="banking-required-banner">
-                <ShieldAlert className="h-4 w-4" />
-                <AlertTitle>Banking details required</AlertTitle>
-                <AlertDescription>
-                  To take payouts and activate competitions, please add your club's banking details.{' '}
-                  <a href={ROUTES.CLUB.BANKING} className="underline">
-                    Go to Banking Details
-                  </a>.
-                </AlertDescription>
-              </Alert>
-            )}
+            {/* Banking Required Banner - Only show when status is ready to prevent flash */}
+            <div className="min-h-[60px]"> {/* Reserve space to prevent layout shift */}
+              {bankingStatus === 'ready' && bankingHasChecked && !bankingComplete && (
+                <Alert variant="destructive" data-testid="banking-required-banner">
+                  <ShieldAlert className="h-4 w-4" />
+                  <AlertTitle>Banking details required</AlertTitle>
+                  <AlertDescription>
+                    To take payouts and activate competitions, please add your club's banking details.{' '}
+                    <a href={ROUTES.CLUB.BANKING} className="underline">
+                      Go to Banking Details
+                    </a>.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
 
             {/* Header */}
             <div className="flex flex-col gap-4">

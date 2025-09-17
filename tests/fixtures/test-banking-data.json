@@ -1,0 +1,29 @@
+{
+  "complete_banking": {
+    "account_holder_name": "Test Club Ltd",
+    "account_number": "12345678",
+    "sort_code": "12-34-56",
+    "bank_name": "Test Bank",
+    "iban": "GB33BUKB20201555555555",
+    "commission_percentage": 15.0,
+    "updated_at": "2024-01-01T00:00:00Z"
+  },
+  "incomplete_banking": {
+    "account_holder_name": null,
+    "account_number": null,
+    "sort_code": null,
+    "bank_name": null,
+    "iban": null,
+    "commission_percentage": null,
+    "updated_at": null
+  },
+  "partial_banking": {
+    "account_holder_name": "Partial Club",
+    "account_number": "87654321",
+    "sort_code": null,
+    "bank_name": "Partial Bank",
+    "iban": null,
+    "commission_percentage": 10.0,
+    "updated_at": "2024-01-01T00:00:00Z"
+  }
+}

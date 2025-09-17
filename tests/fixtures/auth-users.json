@@ -1,0 +1,38 @@
+{
+  "admin": {
+    "id": "test-admin-00000000-0000-0000-0000-000000000001",
+    "email": "admin@e2e.test",
+    "password": "TestAdmin123!",
+    "role": "ADMIN",
+    "first_name": "Test",
+    "last_name": "Admin"
+  },
+  "club_complete_banking": {
+    "id": "test-club-00000000-0000-0000-0000-000000000002",
+    "email": "club.complete@e2e.test",
+    "password": "TestClub123!",
+    "role": "CLUB",
+    "club_id": "test-club-id-0000-0000-0000-000000000002",
+    "first_name": "Complete",
+    "last_name": "Club",
+    "banking_complete": true
+  },
+  "club_incomplete_banking": {
+    "id": "test-club-00000000-0000-0000-0000-000000000003",
+    "email": "club.incomplete@e2e.test",
+    "password": "TestClub123!",
+    "role": "CLUB",
+    "club_id": "test-club-id-0000-0000-0000-000000000003",
+    "first_name": "Incomplete", 
+    "last_name": "Club",
+    "banking_complete": false
+  },
+  "player": {
+    "id": "test-player-00000000-0000-0000-0000-000000000004",
+    "email": "player@e2e.test",
+    "password": "TestPlayer123!",
+    "role": "PLAYER",
+    "first_name": "Test",
+    "last_name": "Player"
+  }
+}

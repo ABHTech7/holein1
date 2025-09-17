@@ -16,6 +16,11 @@ export const isFeatureEnabled = (flag: string): boolean => {
     VITE_FILE_UPLOAD_VALIDATION_ENABLED: true,
     VITE_COPY_ENGINE_ENABLED: true,
     VITE_MOBILE_FIRST_UI_ENABLED: true,
+    // New Auth/UX Feature Flags
+    VITE_ENHANCED_ROLE_GUARDS: true,
+    VITE_ENTRY_CONTEXT_PERSISTENCE: true,
+    VITE_RESEND_MAGIC_LINK: true,
+    VITE_BANKING_BANNER_FIX: true,
   };
   
   return defaults[flag] ?? false;
