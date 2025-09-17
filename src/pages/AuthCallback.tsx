@@ -3,6 +3,12 @@ import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import Container from "@/components/layout/Container";
+import { 
+  getEntryContext, 
+  clearEntryContext, 
+  getEntryContinuationUrl,
+  isEntryContextValid 
+} from "@/lib/entryContext";
 
 export default function AuthCallback() {
   const once = useRef(false);
@@ -63,11 +69,30 @@ export default function AuthCallback() {
       // Clean URL (remove hash) then send user to the intended location
       history.replaceState(null, "", window.location.pathname + window.location.search);
 
-      // Optional: if you store a temporary "continue" in local storage, prefer that.
-      // const stored = localStorage.getItem("auth_continue");
-      // const target = stored || cont || "/";
-      // if (stored) localStorage.removeItem("auth_continue");
+      // Check for pending entry context and redirect appropriately
+      const entryContext = getEntryContext();
+      
+      if (entryContext && isEntryContextValid(entryContext)) {
+        console.info('[AuthCallback] Found valid entry context, redirecting to continuation URL');
+        const continuationUrl = getEntryContinuationUrl(entryContext);
+        
+        // Don't clear context immediately - let the target page handle it
+        toast({
+          title: "Welcome back!",
+          description: "Continuing with your competition entry...",
+        });
+        
+        navigate(continuationUrl, { replace: true });
+        return;
+      }
 
+      // Clear any expired entry context
+      if (entryContext && !isEntryContextValid(entryContext)) {
+        console.info('[AuthCallback] Clearing expired entry context');
+        clearEntryContext();
+      }
+
+      // Default navigation logic
       const target = cont || "/";
       navigate(target, { replace: true });
     };

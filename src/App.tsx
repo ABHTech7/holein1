@@ -50,6 +50,8 @@ import PartnershipApplication from "./pages/PartnershipApplication";
 
 // Auth components
 import RoleGuard from "./components/auth/RoleGuard";
+import EnhancedRoleGuard from "./components/auth/EnhancedRoleGuard";
+import { cleanupExpiredContexts } from "@/lib/entryContext";
 
 // Routes
 import { ROUTES } from "./routes";
@@ -84,8 +86,12 @@ const App = () => {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  // Development-only RLS probe
+  // Initialize app cleanup and development tools
   useEffect(() => {
+    // Clean up expired entry contexts on app load
+    cleanupExpiredContexts();
+    
+    // Development-only RLS probe
     if (process.env.NODE_ENV !== 'production') {
       const runProbe = async () => {
         const { probeRLS } = await import('@/lib/rlsProbe');
@@ -114,9 +120,9 @@ const App = () => {
             <Route 
               path="/players/entries" 
               element={
-                <RoleGuard allowedRoles={['PLAYER']}>
+                <EnhancedRoleGuard allowedRoles={['PLAYER']}>
                   <PlayerEntries />
-                </RoleGuard>
+                </EnhancedRoleGuard>
               } 
             />
             <Route path="/auth" element={<Auth />} />
@@ -137,10 +143,38 @@ const App = () => {
               path="/competition/:clubSlug/:competitionSlug/enter" 
               element={<PlayerJourneyEntryPage />} 
             />
-            <Route path="/entry/:entryId/confirmation" element={<EntryConfirmation />} />
-            <Route path="/entry-success/:entryId" element={<EntrySuccess />} />
-            <Route path="/win-claim/:entryId" element={<WinClaimPageNew />} />
-            <Route path="/win-claim-legacy/:entryId" element={<WinClaimPage />} />
+            <Route 
+              path="/entry/:entryId/confirmation" 
+              element={
+                <EnhancedRoleGuard allowedRoles={['ADMIN', 'CLUB', 'PLAYER']} showUnauthorizedToast={false}>
+                  <EntryConfirmation />
+                </EnhancedRoleGuard>
+              } 
+            />
+            <Route 
+              path="/entry-success/:entryId" 
+              element={
+                <EnhancedRoleGuard allowedRoles={['ADMIN', 'CLUB', 'PLAYER']} showUnauthorizedToast={false}>
+                  <EntrySuccess />
+                </EnhancedRoleGuard>
+              } 
+            />
+            <Route 
+              path="/win-claim/:entryId" 
+              element={
+                <EnhancedRoleGuard allowedRoles={['ADMIN', 'CLUB', 'PLAYER']} showUnauthorizedToast={false}>
+                  <WinClaimPageNew />
+                </EnhancedRoleGuard>
+              } 
+            />
+            <Route 
+              path="/win-claim-legacy/:entryId" 
+              element={
+                <EnhancedRoleGuard allowedRoles={['ADMIN', 'CLUB', 'PLAYER']} showUnauthorizedToast={false}>
+                  <WinClaimPage />
+                </EnhancedRoleGuard>
+              } 
+            />
             {/* Legacy routes for backward compatibility */}
             <Route path="/enter/:competitionId" element={<CompetitionEntry />} />
             <Route path="/competitions/:id" element={<CompetitionDetail />} />
@@ -149,193 +183,193 @@ const App = () => {
             <Route 
               path="/dashboard/admin" 
               element={
-                <RoleGuard allowedRoles={['ADMIN']}>
+                <EnhancedRoleGuard allowedRoles={['ADMIN']}>
                   <AdminDashboard />
-                </RoleGuard>
+                </EnhancedRoleGuard>
               } 
             />
           <Route 
             path="/dashboard/admin/players" 
             element={
-              <RoleGuard allowedRoles={['ADMIN']}>
+              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
                 <PlayersPage />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/dashboard/admin/clubs" 
             element={
-              <RoleGuard allowedRoles={['ADMIN']}>
+              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
                 <ClubsPage />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/dashboard/admin/competitions" 
             element={
-              <RoleGuard allowedRoles={['ADMIN']}>
+              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
                 <CompetitionsPage />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/dashboard/admin/competitions/new" 
             element={
-              <RoleGuard allowedRoles={['ADMIN']}>
+              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
                 <CompetitionWizardPage />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/dashboard/admin/competitions/:id" 
             element={
-              <RoleGuard allowedRoles={['ADMIN']}>
+              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
                 <CompetitionDetailEnhanced />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/dashboard/admin/competitions/:id/edit" 
             element={
-              <RoleGuard allowedRoles={['ADMIN']}>
+              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
                 <CompetitionEditPage />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/dashboard/admin/claims" 
             element={
-              <RoleGuard allowedRoles={['ADMIN']}>
+              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
                 <ClaimsPage />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/dashboard/club/claims" 
             element={
-              <RoleGuard allowedRoles={['CLUB']}>
+              <EnhancedRoleGuard allowedRoles={['CLUB']}>
                 <ClubClaimsPage />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/claims/:verificationId" 
             element={
-              <RoleGuard allowedRoles={['ADMIN', 'CLUB']}>
+              <EnhancedRoleGuard allowedRoles={['ADMIN', 'CLUB']}>
                 <ClaimDetailPage />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/dashboard/admin/revenue" 
             element={
-              <RoleGuard allowedRoles={['ADMIN']}>
+              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
                 <RevenuePage />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/dashboard/admin/clubs/:clubId" 
             element={
-              <RoleGuard allowedRoles={['ADMIN']}>
+              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
                 <ClubDetailPage />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/dashboard/admin/players/:playerId" 
             element={
-              <RoleGuard allowedRoles={['ADMIN']}>
+              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
                 <PlayerDetailPage />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/dashboard/admin/users" 
             element={
-              <RoleGuard allowedRoles={['ADMIN']}>
+              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
                 <UserManagement />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/dashboard/admin/revenue/breakdown" 
             element={
-              <RoleGuard allowedRoles={['ADMIN']}>
+              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
                 <RevenueBreakdown />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/dashboard/admin/entries" 
             element={
-              <RoleGuard allowedRoles={['ADMIN']}>
+              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
                 <EntriesPage />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path={ROUTES.CLUB.DASHBOARD}
             element={
-              <RoleGuard allowedRoles={['CLUB']}>
+              <EnhancedRoleGuard allowedRoles={['CLUB']}>
                 <ClubDashboardNew />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/dashboard/club/revenue" 
             element={
-              <RoleGuard allowedRoles={['CLUB']}>
+              <EnhancedRoleGuard allowedRoles={['CLUB']}>
                 <ClubRevenue />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/dashboard/club/entries" 
             element={
-              <RoleGuard allowedRoles={['CLUB']}>
+              <EnhancedRoleGuard allowedRoles={['CLUB']}>
                 <ClubEntries />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path={ROUTES.CLUB.BANKING}
             element={
-              <RoleGuard allowedRoles={['CLUB']}>
+              <EnhancedRoleGuard allowedRoles={['CLUB']}>
                 <ClubBankingPage />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/dashboard/club/competitions" 
             element={
-              <RoleGuard allowedRoles={['CLUB']}>
+              <EnhancedRoleGuard allowedRoles={['CLUB']}>
                 <ClubCompetitions />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/dashboard/club/support" 
             element={
-              <RoleGuard allowedRoles={['CLUB']}>
+              <EnhancedRoleGuard allowedRoles={['CLUB']}>
                 <ClubSupport />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path={ROUTES.CLUB.COMPETITIONS_NEW}
             element={
-              <RoleGuard allowedRoles={['CLUB']}>
+              <EnhancedRoleGuard allowedRoles={['CLUB']}>
                 <CompetitionWizardPage />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           <Route 
             path="/dashboard/club/competitions/:id" 
             element={
-              <RoleGuard allowedRoles={['CLUB']}>
+              <EnhancedRoleGuard allowedRoles={['CLUB']}>
                 <CompetitionDetailEnhanced />
-              </RoleGuard>
+              </EnhancedRoleGuard>
             } 
           />
           
