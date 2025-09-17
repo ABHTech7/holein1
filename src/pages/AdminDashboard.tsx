@@ -91,8 +91,8 @@ const AdminDashboard = () => {
 
         // Fetch basic stats with proper error handling
         const [playersRes, newPlayersRes, clubsRes, activeCompsRes] = await Promise.all([
-          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'PLAYER'),
-          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'PLAYER').gte('created_at', monthStart),
+          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'PLAYER').neq('status', 'deleted').is('deleted_at', null),
+          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'PLAYER').neq('status', 'deleted').is('deleted_at', null).gte('created_at', monthStart),
           supabase.from('clubs').select('id', { count: 'exact', head: true }),
           supabase.from('competitions').select('id, name, status').eq('status', 'ACTIVE')
         ]);
@@ -251,6 +251,8 @@ const AdminDashboard = () => {
             .from('profiles')
             .select('id', { count: 'exact', head: true })
             .eq('role', 'PLAYER')
+            .neq('status', 'deleted')
+            .is('deleted_at', null)
             .gte('created_at', monthStart)
             .lte('created_at', monthEnd);
 
