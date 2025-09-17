@@ -118,9 +118,7 @@ serve(async (req) => {
     const softDelete = Deno.env.get('VITE_SOFT_DELETE_PLAYERS') !== 'false';
     console.log('[admin-delete-incomplete-user] Soft delete mode:', softDelete);
 
-    // Perform deletion in transaction
-    const { error: transactionError } = await supabaseAdmin.rpc('begin');
-    
+    // Perform deletion operations
     try {
       if (softDelete) {
         // Soft delete: update profile status
@@ -200,8 +198,7 @@ serve(async (req) => {
         // Don't fail the deletion for audit log issues
       }
 
-      // Commit transaction
-      await supabaseAdmin.rpc('commit');
+      // Operations completed successfully
 
       console.log('[admin-delete-incomplete-user] Successfully deleted user:', user_id);
 
@@ -219,8 +216,7 @@ serve(async (req) => {
       );
 
     } catch (error) {
-      // Rollback transaction
-      await supabaseAdmin.rpc('rollback');
+      // Re-throw error for outer catch block
       throw error;
     }
 
