@@ -747,14 +747,9 @@ const CompetitionDetailEnhanced = () => {
                       competitionName={competition.name}
                       clubId={competition.club_id}
                       holeNumber={competition.hole_number}
-                      onCopy={handleShareCompetition}
                     />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <Button className="gap-2" onClick={handleShareCompetition}>
-                      <Copy className="w-4 h-4" />
-                      Copy Link
-                    </Button>
                     <PreviewLink 
                       competitionId={competition.id}
                       competitionName={competition.name}
