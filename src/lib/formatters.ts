@@ -92,16 +92,17 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
   if (!text) return false;
 
   try {
-    // Modern clipboard API (preferred)
-    if (navigator.clipboard?.writeText) {
+    // Check if we're in a secure context and have clipboard API
+    if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(text);
+      console.log('✅ Clipboard copy successful via modern API');
       return true;
     }
   } catch (error) {
-    console.warn('Modern clipboard API failed, falling back to legacy method');
+    console.warn('Modern clipboard API failed:', error);
   }
 
-  // Enhanced fallback for older browsers
+  // Enhanced fallback for older browsers or insecure contexts
   try {
     const textarea = document.createElement('textarea');
     textarea.value = text;
@@ -113,15 +114,22 @@ export const copyToClipboard = async (text: string): Promise<boolean> => {
     textarea.setAttribute('aria-hidden', 'true');
     
     document.body.appendChild(textarea);
+    textarea.focus();
     textarea.select();
     textarea.setSelectionRange(0, text.length);
     
     const success = document.execCommand('copy');
     document.body.removeChild(textarea);
     
+    if (success) {
+      console.log('✅ Clipboard copy successful via fallback method');
+    } else {
+      console.error('❌ Fallback clipboard copy failed');
+    }
+    
     return success;
   } catch (error) {
-    console.error('Clipboard copy failed:', error);
+    console.error('❌ All clipboard copy methods failed:', error);
     return false;
   }
 };
