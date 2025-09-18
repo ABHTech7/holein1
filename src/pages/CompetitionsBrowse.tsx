@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDateTime } from "@/lib/formatters";
+import { createClubSlug, createCompetitionSlug, generateCompetitionEntryUrlSync } from "@/lib/competitionUtils";
 
 interface Competition {
   id: string;
@@ -228,7 +229,10 @@ const CompetitionsBrowse = () => {
                       </div>
 
                       <Button asChild className="w-full">
-                        <Link to={`/entry/${competition.id}`}>
+                        <Link to={generateCompetitionEntryUrlSync(
+                          createClubSlug(competition.clubs.name),
+                          createCompetitionSlug(competition.name)
+                        )}>
                           Enter Competition
                         </Link>
                       </Button>
