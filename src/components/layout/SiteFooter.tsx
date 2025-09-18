@@ -31,7 +31,7 @@ const SiteFooter = () => {
                   <Trophy className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <span className="font-display text-xl font-semibold text-foreground">
-                  Hole in 1 Challenge
+                  Official Hole in 1
                 </span>
               </Link>
               <p className="text-muted-foreground max-w-md">
@@ -78,7 +78,7 @@ const SiteFooter = () => {
           {/* Bottom Bar */}
           <div className="mt-8 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center">
             <p className="text-sm text-muted-foreground">
-              © {currentYear} Hole in 1 Challenge. All rights reserved.
+              © {currentYear} Official Hole in 1. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <Link 
