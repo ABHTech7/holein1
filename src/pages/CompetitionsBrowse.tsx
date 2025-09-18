@@ -45,32 +45,57 @@ const CompetitionsBrowse = () => {
 
   const fetchCompetitions = async () => {
     try {
-      const { data, error } = await supabase
-        .from('competitions')
-        .select(`
-          id,
-          name,
-          description,
-          entry_fee,
-          prize_pool,
-          hole_number,
-          start_date,
-          end_date,
-          is_year_round,
-          hero_image_url,
-          clubs:clubs(
-            id,
-            name,
-            website
-          )
-        `)
-        .eq('status', 'ACTIVE')
-        .eq('archived', false)
-        .order('start_date', { ascending: true });
+      // First get safe clubs data
+      const { data: clubsData, error: clubsError } = await supabase
+        .rpc('get_safe_clubs_data');
 
-      if (error) throw error;
-      setCompetitions(data || []);
+      if (clubsError) throw clubsError;
+
+      // Get all active competitions using safe function
+      const allCompetitions: Competition[] = [];
+      
+      // Fetch competitions for each club
+      for (const club of clubsData || []) {
+        const { data: competitionsData, error: competitionsError } = await supabase
+          .rpc('get_safe_competition_data', {
+            club_uuid: club.id,
+            competition_slug_param: ''
+          });
+
+        if (competitionsError) {
+          console.warn(`Error fetching competitions for club ${club.name}:`, competitionsError);
+          continue;
+        }
+
+        // Transform data to match our interface
+        const transformedCompetitions = (competitionsData || []).map(comp => ({
+          id: comp.id,
+          name: comp.name,
+          description: comp.description,
+          entry_fee: comp.entry_fee,
+          prize_pool: comp.prize_pool,
+          hole_number: comp.hole_number,
+          start_date: comp.start_date,
+          end_date: comp.end_date,
+          is_year_round: comp.is_year_round,
+          hero_image_url: comp.hero_image_url,
+          clubs: {
+            id: comp.club_id,
+            name: comp.club_name,
+            website: comp.club_website
+          }
+        }));
+
+        allCompetitions.push(...transformedCompetitions);
+      }
+
+      // Sort by start date
+      const sortedCompetitions = allCompetitions
+        .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
+
+      setCompetitions(sortedCompetitions);
     } catch (error: any) {
+      console.error('Error loading competitions:', error);
       toast({
         title: "Error loading competitions",
         description: "Unable to load competitions. Please try again.",
