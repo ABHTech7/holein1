@@ -12,7 +12,7 @@ import { getLastAuthEmail } from "@/lib/entryContextPersistence";
 import useAuth from "@/hooks/useAuth";
 
 const LAST_AUTH_EMAIL_KEY = 'last_auth_email';
-const EMAIL_TTL_MINUTES = 360; // 6 hours
+const EMAIL_TTL_MINUTES = parseInt(import.meta.env.VITE_AUTH_EMAIL_TTL_MINUTES as string, 10) || 360; // 6 hours
 
 const ExpiredLinkPage = () => {
   const navigate = useNavigate();

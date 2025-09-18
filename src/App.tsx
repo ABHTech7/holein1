@@ -130,6 +130,7 @@ const App = () => {
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/auth/expired-link" element={<ExpiredLinkPage />} />
+            <Route path="/auth/expired" element={<Navigate to="/auth/expired-link" replace />} />
             <Route path="/competitions" element={<CompetitionsBrowse />} />
             <Route path="/dev/demo" element={<DeveloperDemo />} />
             {/* New competition entry route with clear structure */}

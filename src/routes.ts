@@ -8,6 +8,7 @@ export const ROUTES = {
   HOME: '/',
   AUTH: '/auth',
   AUTH_CALLBACK: '/auth/callback',
+  AUTH_EXPIRED: '/auth/expired-link',
   PARTNERSHIP: '/partnership',
   
   // Player Routes

@@ -4,7 +4,7 @@
  */
 
 const COOLDOWN_PREFIX = 'resend_cooldown_';
-const DEFAULT_COOLDOWN_SECONDS = 60;
+const DEFAULT_COOLDOWN_SECONDS = parseInt(import.meta.env.VITE_RESEND_COOLDOWN_SECONDS as string, 10) || 60;
 
 export interface CooldownState {
   isActive: boolean;
