@@ -61,33 +61,39 @@ const HomeNew = () => {
           </Container>
         </Section>
 
-        {/* Hero Section */}
-        <Section spacing="xl" className="bg-gradient-hero text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-primary/20"></div>
+        {/* Enhanced Hero Section */}
+        <Section spacing="xl" className="bg-gradient-hero text-white relative overflow-hidden min-h-[80vh] flex items-center">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary-dark/30 via-transparent to-secondary/20"></div>
           <Container className="relative z-10">
-            <div className="text-center max-w-4xl mx-auto animate-fade-in">
+            <div className="text-center max-w-5xl mx-auto animate-fade-in">
+              <div className="inline-flex items-center gap-2 bg-secondary/20 backdrop-blur-sm border border-secondary/30 rounded-full px-6 py-2 mb-8">
+                <span className="text-secondary font-bold text-sm tracking-wide">OFFICIAL HOLE IN 1</span>
+              </div>
+              
               {activeAudience === 'players' ? (
                 <>
-                  <h1 className="text-display font-bold mb-6">
+                  <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-bold mb-8 leading-tight">
                     One Shot. One Chance.<br />
-                    <span className="text-secondary">Become a Legend.</span>
+                    <span className="text-secondary bg-gradient-lime bg-clip-text text-transparent drop-shadow-lg">
+                      Become a Legend.
+                    </span>
                   </h1>
-                  <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+                  <p className="text-xl md:text-2xl text-white/90 mb-12 max-w-3xl mx-auto leading-relaxed">
                     Take on the ultimate golf challenge. Hole-in-one competitions with real prizes,
                     professional verification, and the thrill of a lifetime. Your moment of glory awaits.
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                  <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
                     <Button 
                       size="lg" 
-                      className="bg-secondary hover:bg-secondary-light text-secondary-foreground rounded-full px-8 py-4 text-lg font-semibold shadow-strong"
+                      className="btn-secondary btn-pill text-lg font-bold px-12 py-5 shadow-glow hover:scale-110 transition-all duration-300"
                     >
                       <Play className="w-5 h-5 mr-2" />
                       Play Now
                     </Button>
                     <Button 
-                      size="lg" 
-                      variant="outline" 
-                      className="border-white/30 text-white hover:bg-white/10 rounded-full px-8 py-4 text-lg"
+                      variant="ghost" 
+                      size="lg"
+                      className="btn-ghost btn-pill text-lg font-semibold px-8 py-5 text-white"
                     >
                       Watch Demo
                     </Button>
@@ -95,28 +101,30 @@ const HomeNew = () => {
                 </>
               ) : (
                 <>
-                  <h1 className="text-display font-bold mb-6">
+                  <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-bold mb-8 leading-tight">
                     Turn Every Round Into<br />
-                    <span className="text-secondary">Revenue.</span>
+                    <span className="text-secondary bg-gradient-lime bg-clip-text text-transparent drop-shadow-lg">
+                      Revenue
+                    </span>
                   </h1>
-                  <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
+                  <p className="text-xl md:text-2xl text-white/90 mb-12 max-w-3xl mx-auto leading-relaxed">
                     Boost member engagement and generate new income streams with premium 
                     hole-in-one competitions. Complete analytics, automated management, guaranteed payouts.
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                  <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
                     <Button 
                       size="lg" 
-                      className="bg-secondary hover:bg-secondary-light text-secondary-foreground rounded-full px-8 py-4 text-lg font-semibold shadow-strong"
+                      className="btn-secondary btn-pill text-lg font-bold px-12 py-5 shadow-glow hover:scale-110 transition-all duration-300"
                     >
                       <Handshake className="w-5 h-5 mr-2" />
                       Partner With Us
                     </Button>
                     <Button 
-                      size="lg" 
-                      variant="outline" 
-                      className="border-white/30 text-white hover:bg-white/10 rounded-full px-8 py-4 text-lg"
+                      variant="ghost" 
+                      size="lg"
+                      className="btn-ghost btn-pill text-lg font-semibold px-8 py-5 text-white"
                     >
-                      View Revenue Report
+                      View Case Studies
                     </Button>
                   </div>
                 </>
@@ -125,34 +133,34 @@ const HomeNew = () => {
           </Container>
         </Section>
 
-        {/* Trust Banner */}
-        <Section spacing="md" className="bg-card">
+        {/* Enhanced Trust Banner */}
+        <Section spacing="md" className="relative">
           <Container>
-            <div className="bg-secondary/10 border border-secondary/20 rounded-4xl p-6">
-              <div className="flex items-center justify-center gap-8 text-sm font-medium text-secondary-foreground flex-wrap">
+            <div className="glass-card rounded-3xl p-8 border-2 border-secondary/20 shadow-strong">
+              <div className="flex items-center justify-center gap-8 text-sm font-bold text-foreground flex-wrap">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-secondary/20 rounded-xl">
-                    <Shield className="w-5 h-5 text-secondary" />
+                  <div className="p-3 bg-gradient-lime rounded-full shadow-medium">
+                    <Shield className="w-5 h-5 text-secondary-foreground" />
                   </div>
-                  <span className="font-semibold">Insurer-backed</span>
+                  <span>Insurance Backed</span>
                 </div>
                 
-                <div className="h-6 w-px bg-secondary/30 hidden sm:block"></div>
+                <div className="h-8 w-px bg-border hidden sm:block"></div>
                 
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-secondary/20 rounded-xl">
-                    <Video className="w-5 h-5 text-secondary" />
+                  <div className="p-3 bg-gradient-blue rounded-full shadow-medium">
+                    <Video className="w-5 h-5 text-white" />
                   </div>
-                  <span className="font-semibold">Verified by 4K CCTV</span>
+                  <span>4K CCTV Verified</span>
                 </div>
                 
-                <div className="h-6 w-px bg-secondary/30 hidden sm:block"></div>
+                <div className="h-8 w-px bg-border hidden sm:block"></div>
                 
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-secondary/20 rounded-xl">
-                    <CheckCircle className="w-5 h-5 text-secondary" />
+                  <div className="p-3 bg-gradient-lime rounded-full shadow-medium">
+                    <CheckCircle className="w-5 h-5 text-secondary-foreground" />
                   </div>
-                  <span className="font-semibold">Guaranteed payout</span>
+                  <span>Guaranteed Payout</span>
                 </div>
               </div>
             </div>

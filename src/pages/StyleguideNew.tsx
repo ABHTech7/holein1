@@ -23,15 +23,18 @@ const StyleguideNew = () => {
       <main className="flex-1">
         {/* Page Header */}
         <Section spacing="lg" className="bg-muted">
-          <div className="text-center animate-fade-in">
-            <h1 className="text-display font-bold text-foreground mb-4">
-              Blue/Lime Design System
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              A comprehensive overview of the new blue and lime design system components 
-              with modern styling, clean typography, and enhanced interactions.
-            </p>
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center gap-2 bg-secondary/20 backdrop-blur-sm border border-secondary/30 rounded-full px-6 py-2 mb-6">
+            <span className="text-secondary font-bold text-sm tracking-wide">OFFICIAL HOLE IN 1</span>
           </div>
+          <h1 className="font-display text-4xl md:text-5xl font-bold text-foreground mb-6">
+            Blue/Lime Design System
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            A comprehensive overview of the enhanced blue and lime design system with modern styling, 
+            glass morphism effects, and elevated interactions.
+          </p>
+        </div>
         </Section>
 
         {/* Colors */}
