@@ -285,7 +285,7 @@ const ClubRevenue = () => {
               {/* Revenue Stats */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatsCard
-                  title="Today's Revenue"
+                  title="Today's Commission"
                   value={formatCurrency(stats.dailyRevenue)}
                   icon={DollarSign}
                 />
@@ -311,7 +311,7 @@ const ClubRevenue = () => {
                 <CardHeader>
                   <div className="flex justify-between items-center">
                     <div>
-                      <CardTitle>Revenue Trend</CardTitle>
+                      <CardTitle>Commission Trend</CardTitle>
                       <p className="text-sm text-muted-foreground mt-1">
                         Daily commission earnings over time
                       </p>
@@ -344,7 +344,7 @@ const ClubRevenue = () => {
                         <Tooltip 
                           formatter={(value, name) => [
                             `£${Number(value).toFixed(2)}`, 
-                            name === 'revenue' ? 'Revenue' : 'Entries'
+                            name === 'revenue' ? 'Commission' : 'Entries'
                           ]}
                           labelFormatter={(label) => `Date: ${label}`}
                         />
@@ -374,8 +374,8 @@ const ClubRevenue = () => {
                       </p>
                     </div>
                     <div className="text-right text-sm text-muted-foreground">
-                      <p>Total Revenue: {formatCurrency(stats.yearToDate)}</p>
-                      <p>Today's Revenue: {formatCurrency(stats.dailyRevenue)}</p>
+                      <p>Total Commission: {formatCurrency(stats.yearToDate)}</p>
+                      <p>Today's Commission: {formatCurrency(stats.dailyRevenue)}</p>
                     </div>
                   </div>
                 </CardHeader>
