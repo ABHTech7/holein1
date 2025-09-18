@@ -2,14 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Hole in 1 Challenge Design System - Premium golf competition platform */
+/* Official Hole in 1 Design System - Modern golf competition platform */
 
 @layer base {
   :root {
-    /* Core Brand Colors */
+    /* Core Brand Colors - Enhanced */
     --primary: 159 61% 15%;        /* Deep Forest Green #0F3D2E */
     --primary-foreground: 60 25% 96%;  /* Off-white #F7F7F5 */
     --primary-light: 159 40% 25%;   /* Lighter green for variants */
+    --primary-glow: 159 61% 35%;    /* Glowing green variant */
     
     --secondary: 45 45% 54%;        /* Elegant Gold #C7A24C */
     --secondary-foreground: 0 0% 12%;   /* Charcoal for contrast */
@@ -18,7 +19,7 @@
     --accent: 45 45% 54%;           /* Gold accent */
     --accent-foreground: 0 0% 12%;
     
-    /* Neutral Palette */
+    /* Neutral Palette - Enhanced */
     --background: 60 25% 96%;       /* Off-white background */
     --foreground: 0 0% 12%;         /* Charcoal text */
     --card: 0 0% 100%;              /* Pure white cards */
@@ -43,19 +44,28 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 12%;
     
-    /* Design Tokens */
-    --radius: 1rem;                 /* Rounded-2xl equivalent */
+    /* Modern Design Tokens */
+    --radius: 1.25rem;              /* More rounded for modern feel */
     --spacing: 0.5rem;              /* 8px base spacing */
     
-    /* Gradients */
+    /* Enhanced Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(159 61% 15%), hsl(159 40% 25%));
     --gradient-gold: linear-gradient(135deg, hsl(45 45% 54%), hsl(45 55% 65%));
     --gradient-hero: linear-gradient(135deg, hsl(159 61% 15%) 0%, hsl(159 40% 25%) 50%, hsl(45 45% 54%) 100%);
+    --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.1), hsl(0 0% 100% / 0.05));
+    --gradient-shimmer: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.4), transparent);
     
-    /* Shadows */
+    /* Enhanced Shadows - Color-matched */
     --shadow-soft: 0 4px 20px -2px hsl(159 61% 15% / 0.08);
     --shadow-medium: 0 8px 30px -4px hsl(159 61% 15% / 0.12);
     --shadow-strong: 0 16px 40px -8px hsl(159 61% 15% / 0.16);
+    --shadow-glow: 0 0 40px hsl(159 61% 35% / 0.3);
+    --shadow-gold: 0 8px 30px -4px hsl(45 45% 54% / 0.2);
+    
+    /* Glass-morphism */
+    --glass-bg: hsl(0 0% 100% / 0.1);
+    --glass-border: hsl(0 0% 100% / 0.2);
+    --glass-blur: blur(10px);
     
     /* Sidebar */
     --sidebar-background: 159 61% 15%;
@@ -69,7 +79,7 @@
   }
 
   .dark {
-    /* Dark mode with same brand colors, inverted neutrals */
+    /* Dark mode with enhanced contrasts */
     --background: 0 0% 8%;          /* Very dark background */
     --foreground: 60 25% 96%;       /* Off-white text */
     --card: 0 0% 12%;               /* Dark cards */
@@ -77,6 +87,7 @@
     
     --primary: 159 50% 45%;         /* Brighter green for dark mode */
     --primary-foreground: 0 0% 8%;
+    --primary-glow: 159 60% 55%;    /* Enhanced glow in dark mode */
     
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 65%;
@@ -87,6 +98,9 @@
     
     --popover: 0 0% 12%;
     --popover-foreground: 60 25% 96%;
+    
+    --glass-bg: hsl(0 0% 0% / 0.2);
+    --glass-border: hsl(0 0% 100% / 0.1);
   }
 }
 
@@ -139,6 +153,44 @@
     @apply max-w-screen-xl mx-auto px-8;
   }
   
+  /* Glass-morphism Components */
+  .glass {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  }
+  
+  .glass-strong {
+    @apply bg-white/20 backdrop-blur-xl border border-white/30;
+  }
+  
+  .glass-card {
+    @apply glass rounded-2xl shadow-medium;
+  }
+  
+  /* Enhanced Button Styles */
+  .btn-modern {
+    @apply relative overflow-hidden transition-all duration-300 transform hover:scale-105;
+  }
+  
+  .btn-glow {
+    @apply shadow-glow hover:shadow-gold transition-all duration-300;
+  }
+  
+  .btn-shimmer::before {
+    content: '';
+    @apply absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent;
+    transform: translateX(-100%);
+    animation: shimmer 2s infinite;
+  }
+  
+  /* Enhanced Cards */
+  .card-modern {
+    @apply bg-card rounded-2xl shadow-soft hover:shadow-medium transition-all duration-300 transform hover:-translate-y-1;
+  }
+  
+  .card-floating {
+    @apply card-modern hover:shadow-strong;
+  }
+  
   /* Animation utilities */
   .animate-fade-in {
     animation: fadeIn 0.6s ease-out;
@@ -148,16 +200,28 @@
     animation: slideUp 0.8s ease-out;
   }
   
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
+  .animate-scale-in {
+    animation: scaleIn 0.4s ease-out;
   }
   
-  @keyframes slideUp {
+  .hover-lift {
+    @apply transition-transform duration-200 hover:-translate-y-1;
+  }
+  
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-glow;
+  }
+  
+  /* Text Enhancement */
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
+  }
+  
+  .text-glow {
+    text-shadow: 0 0 20px currentColor;
+  }
+  
+  @keyframes fadeIn {
     from {
       opacity: 0;
       transform: translateY(20px);
@@ -165,6 +229,37 @@
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
     }
   }
 }
