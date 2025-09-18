@@ -146,7 +146,7 @@ export default function AuthCallback() {
         clearEntryContext();
       }
 
-      // Default navigation - redirect to player entries instead of root
+      // Default navigation after successful auth - redirect to player entries
       const cont = params.get("continue") || "/players/entries";
       navigate(cont, { replace: true });
     };

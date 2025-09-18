@@ -45,6 +45,7 @@ export const ROUTES = {
   
   // Competition & Entry Routes
   COMPETITION: {
+    BROWSE: '/competitions', // Add missing competitions browse route
     ENTRY: (clubSlug: string, competitionSlug: string) => 
       `/competition/${clubSlug}/${competitionSlug}`,
     ENTER: (clubSlug: string, competitionSlug: string) => 
