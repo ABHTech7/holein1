@@ -6,7 +6,7 @@
 const PENDING_ENTRY_KEY = 'pending_entry_context';
 const LAST_AUTH_EMAIL_KEY = 'last_auth_email';
 const TTL_MINUTES = parseInt(import.meta.env.VITE_ENTRY_CONTEXT_TTL_MINUTES as string, 10) || 360; // Default 6 hours
-const AUTH_EMAIL_TTL_MINUTES = parseInt(import.meta.env.VITE_LAST_AUTH_EMAIL_TTL_MINUTES as string, 10) || 360; // Default 6 hours
+const AUTH_EMAIL_TTL_MINUTES = parseInt(import.meta.env.VITE_AUTH_EMAIL_TTL_MINUTES as string, 10) || 360; // Default 6 hours
 
 export interface PendingEntryContext {
   email: string;
