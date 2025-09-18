@@ -3,7 +3,7 @@
  * Logs current window.location.origin and checks for SITE_URL mismatches
  */
 
-const EXPECTED_SITE_URL = 'https://demo.holein1challenge.co.uk';
+const EXPECTED_SITE_URL = import.meta.env.VITE_EXPECTED_SITE_URL || 'https://demo.holein1challenge.co.uk';
 
 /**
  * Log current auth configuration and check for mismatches
