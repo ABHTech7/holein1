@@ -36,7 +36,7 @@ export const EntryResendBanner = ({ onDismiss }: EntryResendBannerProps) => {
   }
 
   return (
-    <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20 mb-6 sticky top-4 z-10">
+    <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20 mb-6 sticky top-4 z-10" data-testid="entry-resend-banner">
       <CardContent className="p-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-1">

@@ -190,6 +190,7 @@ const PlayersPage = () => {
               variant="outline"
               className="gap-2 text-destructive hover:text-destructive border-destructive/20"
               onClick={() => setShowIncompleteModal(true)}
+              data-testid="admin-manage-incomplete-btn"
             >
               <Trash2 className="w-4 h-4" />
               Manage Incomplete

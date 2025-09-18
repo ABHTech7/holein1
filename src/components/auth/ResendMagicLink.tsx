@@ -153,7 +153,7 @@ export const ResendMagicLink = ({
       ) : cooldownSeconds > 0 ? (
         <>
           <Clock className="w-4 h-4 mr-2" />
-          Resend in {cooldownSeconds}s
+          <span data-testid="resend-cooldown">Resend in {cooldownSeconds}s</span>
         </>
       ) : (
         <>
@@ -172,6 +172,7 @@ export const ResendMagicLink = ({
       size={size}
       className="w-full"
       aria-label={`Resend magic link to ${email}`}
+      data-testid="resend-magic-link-btn"
     >
       {buttonContent}
     </Button>

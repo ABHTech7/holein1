@@ -1,0 +1,2 @@
+# This directory stores Playwright authentication states
+# admin.json will be created by global-setup.ts

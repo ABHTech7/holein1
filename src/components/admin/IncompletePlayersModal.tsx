@@ -256,7 +256,7 @@ const IncompletePlayersModal = ({ isOpen, onClose, onPlayersDeleted }: Incomplet
                     const reason = getDeletionReason(player);
                     
                     return (
-                      <TableRow key={player.id} className={!isDeletable ? 'opacity-60' : ''}>
+                      <TableRow key={player.id} className={!isDeletable ? 'opacity-60' : ''} data-testid={`incomplete-player-row-${player.id}`}>
                         <TableCell>
                           <Checkbox
                             checked={selectedPlayers.has(player.id)}
@@ -338,7 +338,7 @@ const IncompletePlayersModal = ({ isOpen, onClose, onPlayersDeleted }: Incomplet
             {selectedPlayers.size > 0 && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" disabled={deleting || deletableCount === 0}>
+                  <Button variant="destructive" disabled={deleting || deletableCount === 0} data-testid="incomplete-delete-selected">
                     {deleting ? 'Deleting...' : `Delete Selected (${deletableCount})`}
                   </Button>
                 </AlertDialogTrigger>
@@ -353,7 +353,7 @@ const IncompletePlayersModal = ({ isOpen, onClose, onPlayersDeleted }: Incomplet
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" data-testid="confirm-delete-btn">
                       {softDeleteEnabled ? 'Soft Delete' : 'Permanently Delete'}
                     </AlertDialogAction>
                   </AlertDialogFooter>

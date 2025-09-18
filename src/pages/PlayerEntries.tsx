@@ -163,7 +163,7 @@ const PlayerEntries = () => {
                   />
                 )}
                 
-                <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-2">
+                <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-2" data-testid="player-entries-heading">
                   My Competition Entries
                 </h1>
                 <p className="text-muted-foreground">
