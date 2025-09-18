@@ -19,13 +19,16 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				'sans': ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'system-ui', 'sans-serif'],
-				'display': ['Inter', 'system-ui', 'sans-serif'],
+				'sans': ['Bebas Neue', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'system-ui', 'sans-serif'],
+				'display': ['Bebas Neue', 'Inter', 'system-ui', 'sans-serif'],
+				'body': ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'system-ui', 'sans-serif'],
 			},
 			fontSize: {
-				'display': ['3.5rem', { lineHeight: '1.1', fontWeight: '600' }], // 56px
-				'h2': ['2rem', { lineHeight: '1.2', fontWeight: '600' }], // 32px
-				'body': ['1rem', { lineHeight: '1.5' }], // 16px
+				'display': ['3.5rem', { lineHeight: '1.1', fontWeight: '400' }], // 56px - Bebas Neue is naturally bold
+				'h1': ['2.5rem', { lineHeight: '1.2', fontWeight: '400' }], // 40px
+				'h2': ['2rem', { lineHeight: '1.2', fontWeight: '400' }], // 32px
+				'h3': ['1.5rem', { lineHeight: '1.3', fontWeight: '400' }], // 24px
+				'body': ['1rem', { lineHeight: '1.5' }], // 16px - Inter for body text
 				'small': ['0.875rem', { lineHeight: '1.4' }], // 14px
 			},
 			colors: {
