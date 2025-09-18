@@ -1,0 +1,185 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Blue/Lime Golf Theme - Based on Screenshots */
+
+@layer base {
+  :root {
+    /* Core Brand Colors - Blue/Lime System */
+    --primary: 217 91% 60%;        /* Bright Blue #2F7BFF */
+    --primary-foreground: 0 0% 100%;  /* White text on blue */
+    --primary-light: 203 74% 77%;   /* Light Blue #A0CDEE */
+    --primary-medium: 203 63% 65%;   /* Medium Blue #54A1DE */
+    
+    --secondary: 81 100% 62%;       /* Lime Green #C5FF3E */
+    --secondary-foreground: 210 100% 8%;   /* Dark Navy for contrast */
+    --secondary-light: 81 100% 75%;   /* Light lime variant */
+    
+    --accent: 81 100% 62%;          /* Lime accent */
+    --accent-foreground: 210 100% 8%;
+    
+    /* Neutral Palette */
+    --background: 214 100% 97%;     /* Light Blue Background #F7FAFF */
+    --foreground: 210 100% 8%;      /* Dark Navy Text #0B1B2B */
+    --card: 0 0% 100%;              /* Pure white cards */
+    --card-foreground: 210 100% 8%;
+    
+    --muted: 214 100% 94%;          /* Light Blue Muted #EAF1FF */
+    --muted-foreground: 210 40% 35%; /* Medium Navy #3E556B */
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 100% 8%;
+    
+    /* Interactive States */
+    --border: 214 100% 92%;         /* Subtle blue borders */
+    --input: 214 100% 92%;
+    --ring: 81 100% 62%;            /* Lime focus ring */
+    
+    /* Status Colors */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --success: 120 60% 50%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 12%;
+    
+    /* Design Tokens */
+    --radius: 2rem;                 /* 32px - very rounded */
+    --spacing: 0.5rem;              /* 8px base spacing */
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(203 74% 77%), hsl(203 63% 65%), hsl(217 91% 60%));
+    --gradient-hero: linear-gradient(135deg, hsl(203 74% 77%) 0%, hsl(217 91% 60%) 50%, hsl(81 100% 62%) 100%);
+    --gradient-lime: linear-gradient(135deg, hsl(81 100% 62%), hsl(81 100% 75%));
+    --gradient-blue: linear-gradient(135deg, hsl(217 91% 60%), hsl(203 63% 65%));
+    
+    /* Shadows */
+    --shadow-soft: 0 2px 8px -2px hsl(217 91% 60% / 0.06);
+    --shadow-medium: 0 4px 16px -4px hsl(217 91% 60% / 0.1);
+    --shadow-strong: 0 8px 24px -8px hsl(217 91% 60% / 0.15);
+    
+    /* Sidebar */
+    --sidebar-background: 217 91% 60%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 81 100% 62%;
+    --sidebar-primary-foreground: 210 100% 8%;
+    --sidebar-accent: 203 63% 65%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 203 74% 77%;
+    --sidebar-ring: 81 100% 62%;
+  }
+
+  .dark {
+    /* Dark mode with same brand colors, inverted neutrals */
+    --background: 210 100% 4%;      /* Very dark navy background */
+    --foreground: 0 0% 100%;        /* White text */
+    --card: 210 100% 6%;            /* Dark navy cards */
+    --card-foreground: 0 0% 100%;
+    
+    --primary: 203 74% 77%;         /* Light blue for dark mode */
+    --primary-foreground: 210 100% 8%;
+    
+    --muted: 210 100% 8%;
+    --muted-foreground: 0 0% 65%;
+    
+    --border: 210 100% 12%;
+    --input: 210 100% 12%;
+    --ring: 81 100% 62%;
+    
+    --popover: 210 100% 6%;
+    --popover-foreground: 0 0% 100%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-weight: 600;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-primary/30 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary/50;
+  }
+}
+
+@layer components {
+  /* Container System */
+  .container-sm {
+    @apply max-w-screen-sm mx-auto px-4;
+  }
+  
+  .container-md {
+    @apply max-w-screen-md mx-auto px-4;
+  }
+  
+  .container-lg {
+    @apply max-w-screen-lg mx-auto px-6;
+  }
+  
+  .container-xl {
+    @apply max-w-screen-xl mx-auto px-8;
+  }
+  
+  /* Pill buttons */
+  .btn-pill {
+    @apply rounded-full px-6 py-2;
+  }
+  
+  /* Animation utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out;
+  }
+  
+  .animate-hover-lift {
+    @apply transition-all duration-200 hover:-translate-y-1 hover:shadow-medium;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

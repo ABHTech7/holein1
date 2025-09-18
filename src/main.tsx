@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import { logAuthDiagnostics } from '@/lib/authDiagnostics';
-import './index.css'
+import './styles/blue-theme.css'
 
 // Run auth diagnostics on app start
 logAuthDiagnostics();

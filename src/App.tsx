@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 
 // Pages
 import Home from "./pages/Home";
+import HomeNew from "./pages/HomeNew";
 import ClubSignup from "./pages/ClubSignup";
 import PlayerLogin from "./pages/PlayerLogin";
 import PlayerEntries from "./pages/PlayerEntries";
@@ -45,6 +46,7 @@ import ClubBankingPage from "./pages/club/ClubBankingPage";
 import ClaimDetailPage from "./pages/admin/ClaimDetailPage";
 import CompetitionWizardPage from "./pages/CompetitionWizardPage";
 import Styleguide from "./pages/Styleguide";
+import StyleguideNew from "./pages/StyleguideNew";
 import ErrorPage from "./pages/ErrorPage";
 import PartnershipApplication from "./pages/PartnershipApplication";
 
@@ -114,8 +116,9 @@ const App = () => {
        <BrowserRouter>
          {process.env.NODE_ENV === 'development' && showHud && <DebugHud />}
          <Routes>
-            {/* Main Routes */}
-            <Route path="/" element={<Home />} />
+             {/* Main Routes */}
+             <Route path="/" element={<HomeNew />} />
+             <Route path="/old-home" element={<Home />} />
             <Route path="/partnership" element={<PartnershipApplication />} />
             <Route path="/clubs/signup" element={<ClubSignup />} />
             <Route path="/players/login" element={<PlayerLogin />} />
@@ -386,7 +389,8 @@ const App = () => {
           <Route path="/policies/accessibility" element={<Accessibility />} />
           
           {/* Development & Documentation */}
-          <Route path="/styleguide" element={<Styleguide />} />
+             <Route path="/styleguide" element={<StyleguideNew />} />
+             <Route path="/styleguide-old" element={<Styleguide />} />
           
           {/* Legacy Routes - keeping for compatibility */}
           <Route path="/index" element={<Index />} />
