@@ -24,9 +24,32 @@ export default function AuthCallback() {
       const code = params.get("code");
       const error = params.get("error") || params.get("error_code");
       const error_description = params.get("error_description");
+      const emailFromUrl = params.get("email");
       const fullUrl = window.location.href;
 
-      console.log('[AuthCallback] Processing callback with:', { code: !!code, error, fullUrl });
+      // Fallback email from localStorage if not in URL
+      let fallbackEmail = null;
+      try {
+        const stored = localStorage.getItem('last_auth_email');
+        if (stored) {
+          const { email, timestamp } = JSON.parse(stored);
+          // Check if expired (6 hours)
+          if (Date.now() - timestamp < 6 * 60 * 60 * 1000) {
+            fallbackEmail = email;
+          }
+        }
+      } catch (error) {
+        console.warn('[AuthCallback] Error reading localStorage email:', error);
+      }
+      
+      const email = emailFromUrl || fallbackEmail;
+
+      console.log('[AuthCallback] Processing callback:', { 
+        hasCode: !!code, 
+        error, 
+        hasEmail: !!email,
+        emailSource: emailFromUrl ? 'url' : 'localStorage'
+      });
 
       // Handle error parameters from the URL
       if (error) {
@@ -38,7 +61,8 @@ export default function AuthCallback() {
         
         // Handle expired/invalid links with proper UI
         if (error === 'expired_token' || error === 'invalid_grant' || error_description?.includes('expired')) {
-          navigate("/auth/expired-link", { replace: true });
+          const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired` : '/auth/expired-link?reason=expired';
+          navigate(redirectUrl, { replace: true });
           return;
         }
         
@@ -61,30 +85,64 @@ export default function AuthCallback() {
           if (exchangeError) {
             console.error('[AuthCallback] Code exchange failed:', exchangeError.message);
             
-            // Handle PKCE verifier missing error gracefully - no toast, just redirect
+            // Handle PKCE verifier missing error with fallback attempt
             if (exchangeError.message?.includes('code verifier') || 
                 exchangeError.message?.includes('both auth code and code verifier should be non-empty')) {
-              console.warn('[AuthCallback] PKCE verifier missing - link opened in different browser/tab');
-              navigate("/auth/expired-link", { replace: true });
-              return;
+              console.warn('[AuthCallback] PKCE verifier missing - attempting verifyOtp fallback');
+              
+              // Try verifyOtp as fallback if we have email and code
+              if (email && code) {
+                try {
+                  const { error: verifyError } = await supabase.auth.verifyOtp({
+                    email,
+                    token: code,
+                    type: 'email'
+                  });
+                  
+                  if (!verifyError) {
+                    console.log('[AuthCallback] verifyOtp fallback successful');
+                    // Continue with normal flow - don't return here
+                  } else {
+                    console.warn('[AuthCallback] verifyOtp fallback failed:', verifyError.message);
+                    // Navigate with auto-resend
+                    const redirectUrl = `/auth/expired-link?email=${encodeURIComponent(email)}&reason=pkce_missing&auto_resend=1`;
+                    navigate(redirectUrl, { replace: true });
+                    return;
+                  }
+                } catch (verifyFailure) {
+                  console.error('[AuthCallback] verifyOtp fallback threw error:', verifyFailure);
+                  // Navigate with auto-resend
+                  const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=pkce_missing&auto_resend=1` : '/auth/expired-link?reason=pkce_missing';
+                  navigate(redirectUrl, { replace: true });
+                  return;
+                }
+              } else {
+                // No email or code for fallback - navigate with auto-resend
+                const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=pkce_missing&auto_resend=1` : '/auth/expired-link?reason=pkce_missing';
+                navigate(redirectUrl, { replace: true });
+                return;
+              }
             }
             
-            // Handle other exchange errors - expired or invalid grant
-            if (exchangeError.message?.includes('expired') || 
-                exchangeError.message?.includes('invalid_grant')) {
+            // Handle other exchange errors - expired or invalid grant  
+            else if (exchangeError.message?.includes('expired') || 
+                     exchangeError.message?.includes('invalid_grant')) {
               console.warn('[AuthCallback] Token expired or invalid grant');
-              navigate("/auth/expired-link", { replace: true });
+              const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired&auto_resend=1` : '/auth/expired-link?reason=expired';
+              navigate(redirectUrl, { replace: true });
               return;
             }
             
             // Other unexpected errors
-            toast({
-              title: "Authentication failed",
-              description: exchangeError.message || "Email link invalid or expired.",
-              variant: "destructive",
-            });
-            navigate("/auth", { replace: true });
-            return;
+            else {
+              toast({
+                title: "Authentication failed", 
+                description: exchangeError.message || "Email link invalid or expired.",
+                variant: "destructive",
+              });
+              navigate("/auth", { replace: true });
+              return;
+            }
           }
           
           console.log('[AuthCallback] Code exchange successful');
@@ -100,7 +158,8 @@ export default function AuthCallback() {
         
         if (!hash) {
           console.warn('[AuthCallback] No code or hash found');
-          navigate("/auth/expired-link", { replace: true });
+          const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=missing` : '/auth/expired-link?reason=missing';
+          navigate(redirectUrl, { replace: true });
           return;
         }
         
@@ -109,14 +168,16 @@ export default function AuthCallback() {
           
           if (hashError) {
             console.error('[AuthCallback] Hash exchange failed:', hashError.message);
-            navigate("/auth/expired-link", { replace: true });
+            const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired` : '/auth/expired-link?reason=expired';
+            navigate(redirectUrl, { replace: true });
             return;
           }
           
           console.log('[AuthCallback] Hash exchange successful');
         } catch (error: any) {
           console.error('[AuthCallback] Hash exchange threw error:', error);
-          navigate("/auth/expired-link", { replace: true });
+          const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired` : '/auth/expired-link?reason=expired';
+          navigate(redirectUrl, { replace: true });
           return;
         }
       }

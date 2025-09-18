@@ -5,7 +5,8 @@
 
 const PENDING_ENTRY_KEY = 'pending_entry_context';
 const LAST_AUTH_EMAIL_KEY = 'last_auth_email';
-const TTL_MINUTES = 30;
+const TTL_MINUTES = parseInt(import.meta.env.VITE_ENTRY_CONTEXT_TTL_MINUTES as string, 10) || 360; // Default 6 hours
+const AUTH_EMAIL_TTL_MINUTES = parseInt(import.meta.env.VITE_LAST_AUTH_EMAIL_TTL_MINUTES as string, 10) || 360; // Default 6 hours
 
 export interface PendingEntryContext {
   email: string;
@@ -92,8 +93,8 @@ export const getLastAuthEmail = (): string | null => {
     
     const { email, timestamp } = JSON.parse(stored);
     
-    // Check if expired (30 minutes)
-    if (Date.now() - timestamp > TTL_MINUTES * 60 * 1000) {
+    // Check if expired (6 hours by default)
+    if (Date.now() - timestamp > AUTH_EMAIL_TTL_MINUTES * 60 * 1000) {
       localStorage.removeItem(LAST_AUTH_EMAIL_KEY);
       return null;
     }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,9 +8,11 @@ import Container from "@/components/layout/Container";
 import { AlertCircle, Mail, RefreshCw } from "lucide-react";
 import { ResendMagicLink } from "@/components/auth/ResendMagicLink";
 import { toast } from "@/hooks/use-toast";
+import { getLastAuthEmail } from "@/lib/entryContextPersistence";
+import useAuth from "@/hooks/useAuth";
 
 const LAST_AUTH_EMAIL_KEY = 'last_auth_email';
-const EMAIL_TTL_MINUTES = 30;
+const EMAIL_TTL_MINUTES = 360; // 6 hours
 
 const ExpiredLinkPage = () => {
   const navigate = useNavigate();
@@ -18,34 +20,71 @@ const ExpiredLinkPage = () => {
   const [email, setEmail] = useState("");
   const [showEmailField, setShowEmailField] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [autoResendTriggered, setAutoResendTriggered] = useState(false);
+  const { sendOtp } = useAuth();
+  const autoResendOnceRef = useRef(false);
 
   useEffect(() => {
     // Try to get email from URL params or localStorage
     const emailFromParams = searchParams.get('email');
-    const storedEmailData = localStorage.getItem(LAST_AUTH_EMAIL_KEY);
+    const reason = searchParams.get('reason');
+    const autoResend = searchParams.get('auto_resend') === '1';
     
-    let storedEmail = '';
-    if (storedEmailData) {
-      try {
-        const { email: stored, timestamp } = JSON.parse(storedEmailData);
-        const isExpired = Date.now() - timestamp > EMAIL_TTL_MINUTES * 60 * 1000;
-        if (!isExpired) {
-          storedEmail = stored;
-        } else {
+    // Try to get stored email with 6-hour TTL
+    const storedEmail = getLastAuthEmail() || (() => {
+      const storedEmailData = localStorage.getItem(LAST_AUTH_EMAIL_KEY);
+      if (storedEmailData) {
+        try {
+          const { email: stored, timestamp } = JSON.parse(storedEmailData);
+          const isExpired = Date.now() - timestamp > EMAIL_TTL_MINUTES * 60 * 1000;
+          if (!isExpired) {
+            return stored;
+          } else {
+            localStorage.removeItem(LAST_AUTH_EMAIL_KEY);
+          }
+        } catch {
           localStorage.removeItem(LAST_AUTH_EMAIL_KEY);
         }
-      } catch {
-        localStorage.removeItem(LAST_AUTH_EMAIL_KEY);
       }
-    }
+      return null;
+    })();
     
     const fallbackEmail = emailFromParams || storedEmail;
     if (fallbackEmail) {
       setEmail(fallbackEmail);
+      
+      // Auto-resend if requested and not already triggered
+      if (autoResend && !autoResendOnceRef.current && !autoResendTriggered) {
+        autoResendOnceRef.current = true;
+        setAutoResendTriggered(true);
+        
+        // Wait briefly then auto-resend
+        setTimeout(async () => {
+          try {
+            const result = await sendOtp(fallbackEmail, true);
+            if (result.error) {
+              console.warn('[ExpiredLink] Auto-resend failed:', result.error);
+            } else {
+              const messageMap = {
+                pkce_missing: "Looks like you opened the link in a different app or browser. We're sending a new one now.",
+                expired: "Your secure link has expired. We're sending a new one.",
+                missing: "We're sending you a new secure link."
+              };
+              
+              toast({
+                title: "New link sent!",
+                description: messageMap[reason as keyof typeof messageMap] || "Check your inbox for the new secure link.",
+              });
+            }
+          } catch (error) {
+            console.error('[ExpiredLink] Auto-resend error:', error);
+          }
+        }, 1000);
+      }
     } else {
       setShowEmailField(true);
     }
-  }, [searchParams]);
+  }, [searchParams, sendOtp, autoResendTriggered]);
 
   const handleResendSuccess = () => {
     toast({
@@ -95,10 +134,20 @@ const ExpiredLinkPage = () => {
                 <AlertCircle className="w-8 h-8 text-destructive" />
               </div>
             </div>
-            <CardTitle className="text-xl">Your sign-in link expired</CardTitle>
+            <CardTitle className="text-xl">
+              {searchParams.get('reason') === 'pkce_missing' ? 'Link opened in different app' : 'Your sign-in link expired'}
+            </CardTitle>
             <CardDescription>
-              The secure link in your email has expired for security reasons. 
-              You can request a new one below.
+              {(() => {
+                const reason = searchParams.get('reason');
+                if (reason === 'pkce_missing') {
+                  return "Looks like you opened the link in a different app or browser. We'll send you a fresh link.";
+                } else if (reason === 'expired') {
+                  return "Your secure link has expired for security reasons. You can request a new one below.";
+                } else {
+                  return "The secure link in your email has expired for security reasons. You can request a new one below.";
+                }
+              })()}
             </CardDescription>
           </CardHeader>
           
@@ -129,7 +178,7 @@ const ExpiredLinkPage = () => {
                 
             <ResendMagicLink
               email={email}
-              redirectUrl={`${window.location.origin}/auth/callback`}
+              redirectUrl={`${window.location.origin}/auth/callback?email=${encodeURIComponent(email)}`}
               onResendSuccess={handleResendSuccess}
               onResendError={handleResendError}
               showAsCard={false}

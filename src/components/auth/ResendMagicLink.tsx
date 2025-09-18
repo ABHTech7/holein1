@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { showSupabaseError } from '@/lib/showSupabaseError';
 import { RateLimiter } from '@/lib/rateLimiter';
+import { getCooldownState, startCooldown, isCooldownActive, getRemainingSeconds } from '@/lib/cooldownPersistence';
 
 interface ResendMagicLinkProps {
   email: string;
@@ -17,7 +18,7 @@ interface ResendMagicLinkProps {
   variant?: 'default' | 'outline' | 'ghost';
 }
 
-const RESEND_COOLDOWN_SECONDS = 60;
+const RESEND_COOLDOWN_SECONDS = parseInt(import.meta.env.VITE_RESEND_COOLDOWN_SECONDS as string, 10) || 60;
 const MAX_RESEND_ATTEMPTS = 5;
 
 export const ResendMagicLink = ({
@@ -36,17 +37,19 @@ export const ResendMagicLink = ({
 
   // Get identifier for rate limiting (email + IP simulation)
   const rateLimitId = `resend_${email}`;
+  const cooldownKey = `resend_${email}`;
 
   useEffect(() => {
     // Check initial rate limit status
     const remaining = RateLimiter.getRemainingAttempts(rateLimitId, MAX_RESEND_ATTEMPTS);
     setAttemptCount(MAX_RESEND_ATTEMPTS - remaining);
     
-    const timeUntilReset = RateLimiter.getTimeUntilReset(rateLimitId);
-    if (timeUntilReset > 0) {
-      setCooldownSeconds(Math.ceil(timeUntilReset / 1000));
+    // Check for persistent cooldown
+    const cooldownState = getCooldownState(cooldownKey);
+    if (cooldownState.isActive) {
+      setCooldownSeconds(cooldownState.remainingSeconds);
     }
-  }, [rateLimitId]);
+  }, [rateLimitId, cooldownKey]);
 
   // Cooldown timer
   useEffect(() => {
@@ -74,12 +77,22 @@ export const ResendMagicLink = ({
       return;
     }
 
+    // Check for active persistent cooldown
+    if (isCooldownActive(cooldownKey)) {
+      const remaining = getRemainingSeconds(cooldownKey);
+      toast({
+        title: "Please wait",
+        description: `You can resend in ${remaining} seconds.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsResending(true);
-    setCooldownSeconds(RESEND_COOLDOWN_SECONDS);
     
     try {
       console.info('[ResendMagicLink] Attempting to resend OTP for:', email);
-      console.log(`[Resend] started for ${email} to ${redirectUrl || `${window.location.origin}/auth/callback`}`);
+      console.log(`[Resend] started for ${email} to ${redirectUrl || `${window.location.origin}/auth/callback?email=${encodeURIComponent(email)}`}`);
       
       const { error } = await sendOtp(email, true); // Enable context persistence
       
@@ -90,6 +103,10 @@ export const ResendMagicLink = ({
       // Clear rate limit on successful send
       RateLimiter.clearLimit(rateLimitId);
       setAttemptCount(0);
+      
+      // Start persistent cooldown
+      startCooldown(cooldownKey, RESEND_COOLDOWN_SECONDS);
+      setCooldownSeconds(RESEND_COOLDOWN_SECONDS);
       
       toast({
         title: "Link resent!",
@@ -171,7 +188,7 @@ export const ResendMagicLink = ({
                 Didn't receive the email?
               </p>
               <p className="text-sm text-blue-700 dark:text-blue-300">
-                Check your spam folder or request a new link.
+                Check your spam folder or request a new link. Link valid for 6 hours.
               </p>
               {attemptCount > 0 && (
                 <p className="text-xs text-blue-600 dark:text-blue-400">

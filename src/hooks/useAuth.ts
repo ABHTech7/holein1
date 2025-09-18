@@ -146,27 +146,38 @@ export const useAuth = () => {
       }
 
       const cleanEmail = email.toLowerCase().trim();
-      const redirectUrl = `${window.location.origin}/auth/callback`;
+      // Include email in redirect URL for PKCE fallback recovery
+      const redirectUrl = `${window.location.origin}/auth/callback?email=${encodeURIComponent(cleanEmail)}`;
       
-      // Persist last auth email before sending (if requested)
-      if (persistContext) {
-        try {
-          const { storePendingEntryContext, getLastAuthEmail } = await import('@/lib/entryContextPersistence');
-          
-          // Store last auth email with timestamp
-          localStorage.setItem('last_auth_email', JSON.stringify({
-            email: cleanEmail,
-            timestamp: Date.now()
-          }));
-          
-          console.log('[Auth] Persisted auth email for resend functionality');
-        } catch (error) {
-          console.warn('[Auth] Failed to persist context:', error);
+      // Always persist auth email for 6-hour TTL (not just when persistContext=true)
+      try {
+        // Store last auth email with 6-hour timestamp
+        localStorage.setItem('last_auth_email', JSON.stringify({
+          email: cleanEmail,
+          timestamp: Date.now()
+        }));
+        
+        console.log('[Auth] Persisted auth email for 6-hour resend functionality');
+        
+        // Also persist entry context if requested
+        if (persistContext) {
+          const { storePendingEntryContext } = await import('@/lib/entryContextPersistence');
+          // Entry context logic handled elsewhere - this just ensures email is stored
         }
+      } catch (error) {
+        console.warn('[Auth] Failed to persist auth email:', error);
       }
 
-      // Rate limiting check and enhanced security logging
-      console.log(`[Auth] requested magic link for ${cleanEmail} to ${redirectUrl}`);
+      // Log the exact redirect URL and request details
+      console.log(`[Auth] email link redirect → ${redirectUrl}`);
+      
+      // Import and log diagnostics
+      try {
+        const { logEmailRedirectTo } = await import('@/lib/authDiagnostics');
+        logEmailRedirectTo(redirectUrl);
+      } catch (error) {
+        console.warn('[Auth] Failed to log diagnostics:', error);
+      }
       
       const { error } = await supabase.auth.signInWithOtp({
         email: cleanEmail,
