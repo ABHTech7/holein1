@@ -127,15 +127,15 @@ const ExpiredLinkPage = () => {
                   <span className="text-sm font-medium">{email}</span>
                 </div>
                 
-              <ResendMagicLink
-                email={email}
-                redirectUrl={`${window.location.origin}/auth/callback`}
-                onResendSuccess={handleResendSuccess}
-                onResendError={handleResendError}
-                showAsCard={false}
-                size="lg"
-                variant="default"
-              />
+            <ResendMagicLink
+              email={email}
+              redirectUrl={`${window.location.origin}/auth/callback`}
+              onResendSuccess={handleResendSuccess}
+              onResendError={handleResendError}
+              showAsCard={false}
+              size="lg"
+              variant="default"
+            />
                 
                 <Button 
                   variant="outline" 

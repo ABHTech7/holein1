@@ -61,26 +61,23 @@ export default function AuthCallback() {
           if (exchangeError) {
             console.error('[AuthCallback] Code exchange failed:', exchangeError.message);
             
-            // Handle PKCE verifier missing error gracefully
-            if (exchangeError.message?.includes('code verifier') || exchangeError.message?.includes('both auth code and code verifier should be non-empty')) {
+            // Handle PKCE verifier missing error gracefully - no toast, just redirect
+            if (exchangeError.message?.includes('code verifier') || 
+                exchangeError.message?.includes('both auth code and code verifier should be non-empty')) {
               console.warn('[AuthCallback] PKCE verifier missing - link opened in different browser/tab');
-              
-              toast({
-                title: "Link can't complete sign-in",
-                description: "This link was opened in a different tab or browser. Please use the Resend option.",
-                variant: "destructive",
-              });
-              
               navigate("/auth/expired-link", { replace: true });
               return;
             }
             
-            // Handle other exchange errors
-            if (exchangeError.message?.includes('expired') || exchangeError.message?.includes('invalid_grant')) {
+            // Handle other exchange errors - expired or invalid grant
+            if (exchangeError.message?.includes('expired') || 
+                exchangeError.message?.includes('invalid_grant')) {
+              console.warn('[AuthCallback] Token expired or invalid grant');
               navigate("/auth/expired-link", { replace: true });
               return;
             }
             
+            // Other unexpected errors
             toast({
               title: "Authentication failed",
               description: exchangeError.message || "Email link invalid or expired.",
@@ -149,8 +146,8 @@ export default function AuthCallback() {
         clearEntryContext();
       }
 
-      // Default navigation
-      const cont = params.get("continue") || "/";
+      // Default navigation - redirect to player entries instead of root
+      const cont = params.get("continue") || "/players/entries";
       navigate(cont, { replace: true });
     };
 

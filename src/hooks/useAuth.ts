@@ -137,7 +137,7 @@ export const useAuth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const sendOtp = async (email: string): Promise<{ error?: string }> => {
+  const sendOtp = async (email: string, persistContext?: boolean): Promise<{ error?: string }> => {
     try {
       // Enhanced email validation with security checks
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -145,13 +145,34 @@ export const useAuth = () => {
         return { error: 'Please enter a valid email address' };
       }
 
+      const cleanEmail = email.toLowerCase().trim();
+      const redirectUrl = `${window.location.origin}/auth/callback`;
+      
+      // Persist last auth email before sending (if requested)
+      if (persistContext) {
+        try {
+          const { storePendingEntryContext, getLastAuthEmail } = await import('@/lib/entryContextPersistence');
+          
+          // Store last auth email with timestamp
+          localStorage.setItem('last_auth_email', JSON.stringify({
+            email: cleanEmail,
+            timestamp: Date.now()
+          }));
+          
+          console.log('[Auth] Persisted auth email for resend functionality');
+        } catch (error) {
+          console.warn('[Auth] Failed to persist context:', error);
+        }
+      }
+
       // Rate limiting check and enhanced security logging
-      console.log(`[Auth] requested magic link for ${email} to ${window.location.origin}/auth/callback`);
+      console.log(`[Auth] requested magic link for ${cleanEmail} to ${redirectUrl}`);
       
       const { error } = await supabase.auth.signInWithOtp({
-        email: email.toLowerCase().trim(),
+        email: cleanEmail,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          shouldCreateUser: true, // Allow sign up through magic link
+          emailRedirectTo: redirectUrl,
           data: {
             timestamp: new Date().toISOString(),
             user_agent: navigator.userAgent.substring(0, 500) // Truncate for security
