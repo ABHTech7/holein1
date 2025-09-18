@@ -160,24 +160,24 @@ const ClubPartnerSection = () => {
         <Container>
           <div className="text-center">
             <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-6">
-              Join 200+ Clubs Creating Legendary Experiences
+              Be Part of Golf's Next Evolution
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-3xl mx-auto">
-              From local clubs to championship venues, discover how our platform 
-              is transforming golf experiences across the country.
+              Join the growing network of forward-thinking golf clubs who are ready to 
+              transform their member experience and create legendary moments.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
               <div className="text-center">
-                <div className="text-3xl font-bold text-primary mb-2">200+</div>
-                <div className="text-sm text-muted-foreground">Partner Clubs</div>
+                <div className="text-3xl font-bold text-primary mb-2">✓</div>
+                <div className="text-sm text-muted-foreground">Fully Insured Platform</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-secondary mb-2">50k+</div>
-                <div className="text-sm text-muted-foreground">Active Players</div>
+                <div className="text-3xl font-bold text-secondary mb-2">✓</div>
+                <div className="text-sm text-muted-foreground">Professional Verification</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-accent mb-2">1.2M+</div>
-                <div className="text-sm text-muted-foreground">Competition Entries</div>
+                <div className="text-3xl font-bold text-accent mb-2">✓</div>
+                <div className="text-sm text-muted-foreground">Complete Support</div>
               </div>
             </div>
             <Button 
@@ -186,7 +186,7 @@ const ClubPartnerSection = () => {
               variant="outline"
               className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
             >
-              <Link to="/clubs">View Success Stories</Link>
+              <Link to="/partnership">Learn More</Link>
             </Button>
           </div>
         </Container>
