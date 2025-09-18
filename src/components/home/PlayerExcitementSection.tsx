@@ -288,16 +288,6 @@ const PlayerExcitementSection = () => {
             )}
           </div>
 
-          <div className="text-center mt-12">
-            <Button 
-              asChild 
-              size="lg"
-              variant="outline"
-              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-            >
-              <Link to="/competitions">View All Competitions</Link>
-            </Button>
-          </div>
         </Container>
       </Section>
 
