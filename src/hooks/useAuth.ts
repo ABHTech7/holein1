@@ -3,6 +3,8 @@ import { User, Session } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { EnhancedAuthSecurity } from '@/lib/enhancedAuth';
+import { SecurityMonitoring } from '@/lib/securityMonitoring';
 
 export interface Profile {
   id: string;
@@ -95,6 +97,15 @@ export const useAuth = () => {
           session, 
           user: session?.user ?? null 
         }));
+        
+        // Track authentication events
+        if (event === 'SIGNED_IN' && session?.user?.email) {
+          SecurityMonitoring.monitorAuthEvent('LOGIN_SUCCESS', session.user.email);
+          EnhancedAuthSecurity.initializeSession();
+        } else if (event === 'SIGNED_OUT') {
+          SecurityMonitoring.monitorAuthEvent('LOGOUT');
+          EnhancedAuthSecurity.clearSession();
+        }
         
         if (session?.user) {
           // Defer profile fetching to avoid blocking auth state changes
