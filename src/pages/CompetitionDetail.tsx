@@ -108,23 +108,68 @@ const CompetitionDetail = () => {
   // Fetch competition data
   useEffect(() => {
     const fetchCompetition = async () => {
-      if (!id || !profile) return;
+      if (!id) return;
+
+      console.log('🔍 Fetching competition with ID:', id);
 
       try {
-        // Fetch competition details
-        const { data: competitionData, error: competitionError } = await supabase
-          .from('competitions')
-          .select(`
-            *,
-            clubs:clubs(id, name)
-          `)
-          .eq('id', id)
-          .single();
+        // Try to get competition using safe functions first (for public access)
+        let competitionData = null;
+        
+        // First get all clubs to find the one with this competition
+        const { data: clubsData, error: clubsError } = await supabase
+          .rpc('get_safe_clubs_data');
 
-        if (competitionError) throw competitionError;
+        if (clubsError) throw clubsError;
+        console.log('📋 Found clubs:', clubsData?.length || 0);
 
-        // Check if user has access to this competition
-        if (profile.role === 'CLUB' && competitionData.club_id !== profile.club_id) {
+        // Search for the competition across all clubs
+        for (const club of clubsData || []) {
+          const { data: competitionsData, error: competitionsError } = await supabase
+            .rpc('get_safe_competition_data', {
+              club_uuid: club.id,
+              competition_slug_param: ''
+            });
+
+          if (competitionsError) {
+            console.warn(`Error fetching competitions for club ${club.name}:`, competitionsError);
+            continue;
+          }
+
+          // Find the competition by ID
+          const found = (competitionsData || []).find(comp => comp.id === id);
+          if (found) {
+            console.log('🎯 Found competition:', found.name);
+            competitionData = {
+              id: found.id,
+              name: found.name,
+              description: found.description,
+              hole_number: found.hole_number,
+              status: found.status,
+              start_date: found.start_date,
+              end_date: found.end_date,
+              entry_fee: found.entry_fee,
+              prize_pool: found.prize_pool,
+              archived: false, // Safe data doesn't include archived competitions
+              hero_image_url: found.hero_image_url,
+              club_id: found.club_id,
+              clubs: {
+                id: found.club_id,
+                name: found.club_name
+              }
+            };
+            break;
+          }
+        }
+
+        if (!competitionData) {
+          // Competition not found in public data
+          console.error('❌ Competition not found in public data');
+          return;
+        }
+
+        // Check if user has access to this competition (only if authenticated)
+        if (profile && profile.role === 'CLUB' && competitionData.club_id !== profile.club_id) {
           toast({
             title: 'Access Denied',
             description: 'You can only view competitions from your own club',
@@ -135,29 +180,35 @@ const CompetitionDetail = () => {
 
         setCompetition(competitionData);
 
-        // Fetch entries for this competition
-        const { data: entriesData, error: entriesError } = await supabase
-          .from('entries')
-          .select(`
-            id,
-            entry_date,
-            paid,
-            score,
-            completed_at,
-            profiles:profiles(
-              email,
-              first_name,
-              last_name
-            )
-          `)
-          .eq('competition_id', id)
-          .order('entry_date', { ascending: false });
+        // Fetch entries for this competition (only if authenticated and authorized)
+        if (user && profile && (profile.role === 'ADMIN' || 
+           (profile.role === 'CLUB' && competitionData.club_id === profile.club_id))) {
+          const { data: entriesData, error: entriesError } = await supabase
+            .from('entries')
+            .select(`
+              id,
+              entry_date,
+              paid,
+              score,
+              completed_at,
+              profiles:profiles(
+                email,
+                first_name,
+                last_name
+              )
+            `)
+            .eq('competition_id', id)
+            .order('entry_date', { ascending: false });
 
-        if (entriesError) throw entriesError;
-        setEntries(entriesData || []);
+          if (entriesError) {
+            console.warn('Error fetching entries:', entriesError);
+          } else {
+            setEntries(entriesData || []);
+          }
+        }
 
       } catch (error) {
-        console.error('Error fetching competition:', error);
+        console.error('❌ Error fetching competition:', error);
         toast({
           title: 'Error',
           description: 'Failed to load competition details',
@@ -169,7 +220,7 @@ const CompetitionDetail = () => {
     };
 
     fetchCompetition();
-  }, [id, profile, toast]);
+  }, [id, profile, user, toast]);
 
   const handleShareSuccess = () => {
     toast({
@@ -179,7 +230,7 @@ const CompetitionDetail = () => {
   };
 
   // Loading state
-  if (authLoading || loading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
         <SiteHeader />
