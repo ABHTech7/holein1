@@ -1,12 +1,92 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import Container from "@/components/layout/Container";
 import Section from "@/components/layout/Section";
 import { Hero, HeroTitle, HeroSubtitle, HeroActions } from "@/components/ui/hero";
 import FeatureItem from "@/components/ui/feature-item";
 import { Target, Trophy, Smartphone, MapPin, Star, Camera } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { createSlug } from "@/lib/slugUtils";
+import { toast } from "@/hooks/use-toast";
+
+interface Competition {
+  id: string;
+  name: string;
+  description: string | null;
+  entry_fee: number;
+  prize_pool: number | null;
+  hole_number: number;
+  start_date: string;
+  end_date: string | null;
+  is_year_round: boolean;
+  clubs: {
+    id: string;
+    name: string;
+    website: string | null;
+  };
+}
 
 const PlayerExcitementSection = () => {
+  const [competitions, setCompetitions] = useState<Competition[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCompetitions();
+  }, []);
+
+  const fetchCompetitions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('competitions')
+        .select(`
+          id,
+          name,
+          description,
+          entry_fee,
+          prize_pool,
+          hole_number,
+          start_date,
+          end_date,
+          is_year_round,
+          clubs:clubs(
+            id,
+            name,
+            website
+          )
+        `)
+        .eq('status', 'ACTIVE')
+        .eq('archived', false)
+        .order('start_date', { ascending: true })
+        .limit(3);
+
+      if (error) throw error;
+      setCompetitions(data || []);
+    } catch (error: any) {
+      console.error('Error loading competitions:', error);
+      toast({
+        title: "Error loading competitions",
+        description: "Unable to load competitions. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP'
+    }).format(amount / 100);
+  };
+
+  const getCompetitionUrl = (competition: Competition) => {
+    const clubSlug = createSlug(competition.clubs.name);
+    const competitionSlug = createSlug(competition.name);
+    return `/competition/${clubSlug}/${competitionSlug}`;
+  };
   return (
     <div className="animate-fade-in">
       {/* Player-Focused Hero */}
@@ -132,92 +212,80 @@ const PlayerExcitementSection = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-card rounded-xl p-6 shadow-soft hover:shadow-medium transition-all duration-300 hover:-translate-y-1">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
-                  <Trophy className="w-6 h-6 text-primary-foreground" />
+            {loading ? (
+              // Loading skeletons
+              [...Array(3)].map((_, i) => (
+                <div key={i} className="bg-card rounded-xl p-6 shadow-soft">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Skeleton className="w-12 h-12 rounded-lg" />
+                    <div className="flex-1">
+                      <Skeleton className="h-5 w-3/4 mb-2" />
+                      <Skeleton className="h-4 w-1/2" />
+                    </div>
+                  </div>
+                  <div className="space-y-2 mb-4">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
+                  <Skeleton className="h-10 w-full" />
                 </div>
-                <div>
-                  <h3 className="font-display font-bold text-foreground">Championship Series</h3>
-                  <p className="text-sm text-muted-foreground">Premium Golf Club</p>
-                </div>
+              ))
+            ) : competitions.length === 0 ? (
+              // No competitions message
+              <div className="col-span-full text-center py-12">
+                <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="font-semibold text-foreground mb-2">No Active Competitions</h3>
+                <p className="text-muted-foreground mb-6">
+                  Check back soon for new competitions to join
+                </p>
+                <Button asChild>
+                  <Link to="/competitions">Browse All Competitions</Link>
+                </Button>
               </div>
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Prize Pool:</span>
-                  <span className="font-semibold text-secondary">£5,000</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Hole:</span>
-                  <span className="font-semibold text-foreground">7th Par 3</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Distance:</span>
-                  <span className="font-semibold text-foreground">165 yards</span>
-                </div>
-              </div>
-              <Button className="w-full bg-gradient-primary hover:opacity-90">
-                Enter Competition
-              </Button>
-            </div>
-
-            <div className="bg-card rounded-xl p-6 shadow-soft hover:shadow-medium transition-all duration-300 hover:-translate-y-1">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-gold rounded-lg flex items-center justify-center">
-                  <Star className="w-6 h-6 text-secondary-foreground" />
-                </div>
-                <div>
-                  <h3 className="font-display font-bold text-foreground">Weekend Challenge</h3>
-                  <p className="text-sm text-muted-foreground">Riverside Golf Course</p>
-                </div>
-              </div>
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Prize Pool:</span>
-                  <span className="font-semibold text-secondary">£2,500</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Hole:</span>
-                  <span className="font-semibold text-foreground">12th Par 3</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Distance:</span>
-                  <span className="font-semibold text-foreground">142 yards</span>
-                </div>
-              </div>
-              <Button className="w-full bg-gradient-gold hover:opacity-90 text-secondary-foreground">
-                Enter Competition
-              </Button>
-            </div>
-
-            <div className="bg-card rounded-xl p-6 shadow-soft hover:shadow-medium transition-all duration-300 hover:-translate-y-1">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-primary rounded-lg flex items-center justify-center">
-                  <Target className="w-6 h-6 text-primary-foreground" />
-                </div>
-                <div>
-                  <h3 className="font-display font-bold text-foreground">Daily Special</h3>
-                  <p className="text-sm text-muted-foreground">Green Valley Club</p>
-                </div>
-              </div>
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Prize Pool:</span>
-                  <span className="font-semibold text-secondary">£1,000</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Hole:</span>
-                  <span className="font-semibold text-foreground">3rd Par 3</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Distance:</span>
-                  <span className="font-semibold text-foreground">128 yards</span>
-                </div>
-              </div>
-              <Button className="w-full bg-gradient-primary hover:opacity-90">
-                Enter Competition
-              </Button>
-            </div>
+            ) : (
+              // Real competition cards
+              competitions.map((competition, index) => {
+                const iconBackgrounds = ['bg-gradient-primary', 'bg-gradient-gold', 'bg-gradient-primary'];
+                const iconComponents = [Trophy, Star, Target];
+                const IconComponent = iconComponents[index % 3];
+                
+                return (
+                  <div key={competition.id} className="bg-card rounded-xl p-6 shadow-soft hover:shadow-medium transition-all duration-300 hover:-translate-y-1">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className={`w-12 h-12 ${iconBackgrounds[index % 3]} rounded-lg flex items-center justify-center`}>
+                        <IconComponent className="w-6 h-6 text-primary-foreground" />
+                      </div>
+                      <div>
+                        <h3 className="font-display font-bold text-foreground">{competition.name}</h3>
+                        <p className="text-sm text-muted-foreground">{competition.clubs.name}</p>
+                      </div>
+                    </div>
+                    <div className="space-y-2 mb-4">
+                      {competition.prize_pool && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Prize Pool:</span>
+                          <span className="font-semibold text-secondary">{formatCurrency(competition.prize_pool)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Entry Fee:</span>
+                        <span className="font-semibold text-foreground">{formatCurrency(competition.entry_fee)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Hole:</span>
+                        <span className="font-semibold text-foreground">{competition.hole_number}th Par 3</span>
+                      </div>
+                    </div>
+                    <Button asChild className="w-full bg-gradient-primary hover:opacity-90">
+                      <Link to={getCompetitionUrl(competition)}>
+                        Enter Competition
+                      </Link>
+                    </Button>
+                  </div>
+                );
+              })
+            )}
           </div>
 
           <div className="text-center mt-12">
