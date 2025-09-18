@@ -4,7 +4,8 @@ import { defineConfig, devices } from '@playwright/test';
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: './tests',
+  testMatch: ['**/e2e/**/*.spec.ts', '**/smoke/**/*.spec.ts'],
   /* Global setup for creating auth states */
   globalSetup: require.resolve('./tests/global-setup.ts'),
   /* Run tests in files in parallel */
