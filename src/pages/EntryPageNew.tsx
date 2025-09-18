@@ -11,6 +11,7 @@ import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Container from "@/components/layout/Container";
 import { EntryHero } from "@/components/entry/EntryHero";
+import { EntryResendBanner } from "@/components/entry/EntryResendBanner";
 import { TrustBanner } from "@/components/entry/TrustBanner";
 import { RuleSummary } from "@/components/entry/RuleSummary";
 import { EnterNowCTA } from "@/components/entry/EnterNowCTA";
@@ -411,6 +412,9 @@ const EntryPageNew = () => {
         <div className="py-12">
           <Container>
             <div className="max-w-2xl mx-auto space-y-8">
+              {/* Entry Resend Banner */}
+              <EntryResendBanner />
+              
               {/* Trust Banner */}
               <TrustBanner />
 

@@ -132,6 +132,11 @@ const IncompletePlayersModal = ({ isOpen, onClose, onPlayersDeleted }: Incomplet
           
           if (data?.success) {
             results.deleted++;
+            
+            // Show freed email message if email was freed for reuse
+            if (data.freed_email) {
+              console.log(`[IncompletePlayersModal] Email freed for reuse: ${player.email}`);
+            }
           } else {
             results.skipped++;
             results.errors.push(`${player.email}: ${data?.error || 'Unknown error'}`);
@@ -147,7 +152,7 @@ const IncompletePlayersModal = ({ isOpen, onClose, onPlayersDeleted }: Incomplet
       if (results.deleted > 0) {
         toast({
           title: `Deleted ${results.deleted} player(s)`,
-          description: results.skipped > 0 ? `Skipped ${results.skipped} player(s)` : undefined,
+          description: `${results.deleted} email(s) freed for re-use` + (results.skipped > 0 ? ` • Skipped ${results.skipped} player(s)` : ''),
         });
       }
 

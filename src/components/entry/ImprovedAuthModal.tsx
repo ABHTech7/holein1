@@ -14,6 +14,7 @@ import { Mail, User, Phone, Calendar, Target, AlertCircle, CheckCircle2 } from "
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { ResendMagicLink } from "@/components/auth/ResendMagicLink";
+import { useAuth } from "@/hooks/useAuth";
 import { showSupabaseError } from "@/lib/showSupabaseError";
 
 interface ImprovedAuthModalProps {
@@ -38,6 +39,7 @@ export const ImprovedAuthModal = ({
   onSuccess,
   redirectUrl 
 }: ImprovedAuthModalProps) => {
+  const { sendOtp } = useAuth();
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
@@ -122,30 +124,17 @@ export const ImprovedAuthModal = ({
         console.log('[EntryForm] Stored context and email before navigation');
       }
     
-      // Call our custom secure entry link edge function
-      const { data, error } = await supabase.functions.invoke('send-magic-link', {
-        body: {
-          email: profileForm.email,
-          firstName: profileForm.firstName,
-          lastName: profileForm.lastName,
-          phone: profileForm.phone,
-          ageYears: parseInt(profileForm.ageYears),
-          handicap: parseFloat(profileForm.handicap),
-          competitionUrl: `${window.location.origin}${redirectUrl || '/'}`.replace(/\/$/, '')
-        }
-      });
+          const { error } = await sendOtp(profileForm.email, true); // Enable context persistence
 
-      if (error) throw error;
-
-      if (data?.success) {
-        setEmailSent(true);
-        toast({
-          title: isResend ? "Link resent!" : "Check your email",
-          description: "We've sent you a secure entry link. Open it on this device to continue.",
-        });
-      } else {
-        throw new Error(data?.error || "Failed to send secure link");
+      if (error) {
+        throw new Error(error);
       }
+
+      setEmailSent(true);
+      toast({
+        title: isResend ? "Link resent!" : "Check your email",
+        description: "We've sent you a secure entry link. Open it on this device to continue.",
+      });
     } catch (error: any) {
       console.error('Secure link error:', error);
       const errorMessage = showSupabaseError(error, 'Secure Link');

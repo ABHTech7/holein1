@@ -130,8 +130,14 @@ serve(async (req) => {
           })
           .eq('id', user_id);
 
-        if (softDeleteError) throw softDeleteError;
-        console.log('[admin-delete-incomplete-user] Soft deleted profile:', user_id);
+        // Also delete auth user to free email for reuse
+        const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id);
+        if (authDeleteError) {
+          console.warn('[admin-delete-incomplete-user] Auth delete failed:', authDeleteError);
+          // Don't fail the operation for auth deletion
+        } else {
+          console.log('[admin-delete-incomplete-user] Auth user deleted, email freed for reuse');
+        }
       } else {
         // Hard delete: remove related data and auth user
         
@@ -206,6 +212,7 @@ serve(async (req) => {
         JSON.stringify({ 
           success: true,
           deletion_type: softDelete ? 'soft' : 'hard',
+          freed_email: true, // Always true now since we delete auth user in both modes
           user_id,
           message: `User ${softDelete ? 'soft' : 'hard'} deleted successfully`
         }),
