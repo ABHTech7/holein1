@@ -26,12 +26,13 @@ const SiteFooter = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {/* Brand Section */}
             <div className="md:col-span-2">
-              <Link to="/" className="flex items-center space-x-3 mb-4">
-                <img 
-                  src="/brand/official-hole-in-1-logo.png" 
-                  alt="Official Hole In 1" 
-                  className="h-10 w-auto"
-                />
+              <Link to="/" className="flex items-center space-x-2 mb-4">
+                <div className="flex items-center justify-center w-8 h-8 bg-gradient-primary rounded-lg">
+                  <Trophy className="w-5 h-5 text-primary-foreground" />
+                </div>
+                <span className="font-display text-xl font-semibold text-foreground">
+                  Hole in 1 Challenge
+                </span>
               </Link>
               <p className="text-muted-foreground max-w-md">
                 Founded by two lifelong golf enthusiasts, we help clubs create unforgettable 
@@ -77,7 +78,7 @@ const SiteFooter = () => {
           {/* Bottom Bar */}
           <div className="mt-8 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center">
             <p className="text-sm text-muted-foreground">
-              © {currentYear} Official Hole In 1. All rights reserved.
+              © {currentYear} Hole in 1 Challenge. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <Link 

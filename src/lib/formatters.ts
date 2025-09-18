@@ -1,4 +1,4 @@
-// Utility formatters for the Official Hole In 1 application
+// Utility formatters for the Hole in 1 Challenge application
 
 export const formatCurrency = (amountInPence: number, currency: string = 'GBP'): string => {
   const amount = amountInPence / 100;

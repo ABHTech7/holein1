@@ -36,7 +36,7 @@ const PrivacyPolicy = () => {
                     We use the information we collect to provide, maintain, and improve our services:
                   </p>
                   <ul className="list-disc pl-6 space-y-2 text-foreground">
-                    <li>To provide and operate Official Hole In 1 services</li>
+                    <li>To provide and operate Hole in 1 Challenge services</li>
                     <li>To send you service-related communications</li>
                     <li>To improve our platform and develop new features</li>
                     <li>To ensure platform security and prevent fraud</li>

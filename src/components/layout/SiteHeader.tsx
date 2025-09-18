@@ -37,14 +37,15 @@ const SiteHeader = () => {
           {/* Logo */}
           <Link 
             to={ROUTES.HOME} 
-            className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+            className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
             data-testid="site-logo"
           >
-            <img 
-              src="/brand/official-hole-in-1-logo.png" 
-              alt="Official Hole In 1" 
-              className="h-10 w-auto"
-            />
+            <div className="flex items-center justify-center w-8 h-8 bg-gradient-primary rounded-lg">
+              <Trophy className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <span className="font-display text-xl font-semibold text-foreground">
+              Hole in 1 Challenge
+            </span>
           </Link>
 
           {/* Desktop Navigation */}

@@ -1,5 +1,5 @@
 /**
- * Analytics tracking for Official Hole In 1
+ * Analytics tracking for Hole in 1 Challenge
  * Tracks key events throughout the player journey
  */
 

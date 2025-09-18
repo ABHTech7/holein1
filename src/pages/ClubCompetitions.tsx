@@ -193,7 +193,7 @@ const ClubCompetitions = () => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <h1 className="font-display text-3xl font-bold text-foreground">Competitions</h1>
-                <p className="text-muted-foreground mt-1">Manage your Official Hole In 1 competitions</p>
+                <p className="text-muted-foreground mt-1">Manage your Hole in 1 Challenge competitions</p>
               </div>
               
               <Button onClick={() => navigate('/dashboard/club/competition/new')} className="gap-2">

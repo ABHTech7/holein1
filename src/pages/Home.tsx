@@ -40,7 +40,7 @@ const Home = () => {
                 Where Dreams Meet Reality
               </h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Founded by two lifelong golf enthusiasts, Official Hole In 1 gives clubs a fresh way to 
+                Founded by two lifelong golf enthusiasts, Hole in 1 Challenge gives clubs a fresh way to 
                 excite members, attract new players, and unlock new revenue — all powered by smart technology 
                 and insured peace of mind.
               </p>
