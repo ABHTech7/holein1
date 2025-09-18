@@ -60,7 +60,7 @@ const Auth = () => {
           <div className="w-full max-w-md">
             <div className="text-center mb-8">
               <h1 className="font-display text-3xl font-bold text-foreground mb-2">
-                Welcome to Hole in 1 Challenge
+                Welcome to Official Hole In 1
               </h1>
               <p className="text-muted-foreground">
                 Sign in to your existing account

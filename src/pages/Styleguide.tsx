@@ -26,11 +26,11 @@ const Styleguide = () => {
         <Section spacing="lg" background="muted">
           <div className="text-center">
             <h1 className="font-display text-4xl font-bold text-foreground mb-4">
-              Hole in 1 Challenge Style Guide
+              Official Hole In 1 Style Guide
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               A comprehensive overview of all UI components and design system elements 
-              used throughout the Hole in 1 Challenge platform.
+              used throughout the Official Hole In 1 platform.
             </p>
           </div>
         </Section>

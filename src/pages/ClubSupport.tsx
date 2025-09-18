@@ -14,7 +14,7 @@ const ClubSupport = () => {
   const navigate = useNavigate();
 
   const handleMessageTeam = () => {
-    const subject = "Support Request from Hole in 1 Challenge";
+    const subject = "Support Request from Official Hole In 1";
     const body = `Hi Support Team,
 
 I need assistance with my club account.
@@ -56,7 +56,7 @@ ${profile?.first_name || ''} ${profile?.last_name || ''}`;
               <div className="text-center">
                 <h1 className="font-display text-3xl font-bold text-foreground">Support & Help</h1>
                 <p className="text-muted-foreground mt-2">
-                  Get help with your Hole in 1 Challenge management
+                  Get help with your Official Hole In 1 management
                 </p>
               </div>
 

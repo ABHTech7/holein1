@@ -356,7 +356,7 @@ const EntryPageNew = () => {
               <div className="bg-muted/50 p-2 rounded text-left space-y-1">
                 <p><strong>Club slug:</strong> {clubSlug}</p>
                 <p><strong>Competition slug:</strong> {competitionSlug}</p>
-                <p><strong>Test slug generation:</strong> {createCompetitionSlug('SHRIGLEY HALL - Hole In 1 Challenge')}</p>
+                <p><strong>Test slug generation:</strong> {createCompetitionSlug('SHRIGLEY HALL - Official Hole In 1')}</p>
               </div>
             </div>
           </div>
