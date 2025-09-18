@@ -8,8 +8,33 @@ export const formatCurrency = (amountInPence: number, currency: string = 'GBP'):
   }).format(amount);
 };
 
+// Cross-browser date parsing helper (handles Safari)
+const toValidDate = (input: string | Date): Date => {
+  if (input instanceof Date) return input;
+  if (typeof input === 'string') {
+    const s = input.trim();
+    // Date-only strings
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      const d = new Date(`${s}T00:00:00Z`);
+      if (!isNaN(d.getTime())) return d;
+    }
+    // Replace space with T
+    const s1 = s.replace(' ', 'T');
+    let d1 = new Date(s1);
+    if (!isNaN(d1.getTime())) return d1;
+    // Safari fallback: use slashes
+    const s2 = s.replace(/-/g, '/');
+    d1 = new Date(s2);
+    if (!isNaN(d1.getTime())) return d1;
+  }
+  return new Date(NaN);
+};
+
 export const formatDate = (date: string | Date, format: 'short' | 'medium' | 'long' = 'medium'): string => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const dateObj = toValidDate(date);
+  if (isNaN(dateObj.getTime())) {
+    return typeof date === 'string' ? date : '';
+  }
   
   if (format === 'short') {
     return new Intl.DateTimeFormat('en-GB', {
@@ -36,7 +61,10 @@ export const formatDate = (date: string | Date, format: 'short' | 'medium' | 'lo
 };
 
 export const formatDateTime = (date: string | Date): string => {
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const dateObj = toValidDate(date);
+  if (isNaN(dateObj.getTime())) {
+    return typeof date === 'string' ? date : '';
+  }
   return new Intl.DateTimeFormat('en-GB', {
     year: 'numeric',
     month: 'short',
