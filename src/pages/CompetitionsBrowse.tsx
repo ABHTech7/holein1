@@ -228,8 +228,8 @@ const CompetitionsBrowse = () => {
                       </div>
 
                       <Button asChild className="w-full">
-                        <Link to={`/competitions/${competition.id}`}>
-                          View Details
+                        <Link to={`/entry/${competition.id}`}>
+                          Enter Competition
                         </Link>
                       </Button>
                     </CardContent>
