@@ -22,12 +22,14 @@ export default function AuthCallback() {
 
       // Parse URL parameters for both query string and hash
       const code = params.get("code");
+      const token_hash = params.get("token_hash");
+      const type = params.get("type");
       const error = params.get("error") || params.get("error_code");
       const error_description = params.get("error_description");
       const emailFromUrl = params.get("email");
       const fullUrl = window.location.href;
 
-      // Fallback email from localStorage if not in URL
+      // Fallback email from localStorage if not in URL (6-hour TTL)
       let fallbackEmail = null;
       try {
         const stored = localStorage.getItem('last_auth_email');
@@ -44,12 +46,17 @@ export default function AuthCallback() {
       
       const email = emailFromUrl || fallbackEmail;
 
-      console.log('[AuthCallback] Processing callback:', { 
+      // Determine authentication mode
+      const mode = token_hash ? 'token_hash' : (code ? 'auth_code' : 'legacy_hash');
+      console.log(`[AuthCallback] mode=${mode}`, { 
+        hasTokenHash: !!token_hash,
         hasCode: !!code, 
+        type,
         error, 
         hasEmail: !!email,
         emailSource: emailFromUrl ? 'url' : 'localStorage'
       });
+
 
       // Handle error parameters from the URL
       if (error) {
@@ -75,9 +82,43 @@ export default function AuthCallback() {
         return;
       }
 
-      // Handle code exchange (modern PKCE flow)
-      if (code) {
-        console.log('[AuthCallback] Code found, attempting exchange');
+      // Handle token_hash flow (direct verifyOtp)
+      if (token_hash) {
+        console.log('[AuthCallback] token_hash found, using verifyOtp directly');
+        
+        if (!email) {
+          console.error('[AuthCallback] token_hash flow requires email');
+          navigate('/auth/expired-link?reason=missing_email&auto_resend=1', { replace: true });
+          return;
+        }
+
+        try {
+          const otpType = (type as 'magiclink' | 'signup' | 'recovery' | 'invite') ?? 'magiclink';
+          const { error: verifyError } = await supabase.auth.verifyOtp({
+            type: otpType,
+            token_hash,
+            email
+          });
+
+          if (verifyError) {
+            console.error('[AuthCallback] token_hash verifyOtp failed:', verifyError.message);
+            const redirectUrl = `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired&auto_resend=1`;
+            navigate(redirectUrl, { replace: true });
+            return;
+          }
+
+          console.log('[AuthCallback] token_hash verifyOtp successful');
+        } catch (error: any) {
+          console.error('[AuthCallback] token_hash verifyOtp threw error:', error);
+          const redirectUrl = `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired&auto_resend=1`;
+          navigate(redirectUrl, { replace: true });
+          return;
+        }
+      }
+      
+      // Handle code exchange (PKCE flow)  
+      else if (code) {
+        console.log('[AuthCallback] auth_code found, attempting PKCE exchange');
         
         try {
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(fullUrl);
@@ -85,43 +126,15 @@ export default function AuthCallback() {
           if (exchangeError) {
             console.error('[AuthCallback] Code exchange failed:', exchangeError.message);
             
-            // Handle PKCE verifier missing error with fallback attempt
+            // Handle PKCE verifier missing error - redirect to auto-resend
             if (exchangeError.message?.includes('code verifier') || 
                 exchangeError.message?.includes('both auth code and code verifier should be non-empty')) {
-              console.warn('[AuthCallback] PKCE verifier missing - attempting verifyOtp fallback');
-              
-              // Try verifyOtp as fallback if we have email and code
-              if (email && code) {
-                try {
-                  const { error: verifyError } = await supabase.auth.verifyOtp({
-                    email,
-                    token: code,
-                    type: 'email'
-                  });
-                  
-                  if (!verifyError) {
-                    console.log('[AuthCallback] verifyOtp fallback successful');
-                    // Continue with normal flow - don't return here
-                  } else {
-                    console.warn('[AuthCallback] verifyOtp fallback failed:', verifyError.message);
-                    // Navigate with auto-resend
-                    const redirectUrl = `/auth/expired-link?email=${encodeURIComponent(email)}&reason=pkce_missing&auto_resend=1`;
-                    navigate(redirectUrl, { replace: true });
-                    return;
-                  }
-                } catch (verifyFailure) {
-                  console.error('[AuthCallback] verifyOtp fallback threw error:', verifyFailure);
-                  // Navigate with auto-resend
-                  const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=pkce_missing&auto_resend=1` : '/auth/expired-link?reason=pkce_missing';
-                  navigate(redirectUrl, { replace: true });
-                  return;
-                }
-              } else {
-                // No email or code for fallback - navigate with auto-resend
-                const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=pkce_missing&auto_resend=1` : '/auth/expired-link?reason=pkce_missing';
-                navigate(redirectUrl, { replace: true });
-                return;
-              }
+              console.warn('[AuthCallback] PKCE verifier missing - redirecting to auto-resend');
+              const redirectUrl = email ? 
+                `/auth/expired-link?email=${encodeURIComponent(email)}&reason=pkce_missing&auto_resend=1` : 
+                '/auth/expired-link?reason=pkce_missing&auto_resend=1';
+              navigate(redirectUrl, { replace: true });
+              return;
             }
             
             // Handle other exchange errors - expired or invalid grant  
@@ -145,7 +158,7 @@ export default function AuthCallback() {
             }
           }
           
-          console.log('[AuthCallback] Code exchange successful');
+          console.log('[AuthCallback] auth_code exchange successful');
         } catch (error: any) {
           console.error('[AuthCallback] Exchange threw error:', error);
           navigate("/auth/expired-link", { replace: true });
@@ -154,11 +167,13 @@ export default function AuthCallback() {
       } else {
         // Legacy hash-based flow (fallback)
         const hash = window.location.hash || "";
-        console.log('[AuthCallback] No code found, trying hash:', hash.substring(0, 50));
+        console.log('[AuthCallback] legacy_hash mode, trying hash:', hash.substring(0, 50));
         
         if (!hash) {
-          console.warn('[AuthCallback] No code or hash found');
-          const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=missing` : '/auth/expired-link?reason=missing';
+          console.warn('[AuthCallback] No token_hash, code, or hash found');
+          const redirectUrl = email ? 
+            `/auth/expired-link?email=${encodeURIComponent(email)}&reason=missing&auto_resend=1` : 
+            '/auth/expired-link?reason=missing&auto_resend=1';
           navigate(redirectUrl, { replace: true });
           return;
         }
@@ -167,16 +182,20 @@ export default function AuthCallback() {
           const { error: hashError } = await supabase.auth.exchangeCodeForSession(hash);
           
           if (hashError) {
-            console.error('[AuthCallback] Hash exchange failed:', hashError.message);
-            const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired` : '/auth/expired-link?reason=expired';
+            console.error('[AuthCallback] legacy_hash exchange failed:', hashError.message);
+            const redirectUrl = email ? 
+              `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired&auto_resend=1` : 
+              '/auth/expired-link?reason=expired&auto_resend=1';
             navigate(redirectUrl, { replace: true });
             return;
           }
           
-          console.log('[AuthCallback] Hash exchange successful');
+          console.log('[AuthCallback] legacy_hash exchange successful');
         } catch (error: any) {
-          console.error('[AuthCallback] Hash exchange threw error:', error);
-          const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired` : '/auth/expired-link?reason=expired';
+          console.error('[AuthCallback] legacy_hash exchange threw error:', error);
+          const redirectUrl = email ? 
+            `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired&auto_resend=1` : 
+            '/auth/expired-link?reason=expired&auto_resend=1';
           navigate(redirectUrl, { replace: true });
           return;
         }
