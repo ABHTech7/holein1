@@ -21,9 +21,7 @@ const SiteHeader = () => {
   const authNavigation = user ? [
     ...(profile?.role === 'ADMIN' ? [{ name: "Admin", href: ROUTES.ADMIN.DASHBOARD }] : []),
     ...(profile?.role === 'CLUB' ? [{ name: "Dashboard", href: ROUTES.CLUB.DASHBOARD }] : []),
-  ] : [
-    { name: "Login", href: ROUTES.AUTH },
-  ];
+  ] : [];
 
   const isActive = (href: string) => location.pathname === href;
 

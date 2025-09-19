@@ -16,7 +16,6 @@ const SiteFooter = () => {
   const quickLinks = [
     { name: "Home", href: "/" },
     { name: "Club Sign Up", href: "/partnership" },
-    { name: "Player Login", href: "/players/login" },
   ];
 
   return (
