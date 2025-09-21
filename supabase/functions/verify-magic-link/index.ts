@@ -55,21 +55,27 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Check if token is already used
-    if (tokenData.used) {
-      console.error("Token already used:", token);
+    // Check if token is expired
+    const now = new Date();
+    const expiresAt = new Date(tokenData.expires_at);
+    
+    // Check expiration first - if expired, token is truly unusable
+    if (expiresAt <= now) {
+      console.error("Token expired:", token);
       return new Response(JSON.stringify({ 
         success: false,
-        error: "This magic link has already been used. Please request a new one." 
+        error: "This magic link has expired. Please request a new one." 
       }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
-
-    // Check if token is expired
-    const now = new Date();
-    const expiresAt = new Date(tokenData.expires_at);
+    
+    // Token is still valid - allow reuse within the 6-hour window
+    // Log if token has been used before but allow it to continue
+    if (tokenData.used) {
+      console.log("Token previously used but still within validity window, allowing reuse:", token);
+    }
     
     console.log("Checking token expiration:");
     console.log("Current time (UTC):", now.toISOString());
@@ -310,100 +316,131 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Invalid competition URL format");
     }
     
-    // Create entry for the user
-    const entryTime = new Date();
-    const attemptWindowEnd = new Date(entryTime.getTime() + 15 * 60 * 1000); // 15 minutes from now
-    
-    console.log("Creating entry for user:", user.id, "competition:", competitionId);
-    
-    const { data: entry, error: entryError } = await supabaseAdmin
+    // Check for existing entry for this user and competition
+    const { data: existingEntry, error: existingEntryError } = await supabaseAdmin
       .from('entries')
-      .insert({
-        competition_id: competitionId,
-        player_id: user.id,
-        paid: false,
-        status: 'pending',
-        terms_version: "1.0",
-        terms_accepted_at: entryTime.toISOString(),
-        attempt_window_start: entryTime.toISOString(),
-        attempt_window_end: attemptWindowEnd.toISOString()
-      })
-      .select('id')
-      .single();
-    
-    if (entryError || !entry) {
-      console.error("Error creating entry:", entryError);
-      
-      // Handle specific cooldown error more gracefully
-      if (entryError.message?.includes("Players must wait 12 hours")) {
-        console.log("Cooldown period active - still authenticating user but no new entry");
-        
-        // Mark the token as used
-        await supabaseAdmin
-          .from('magic_link_tokens')
-          .update({ used: true, used_at: new Date().toISOString() })
-          .eq('token', token);
-          
-        // Generate action link for authentication
-        const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-          type: 'magiclink',
-          email: tokenData.email,
-          options: {
-            redirectTo: `${(() => {
-              try {
-                return new URL(competitionUrl).origin;
-              } catch {
-                return Deno.env.get('SITE_URL') || '';
-              }
-            })()}/auth/callback?email=${encodeURIComponent(tokenData.email)}&continue=${encodeURIComponent('/players/entries')}`
-          }
-        });
+      .select('id, status, outcome_self')
+      .eq('player_id', user.id)
+      .eq('competition_id', competitionId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-        if (linkError) {
-          console.error("Error generating action link for cooldown user:", linkError);
+    if (existingEntryError && !existingEntryError.message.includes('No rows found')) {
+      console.error("Error checking for existing entry:", existingEntryError);
+      throw new Error("Failed to check existing entries");
+    }
+
+    let entryId: string;
+
+    if (existingEntry) {
+      // Use existing entry
+      entryId = existingEntry.id;
+      console.log("Found existing entry:", entryId, "with status:", existingEntry.status);
+      
+      // Don't mark token as used - allow continued access until outcome is selected
+      if (!existingEntry.outcome_self) {
+        console.log("Entry outcome not yet selected, allowing continued access");
+      }
+    } else {
+      // Create new entry for the user
+      const entryTime = new Date();
+      const attemptWindowEnd = new Date(entryTime.getTime() + 15 * 60 * 1000); // 15 minutes from now
+      
+      console.log("Creating new entry for user:", user.id, "competition:", competitionId);
+      
+      const { data: entry, error: entryError } = await supabaseAdmin
+        .from('entries')
+        .insert({
+          competition_id: competitionId,
+          player_id: user.id,
+          paid: false,
+          status: 'pending',
+          terms_version: "1.0",
+          terms_accepted_at: entryTime.toISOString(),
+          attempt_window_start: entryTime.toISOString(),
+          attempt_window_end: attemptWindowEnd.toISOString()
+        })
+        .select('id')
+        .single();
+      
+      if (entryError || !entry) {
+        console.error("Error creating entry:", entryError);
+        
+        // Handle specific cooldown error more gracefully
+        if (entryError.message?.includes("Players must wait 12 hours")) {
+          console.log("Cooldown period active - still authenticating user but no new entry");
+          
+          // Generate action link for authentication to existing entries
+          const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'magiclink',
+            email: tokenData.email,
+            options: {
+              redirectTo: `${(() => {
+                try {
+                  return new URL(competitionUrl).origin;
+                } catch {
+                  return Deno.env.get('SITE_URL') || '';
+                }
+              })()}/auth/callback?email=${encodeURIComponent(tokenData.email)}&continue=${encodeURIComponent('/players/entries')}`
+            }
+          });
+
+          if (linkError) {
+            console.error("Error generating action link for cooldown user:", linkError);
+            return new Response(JSON.stringify({ 
+              success: false,
+              error: "Authentication link generation failed"
+            }), {
+              status: 500,
+              headers: { "Content-Type": "application/json", ...corsHeaders },
+            });
+          }
+
           return new Response(JSON.stringify({ 
-            success: false,
-            error: "Authentication link generation failed"
+            success: true,
+            cooldown_active: true,
+            message: "You've already entered this competition recently. Please wait 12 hours between entries.",
+            // @ts-ignore - properties type differs in Deno env typings
+            action_link: linkData?.properties?.action_link || linkData?.action_link,
+            redirect_url: '/players/entries',
+            user: {
+              id: user.id,
+              email: user.email,
+              first_name: tokenData.first_name,
+              last_name: tokenData.last_name,
+              role: 'PLAYER'
+            }
           }), {
-            status: 500,
+            status: 200,
             headers: { "Content-Type": "application/json", ...corsHeaders },
           });
         }
-
-        return new Response(JSON.stringify({ 
-          success: true,
-          cooldown_active: true,
-          message: "You've already entered this competition recently. Please wait 12 hours between entries.",
-          // @ts-ignore - properties type differs in Deno env typings
-          action_link: linkData?.properties?.action_link || linkData?.action_link,
-          redirect_url: '/players/entries',
-          user: {
-            id: user.id,
-            email: user.email,
-            first_name: tokenData.first_name,
-            last_name: tokenData.last_name,
-            role: 'PLAYER'
-          }
-        }), {
-          status: 200,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        });
+        
+        throw new Error("Failed to create competition entry");
       }
       
-      throw new Error("Failed to create competition entry");
+      entryId = entry.id;
+      console.log("Entry created successfully:", entryId);
     }
+
+    // Only mark token as used if the entry outcome has been selected
+    // This allows multiple clicks until the player makes their choice
+    const shouldMarkUsed = existingEntry && existingEntry.outcome_self;
     
-    console.log("Entry created successfully:", entry.id);
+    if (shouldMarkUsed) {
+      console.log("Entry outcome already selected, marking token as used");
+      const { error: markUsedError } = await supabaseAdmin
+        .from('magic_link_tokens')
+        .update({ used: true, used_at: new Date().toISOString() })
+        .eq('token', token);
 
-    // Mark the token as used
-    const { error: markUsedError } = await supabaseAdmin
-      .from('magic_link_tokens')
-      .update({ used: true, used_at: new Date().toISOString() })
-      .eq('token', token);
-
-    if (markUsedError) {
-      console.error("Error marking token as used:", markUsedError);
-      // Don't fail the request for this, just log it
+      if (markUsedError) {
+        console.error("Error marking token as used:", markUsedError);
+        // Don't fail the request for this, just log it
+      }
+    } else {
+      console.log("Entry outcome not yet selected, keeping token available for reuse");
     }
 
     console.log("Magic link verification successful for user:", user.id);
@@ -423,7 +460,7 @@ const handler = async (req: Request): Promise<Response> => {
         type: 'magiclink',
         email: tokenData.email,
         options: {
-          redirectTo: `${baseUrl}/auth/callback?email=${encodeURIComponent(tokenData.email)}&continue=${encodeURIComponent(`/entry/${entry.id}/confirmation`)}`
+          redirectTo: `${baseUrl}/auth/callback?email=${encodeURIComponent(tokenData.email)}&continue=${encodeURIComponent(`/entry/${entryId}/confirmation`)}`
         }
       });
       if (linkError) {
@@ -439,7 +476,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Return redirect URL and optional action link to complete auth
     const responseData = { 
       success: true,
-      redirect_url: `/entry/${entry.id}/confirmation`,
+      redirect_url: `/entry/${entryId}/confirmation`,
       action_link,
       user: {
         id: user.id,
@@ -448,7 +485,7 @@ const handler = async (req: Request): Promise<Response> => {
         last_name: tokenData.last_name,
         role: 'PLAYER'
       },
-      entry_id: entry.id,
+      entry_id: entryId,
       competition_url: tokenData.competition_url
     };
     
