@@ -8,7 +8,8 @@ import SiteFooter from "@/components/layout/SiteFooter";
 import Container from "@/components/layout/Container";
 import PlayerJourneyEntryForm from "@/components/entry/PlayerJourneyEntryForm";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, ArrowLeft } from "lucide-react";
 
 interface VenueCompetition {
   id: string;
@@ -169,6 +170,19 @@ const PlayerJourneyEntryPage = () => {
       <main className="flex-1 py-12">
         <Container>
           <div className="max-w-2xl mx-auto">
+            {/* Back Button */}
+            <div className="flex justify-start mb-6">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate(-1)}
+                className="gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </Button>
+            </div>
+
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold mb-2">{competition.name}</h1>
               <p className="text-xl text-muted-foreground">at {competition.club_name}</p>
