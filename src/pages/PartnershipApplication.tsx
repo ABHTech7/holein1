@@ -62,9 +62,10 @@ const PartnershipApplication = () => {
           email_sent_at: null
         })
         .select('id')
-        .single();
+        .maybeSingle();
 
       if (leadError) throw leadError;
+      if (!leadData) throw new Error('Failed to create lead record');
 
       // Show immediate success - no more waiting for email
       setIsSubmitted(true);
