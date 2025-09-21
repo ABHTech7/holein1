@@ -19,6 +19,7 @@ interface LeadBackgroundRequest {
     role: string;
     email: string;
     phone: string;
+    numberOfMembers: string;
     message: string;
   };
 }
@@ -99,6 +100,7 @@ const handler = async (req: Request): Promise<Response> => {
             <p><strong>Role:</strong> ${lead.role}</p>
             <p><strong>Email:</strong> <a href="mailto:${lead.email}">${lead.email}</a></p>
             <p><strong>Phone:</strong> ${lead.phone || 'Not provided'}</p>
+            <p><strong>Number of Members:</strong> ${lead.numberOfMembers || 'Not provided'}</p>
           </div>
 
           ${lead.message ? `

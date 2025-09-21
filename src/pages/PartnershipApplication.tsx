@@ -22,6 +22,7 @@ const PartnershipApplication = () => {
     role: "",
     email: "",
     phone: "",
+    numberOfMembers: "",
     message: "",
     consent: false
   });
@@ -59,7 +60,7 @@ const PartnershipApplication = () => {
           phone: formData.phone,
           source: 'Partnership Application',
           status: 'NEW',
-          notes: `Club: ${formData.clubName}, Role: ${formData.role}, Message: ${formData.message}`,
+          notes: `Club: ${formData.clubName}, Role: ${formData.role}, Members: ${formData.numberOfMembers}, Message: ${formData.message}`,
           email_sent: false,
           email_sent_at: null
         });
@@ -79,14 +80,15 @@ const PartnershipApplication = () => {
         const { data: emailResult, error: emailError } = await supabase.functions.invoke('process-lead-background', {
           body: {
             leadId: leadId,
-            lead: {
-              clubName: formData.clubName,
-              contactName: formData.contactName,
-              role: formData.role,
-              email: formData.email,
-              phone: formData.phone,
-              message: formData.message
-            }
+             lead: {
+               clubName: formData.clubName,
+               contactName: formData.contactName,
+               role: formData.role,
+               email: formData.email,
+               phone: formData.phone,
+               numberOfMembers: formData.numberOfMembers,
+               message: formData.message
+             }
           }
         });
 
@@ -228,7 +230,7 @@ const PartnershipApplication = () => {
                       </Select>
                     </div>
 
-                    {/* Contact Details */}
+                     {/* Contact Details */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="email">Email Address *</Label>
@@ -251,6 +253,18 @@ const PartnershipApplication = () => {
                           onChange={(e) => setFormData({...formData, phone: e.target.value})}
                         />
                       </div>
+                    </div>
+
+                    {/* Club Details */}
+                    <div>
+                      <Label htmlFor="numberOfMembers">Number of Club Members</Label>
+                      <Input
+                        id="numberOfMembers"
+                        type="number"
+                        placeholder="e.g. 450"
+                        value={formData.numberOfMembers}
+                        onChange={(e) => setFormData({...formData, numberOfMembers: e.target.value})}
+                      />
                     </div>
 
                     {/* Additional Information */}
