@@ -93,7 +93,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send the email using Resend with custom domain
     const emailResponse = await resend.emails.send({
-      from: "Hole in 1 Challenge <noreply@demo.holein1challenge.co.uk>",
+      from: "Hole in 1 Challenge <noreply@officialholein1.com>",
       to: [email],
       subject: "Your Magic Link - Hole in 1 Challenge",
       html: `
