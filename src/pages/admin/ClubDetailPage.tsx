@@ -634,7 +634,24 @@ const ClubDetailPage = () => {
   };
 
   const handleContractSignedToggle = async (checked: boolean) => {
-    if (!clubId) return;
+    if (!clubId) {
+      console.error('🚨 [CONTRACT_TOGGLE] No clubId available');
+      return;
+    }
+
+    console.log('🔄 [CONTRACT_TOGGLE] Starting toggle:', {
+      clubId,
+      newStatus: checked,
+      currentStatus: club?.contract_signed,
+      userId: user?.id,
+      userRole: profile?.role,
+      clubData: {
+        id: club?.id,
+        name: club?.name,
+        active: club?.active,
+        contract_url: club?.contract_url
+      }
+    });
 
     setUploadingContract(true);
 
@@ -653,12 +670,41 @@ const ClubDetailPage = () => {
         updateData.contract_signed_by_email = null;
       }
 
-      const { error: updateError } = await supabase
+      console.log('📊 [CONTRACT_TOGGLE] Update payload:', updateData);
+
+      // Test if we can read the club first
+      const { data: readTest, error: readError } = await supabase
+        .from('clubs')
+        .select('id, contract_signed, active')
+        .eq('id', clubId)
+        .single();
+
+      if (readError) {
+        console.error('🚨 [CONTRACT_TOGGLE] Read test failed:', readError);
+        throw new Error(`Cannot read club data: ${readError.message}`);
+      }
+
+      console.log('✅ [CONTRACT_TOGGLE] Read test successful:', readTest);
+
+      const { data: updateResult, error: updateError } = await supabase
         .from('clubs')
         .update(updateData)
-        .eq('id', clubId);
+        .eq('id', clubId)
+        .select('*')
+        .single();
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('🚨 [CONTRACT_TOGGLE] Update failed:', {
+          error: updateError,
+          code: updateError.code,
+          message: updateError.message,
+          details: updateError.details,
+          hint: updateError.hint
+        });
+        throw updateError;
+      }
+
+      console.log('✅ [CONTRACT_TOGGLE] Update successful:', updateResult);
 
       // Update local state
       setClub(prev => prev ? { 
@@ -680,16 +726,34 @@ const ClubDetailPage = () => {
         await addAuditNote(auditNote);
       }
 
+      console.log('🎉 [CONTRACT_TOGGLE] Complete success');
+
       toast({
         title: "Success",
         description: `Contract marked as ${checked ? 'signed' : 'not signed'} successfully.`,
       });
 
-    } catch (error) {
-      console.error('Error updating contract status:', error);
+    } catch (error: any) {
+      console.error('🚨 [CONTRACT_TOGGLE] Full error details:', {
+        error,
+        message: error?.message,
+        code: error?.code,
+        details: error?.details,
+        hint: error?.hint,
+        stack: error?.stack
+      });
+
+      let errorMessage = "Failed to update contract status. Please try again.";
+      
+      if (error?.message) {
+        errorMessage = `Database error: ${error.message}`;
+        if (error.details) errorMessage += ` Details: ${error.details}`;
+        if (error.hint) errorMessage += ` Hint: ${error.hint}`;
+      }
+
       toast({
-        title: "Error",
-        description: "Failed to update contract status. Please try again.",
+        title: "Contract Update Error",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
