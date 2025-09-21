@@ -136,7 +136,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send sanitized email
     const emailResponse = await resend.emails.send({
-      from: "Official Hole in 1 <noreply@officialholein1.com>",
+      from: "Official Hole in 1 <noreply@demo.holein1challenge.co.uk>",
       to: [sanitizedData.email],
       subject: "Complete Your Golf Competition Entry",
       html: `
