@@ -319,17 +319,14 @@ const AdminEnquiries = () => {
         <Section spacing="lg">
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Back Button */}
-            <div className="flex justify-start">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(ROUTES.ADMIN.DASHBOARD)}
-                className="gap-2 text-muted-foreground hover:text-foreground"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back to Dashboard
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              onClick={() => navigate(ROUTES.ADMIN.DASHBOARD)}
+              className="flex items-center gap-2 mb-6"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Dashboard
+            </Button>
 
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
