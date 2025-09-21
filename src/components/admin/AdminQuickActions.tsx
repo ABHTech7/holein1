@@ -73,6 +73,26 @@ const AdminQuickActions = ({ stats, onAddUser }: QuickActionsProps) => {
       iconColor: "text-indigo-600"
     },
     {
+      title: "Entry Management",
+      description: "Monitor and manage entries",
+      icon: Clock,
+      path: "/dashboard/admin/entries",
+      count: stats.pendingEntries,
+      countLabel: "Pending",
+      color: "bg-orange-50 border-orange-200 hover:bg-orange-100",
+      iconColor: "text-orange-600"
+    },
+    {
+      title: "Claims Review",
+      description: "Review pending win claims",
+      icon: CheckCircle,
+      path: "/dashboard/admin/claims",
+      count: stats.pendingClaims,
+      countLabel: "Pending",
+      color: "bg-red-50 border-red-200 hover:bg-red-100",
+      iconColor: "text-red-600"
+    },
+    {
       title: "User Management",
       description: "Manage all platform users",
       icon: Users,
