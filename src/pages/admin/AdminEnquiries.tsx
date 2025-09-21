@@ -223,12 +223,24 @@ const AdminEnquiries = () => {
       return;
     }
 
-    // Guard against self-demotion
-    if (conversionData.adminEmail.toLowerCase() === 'admin@holein1.test') {
+    // Get current session for authentication
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session?.access_token) {
       toast({
-        title: "Error", 
-        description: "Cannot convert using the current admin email. This would cause permission issues.",
-        variant: "destructive"
+        title: "Authentication Error",
+        description: "Please log in again to perform this action.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Safety check - prevent admin from converting using their own email
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.email && conversionData.adminEmail.toLowerCase() === user.email.toLowerCase()) {
+      toast({
+        title: "Invalid Operation",
+        description: "You cannot convert a lead using your own admin email address.",
+        variant: "destructive",
       });
       return;
     }
@@ -254,6 +266,9 @@ const AdminEnquiries = () => {
             website: conversionData.website || '',
             address: conversionData.address || ''
           }
+        },
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`
         }
       });
 
