@@ -607,7 +607,7 @@ export type Database = {
           email: string
           expires_at: string
           first_name: string
-          handicap: number
+          handicap: number | null
           id: string
           last_name: string
           phone_e164: string
@@ -623,7 +623,7 @@ export type Database = {
           email: string
           expires_at: string
           first_name: string
-          handicap: number
+          handicap?: number | null
           id?: string
           last_name: string
           phone_e164: string
@@ -639,7 +639,7 @@ export type Database = {
           email?: string
           expires_at?: string
           first_name?: string
-          handicap?: number
+          handicap?: number | null
           id?: string
           last_name?: string
           phone_e164?: string
