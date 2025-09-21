@@ -404,10 +404,9 @@ const EntryPageNew = () => {
         <Container>
           <div className="flex justify-start">
             <Button
-              variant="ghost"
-              size="sm"
+              variant="outline"
               onClick={() => navigate(-1)}
-              className="gap-2 text-muted-foreground hover:text-foreground"
+              className="flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
               Back
