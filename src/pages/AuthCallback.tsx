@@ -23,6 +23,7 @@ export default function AuthCallback() {
       // Parse URL parameters for both query string and hash
       const code = params.get("code");
       const token_hash = params.get("token_hash");
+      const branded_token = params.get("token");
       const type = params.get("type");
       const error = params.get("error") || params.get("error_code");
       const error_description = params.get("error_description");
@@ -47,8 +48,9 @@ export default function AuthCallback() {
       const email = emailFromUrl || fallbackEmail;
 
       // Determine authentication mode
-      const mode = token_hash ? 'token_hash' : (code ? 'auth_code' : 'legacy_hash');
+      const mode = branded_token ? 'branded_token' : (token_hash ? 'token_hash' : (code ? 'auth_code' : 'legacy_hash'));
       console.log(`[AuthCallback] mode=${mode}`, { 
+        hasBrandedToken: !!branded_token,
         hasTokenHash: !!token_hash,
         hasCode: !!code, 
         type,
@@ -82,39 +84,42 @@ export default function AuthCallback() {
         return;
       }
 
-      // Handle token_hash flow (direct verifyOtp)
-      if (token_hash) {
-        console.log('[AuthCallback] token_hash found, using verifyOtp directly');
-        
-        if (!email) {
-          console.error('[AuthCallback] token_hash flow requires email');
-          navigate('/auth/expired-link?reason=missing_email&auto_resend=1', { replace: true });
-          return;
-        }
+      // Handle branded token flow (edge function verifies and returns a Supabase action link)
+      if (branded_token) {
+        console.log('[AuthCallback] branded token found, invoking verify-magic-link');
 
         try {
-          const otpType = (type as 'magiclink' | 'signup' | 'recovery' | 'invite') ?? 'magiclink';
-          const { error: verifyError } = await supabase.auth.verifyOtp({
-            type: otpType,
-            token_hash,
-            email
+          const { data, error: invokeError } = await supabase.functions.invoke('verify-magic-link', {
+            body: { token: branded_token }
           });
 
-          if (verifyError) {
-            console.error('[AuthCallback] token_hash verifyOtp failed:', verifyError.message);
-            const redirectUrl = `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired&auto_resend=1`;
+          if (invokeError || !data?.success) {
+            console.error('[AuthCallback] verify-magic-link failed:', invokeError || data?.error);
+            const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired&auto_resend=1` : '/auth/expired-link?reason=expired&auto_resend=1';
             navigate(redirectUrl, { replace: true });
             return;
           }
 
-          console.log('[AuthCallback] token_hash verifyOtp successful');
-        } catch (error: any) {
-          console.error('[AuthCallback] token_hash verifyOtp threw error:', error);
-          const redirectUrl = `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired&auto_resend=1`;
+          // If the function provided a Supabase action link, redirect there to establish the session
+          if (data.action_link) {
+            console.log('[AuthCallback] Redirecting to Supabase action_link to complete sign-in');
+            window.location.replace(data.action_link);
+            return;
+          }
+
+          // Fallback: if no action_link, navigate to returned redirect_url or default
+          const next = data.redirect_url || '/players/entries';
+          navigate(next, { replace: true });
+          return;
+        } catch (e) {
+          console.error('[AuthCallback] Error calling verify-magic-link:', e);
+          const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired&auto_resend=1` : '/auth/expired-link?reason=expired&auto_resend=1';
           navigate(redirectUrl, { replace: true });
           return;
         }
       }
+
+      // Handle token_hash flow (direct verifyOtp)
       
       // Handle code exchange (PKCE flow)  
       else if (code) {

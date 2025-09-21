@@ -364,10 +364,39 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Magic link verification successful for user:", user.id);
 
-    // Return redirect URL for the original working confirmation page
+    // Generate a Supabase action link to establish a real session in the browser
+    const baseUrl = (() => {
+      try {
+        return new URL(competitionUrl).origin;
+      } catch {
+        return Deno.env.get('SITE_URL') || '';
+      }
+    })();
+
+    let action_link: string | undefined = undefined;
+    try {
+      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'magiclink',
+        email: tokenData.email,
+        options: {
+          redirectTo: `${baseUrl}/auth/callback?email=${encodeURIComponent(tokenData.email)}&continue=${encodeURIComponent(`/entry/${entry.id}/confirmation`)}`
+        }
+      });
+      if (linkError) {
+        console.error('Error generating action link:', linkError);
+      } else {
+        // @ts-ignore - properties type differs in Deno env typings
+        action_link = linkData?.properties?.action_link || linkData?.action_link;
+      }
+    } catch (e) {
+      console.error('Exception while generating action link:', e);
+    }
+
+    // Return redirect URL and optional action link to complete auth
     const responseData = { 
       success: true,
       redirect_url: `/entry/${entry.id}/confirmation`,
+      action_link,
       user: {
         id: user.id,
         email: user.email,
