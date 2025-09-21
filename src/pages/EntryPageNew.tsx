@@ -399,6 +399,23 @@ const EntryPageNew = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <SiteHeader />
       
+      {/* Back Button */}
+      <div className="py-4 border-b">
+        <Container>
+          <div className="flex justify-start">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(-1)}
+              className="gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+          </div>
+        </Container>
+      </div>
+      
       <main className="flex-1">
         {/* Hero Section */}
         <EntryHero
@@ -409,23 +426,6 @@ const EntryPageNew = () => {
           venueName={competition.club_name}
           heroImageUrl={competition.hero_image_url}
         />
-
-        {/* Back Button */}
-        <div className="py-4 border-b">
-          <Container>
-            <div className="flex justify-start">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(-1)}
-                className="gap-2 text-muted-foreground hover:text-foreground"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </Button>
-            </div>
-          </Container>
-        </div>
 
         <div className="py-12">
           <Container>
