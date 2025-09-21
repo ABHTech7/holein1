@@ -192,22 +192,41 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
           }));
         }
         
-        const { error } = await sendOtp(formData.email);
+         // Send branded magic link instead of standard OTP
+        const { data: magicLinkResponse, error: magicLinkError } = await supabase.functions.invoke('send-branded-magic-link', {
+          body: {
+            email: formData.email,
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            phone: formData.phone,
+            ageYears: formData.age,
+            handicap: formData.handicap,
+            competitionUrl: window.location.href,
+            competitionName: competition.name,
+            clubName: competition.club_name
+          }
+        });
         
-        if (error) {
+        if (magicLinkError || !magicLinkResponse?.success) {
+          console.error('[Entry] Branded magic link failed:', magicLinkError);
           toast({ 
-            title: "Sign-in failed", 
-            description: error,
+            title: "Failed to send entry link", 
+            description: magicLinkResponse?.error || magicLinkError?.message || "Please try again",
             variant: "destructive" 
           });
           return;
         }
         
-        toast({
-          title: "Check your email",
-          description: "We've sent you a secure entry link.",
+        console.info('[Entry] Branded magic link sent successfully');
+        
+        toast({ 
+          title: "Check your email!", 
+          description: `We've sent a secure entry link to ${formData.email}. Click the link to complete your entry.`,
         });
         
+        // Show confirmation state - for magic link flow, we don't have an entryId yet
+        // So we'll pass a placeholder and the form data
+        onSuccess?.('pending-magic-link', formData);
         return;
       }
 

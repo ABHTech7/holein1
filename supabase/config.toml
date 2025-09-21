@@ -48,3 +48,6 @@ verify_jwt = false
 
 [functions.convert-lead-to-club]
 verify_jwt = true
+
+[functions.send-branded-magic-link]
+verify_jwt = false
