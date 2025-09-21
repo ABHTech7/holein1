@@ -103,7 +103,7 @@ const createBrandedEmailTemplate = (data: BrandedMagicLinkRequest, magicLink: st
           <!-- Security Notice -->
           <div style="background: #fef7f7; border: 1px solid #f1c6c6; border-radius: 8px; padding: 15px; margin: 20px 0;">
             <p style="color: #c53030; font-size: 13px; margin: 0; text-align: center;">
-              🔒 <strong>Security Notice:</strong> This secure link expires in 6 hours and can only be used once.
+              🔒 <strong>Security Notice:</strong> This secure link expires in 6 hours and can be clicked multiple times until you select Won/Missed.
             </p>
           </div>
         </div>

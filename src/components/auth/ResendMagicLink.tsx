@@ -66,13 +66,7 @@ export const ResendMagicLink = ({
     if (RateLimiter.isRateLimited(rateLimitId, MAX_RESEND_ATTEMPTS, 5 * 60 * 1000)) {
       const timeUntilReset = RateLimiter.getTimeUntilReset(rateLimitId);
       const minutesLeft = Math.ceil(timeUntilReset / (60 * 1000));
-      
-      toast({
-        title: "Too many attempts",
-        description: `Please wait ${minutesLeft} minutes before trying again.`,
-        variant: "destructive"
-      });
-      
+      toast({ title: "Too many attempts", description: `Please wait ${minutesLeft} minutes before trying again.`, variant: "destructive" });
       onResendError?.("Rate limit exceeded");
       return;
     }
@@ -80,144 +74,86 @@ export const ResendMagicLink = ({
     // Check for active persistent cooldown
     if (isCooldownActive(cooldownKey)) {
       const remaining = getRemainingSeconds(cooldownKey);
-      toast({
-        title: "Please wait",
-        description: `You can resend in ${remaining} seconds.`,
-        variant: "destructive"
-      });
+      toast({ title: "Please wait", description: `You can resend in ${remaining} seconds.`, variant: "destructive" });
       return;
     }
 
     setIsResending(true);
-    
+
     try {
-      console.info('[ResendMagicLink] Attempting to resend branded OTP for:', email);
-      console.log(`[Resend] started for ${email} to ${redirectUrl || `${window.location.origin}/auth/callback?email=${encodeURIComponent(email)}`}`);
-      
-      // Get entry context to determine if we should use branded magic link
+      console.info('[ResendMagicLink] Resending branded link for:', email);
+
+      // Try to derive competition context for branding
       const { getPendingEntryContext } = await import('@/lib/entryContextPersistence');
       const entryContext = getPendingEntryContext();
-      
-      console.log('[ResendMagicLink] Entry context check:', {
-        hasEntryContext: !!entryContext,
-        entryEmail: entryContext?.email,
-        targetEmail: email,
-        emailsMatch: entryContext?.email === email,
-        clubSlug: entryContext?.clubSlug,
-        competitionSlug: entryContext?.competitionSlug
-      });
-      
-      let success = false;
-      let errorMessage = '';
-      
-      if (entryContext && entryContext.email === email) {
-        // Use branded magic link for active entry context
-        console.log('[ResendMagicLink] Using branded magic link for entry context');
-        
+
+      // Derive slugs from entry context or current URL/search params
+      let clubSlug: string | undefined = entryContext?.clubSlug;
+      let competitionSlug: string | undefined = entryContext?.competitionSlug;
+
+      if (!clubSlug || !competitionSlug) {
         try {
-          const { supabase } = await import('@/integrations/supabase/client');
-          const competitionUrl = `${window.location.origin}/competition/${entryContext.clubSlug}/${entryContext.competitionSlug}/enter`;
-          
-          // Fetch real competition and club data
-          const { data: competitionData } = await supabase.rpc('get_safe_competition_data', {
-            club_uuid: null, // We'll search by slug
-            competition_slug_param: entryContext.competitionSlug
-          });
-          
-          // Find the matching club and competition
-          let competitionName = 'Hole in 1 Challenge';
-          let clubName = entryContext.clubSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-          
-          if (competitionData && competitionData.length > 0) {
-            const competition = competitionData.find(c => 
-              c.club_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') === entryContext.clubSlug
-            );
-            if (competition) {
-              competitionName = competition.name;
-              clubName = competition.club_name;
-            }
+          const url = new URL(window.location.href);
+          const qpClub = url.searchParams.get('club') || url.searchParams.get('clubSlug') || undefined;
+          const qpComp = url.searchParams.get('competition') || url.searchParams.get('competitionSlug') || undefined;
+          const pathParts = window.location.pathname.split('/').filter(Boolean);
+          // Expect: /competition/{clubSlug}/{competitionSlug}/enter
+          if (!qpClub && !qpComp && pathParts[0] === 'competition') {
+            clubSlug = clubSlug || pathParts[1];
+            competitionSlug = competitionSlug || pathParts[2];
+          } else {
+            clubSlug = clubSlug || qpClub;
+            competitionSlug = competitionSlug || qpComp;
           }
-          
-          console.log('[ResendMagicLink] Using competition:', competitionName, 'at club:', clubName);
-          
-          const { data, error } = await supabase.functions.invoke('send-branded-magic-link', {
-            body: {
-              email: entryContext.email,
-              firstName: entryContext.formData?.firstName || 'Golfer',
-              lastName: entryContext.formData?.lastName || '',
-              phone: entryContext.formData?.phone || '',
-              ageYears: entryContext.formData?.age || 18,
-              handicap: entryContext.formData?.handicap || null,
-              competitionUrl,
-              competitionName,
-              clubName
-            }
-          });
-          
-          if (error || !data?.success) {
-            throw new Error(data?.error || 'Failed to send branded magic link');
-          }
-          
-          success = true;
-        } catch (brandedError: any) {
-          console.warn('[ResendMagicLink] Branded link failed, falling back to standard OTP:', brandedError);
-          errorMessage = brandedError.message;
+        } catch {}
+      }
+
+      // Build competition URL fallback-safe
+      const competitionUrl = (clubSlug && competitionSlug)
+        ? `${window.location.origin}/competition/${clubSlug}/${competitionSlug}/enter`
+        : `${window.location.origin}`;
+
+      // Prepare minimal branding
+      const firstName = entryContext?.formData?.firstName || 'Golfer';
+      const lastName = entryContext?.formData?.lastName || '';
+      const phone = entryContext?.formData?.phone || '';
+      const ageYears = entryContext?.formData?.age ?? 18;
+      const handicap = entryContext?.formData?.handicap ?? null;
+
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data, error } = await supabase.functions.invoke('send-branded-magic-link', {
+        body: {
+          email,
+          firstName,
+          lastName,
+          phone,
+          ageYears,
+          handicap,
+          competitionUrl,
         }
-      } else {
-        console.log('[ResendMagicLink] No valid entry context found for branded link, using standard OTP');
+      });
+
+      if (error || !data?.success) {
+        const errMsg = (data?.error as string) || error?.message || 'Failed to send entry link';
+        throw new Error(errMsg);
       }
-      
-      // Fallback to standard OTP if branded failed or no entry context
-      if (!success) {
-        console.log('[ResendMagicLink] Using standard OTP as fallback');
-        const { error } = await sendOtp(email, true); // Enable context persistence
-        
-        if (error) {
-          throw new Error(error);
-        }
-        
-        success = true;
-      }
-      
-      if (!success) {
-        throw new Error(errorMessage || 'Failed to send magic link');
-      }
-      
+
       // Clear rate limit on successful send
       RateLimiter.clearLimit(rateLimitId);
       setAttemptCount(0);
-      
+
       // Start persistent cooldown
       startCooldown(cooldownKey, RESEND_COOLDOWN_SECONDS);
       setCooldownSeconds(RESEND_COOLDOWN_SECONDS);
-      
-      toast({
-        title: "Link resent!",
-        description: "Check your email for the new secure link.",
-      });
-      
+
+      toast({ title: "Link sent!", description: "Check your inbox for the new secure link." });
       onResendSuccess?.();
-      
-      // Log successful resend
-      if (process.env.NODE_ENV === 'development') {
-        console.info('[ResendMagicLink] Successfully resent magic link');
-      }
-      
     } catch (error: any) {
       console.error('[ResendMagicLink] Resend failed:', error);
-      
       setAttemptCount(prev => prev + 1);
-      
       const errorMessage = showSupabaseError(error, 'Magic Link Resend');
-      
-      toast({
-        title: "Failed to resend link",
-        description: errorMessage,
-        variant: "destructive"
-      });
-      
+      toast({ title: "Failed to resend link", description: errorMessage, variant: "destructive" });
       onResendError?.(errorMessage);
-      
     } finally {
       setIsResending(false);
     }

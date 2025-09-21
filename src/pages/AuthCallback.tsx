@@ -164,8 +164,35 @@ export default function AuthCallback() {
         }
       }
 
-      // Handle token_hash flow (direct verifyOtp)
-      
+      // Handle legacy hash-based tokens FIRST (Supabase magic link returns access_token in URL hash)
+      else if (window.location.hash) {
+        const hash = window.location.hash || "";
+        console.log('[AuthCallback] legacy_hash mode, trying hash:', hash.substring(0, 50));
+
+        try {
+          // Avoid redundant exchanges if we already have a session
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          if (!currentSession?.user) {
+            const { error: hashError } = await supabase.auth.exchangeCodeForSession(hash);
+            if (hashError) {
+              console.error('[AuthCallback] legacy_hash exchange failed:', hashError.message);
+              const redirectUrl = buildExpiredUrl('expired', true);
+              navigate(redirectUrl, { replace: true });
+              return;
+            }
+          }
+
+          console.log('[AuthCallback] legacy_hash exchange successful or session already present');
+        } catch (error: any) {
+          console.error('[AuthCallback] legacy_hash exchange threw error:', error);
+          const redirectUrl = email ?
+            `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired&auto_resend=1` :
+            '/auth/expired-link?reason=expired&auto_resend=1';
+          navigate(redirectUrl, { replace: true });
+          return;
+        }
+      }
+
       // Handle code exchange (PKCE flow)  
       else if (code) {
         console.log('[AuthCallback] auth_code found, attempting PKCE exchange');
@@ -220,36 +247,10 @@ export default function AuthCallback() {
           }
         }
       } else {
-        // Legacy hash-based flow (fallback)
-        const hash = window.location.hash || "";
-        console.log('[AuthCallback] legacy_hash mode, trying hash:', hash.substring(0, 50));
-        
-        if (!hash) {
-          console.warn('[AuthCallback] No token_hash, code, or hash found');
-          const redirectUrl = buildExpiredUrl('missing', true);
-          navigate(redirectUrl, { replace: true });
-          return;
-        }
-        
-        try {
-          const { error: hashError } = await supabase.auth.exchangeCodeForSession(hash);
-          
-          if (hashError) {
-            console.error('[AuthCallback] legacy_hash exchange failed:', hashError.message);
-            const redirectUrl = buildExpiredUrl('expired', true);
-            navigate(redirectUrl, { replace: true });
-            return;
-          }
-          
-          console.log('[AuthCallback] legacy_hash exchange successful');
-        } catch (error: any) {
-          console.error('[AuthCallback] legacy_hash exchange threw error:', error);
-          const redirectUrl = email ? 
-            `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired&auto_resend=1` : 
-            '/auth/expired-link?reason=expired&auto_resend=1';
-          navigate(redirectUrl, { replace: true });
-          return;
-        }
+        console.warn('[AuthCallback] No token_hash, code, or hash found');
+        const redirectUrl = buildExpiredUrl('missing', true);
+        navigate(redirectUrl, { replace: true });
+        return;
       }
 
       // Clean URL (remove hash/params) then redirect

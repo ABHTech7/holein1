@@ -81,29 +81,28 @@ const ExpiredLinkPage = () => {
         // Wait briefly then auto-resend
         setTimeout(async () => {
           try {
-            // Prefer branded resend when we have enough context
-            if (clubSlug && competitionSlug) {
-              const competitionUrl = `${window.location.origin}/competition/${clubSlug}/${competitionSlug}/enter`;
-              const { data, error } = await supabase.functions.invoke('send-branded-magic-link', {
-                body: {
-                  email: fallbackEmail,
-                  firstName: 'Golfer',
-                  lastName: '',
-                  phone: '',
-                  ageYears: 18,
-                  handicap: null,
-                  competitionUrl,
-                  competitionName: competitionSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-                  clubName: clubSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-                }
-              });
+            // Prefer branded resend; derive competition URL if we have slugs, otherwise fall back to site origin
+            const competitionUrl = (clubSlug && competitionSlug)
+              ? `${window.location.origin}/competition/${clubSlug}/${competitionSlug}/enter`
+              : `${window.location.origin}`;
 
-              if (error || !data?.success) {
-                console.warn('[ExpiredLink] Branded auto-resend failed, falling back to standard OTP', error || data);
-                await sendOtp(fallbackEmail, true);
+            const { data, error } = await supabase.functions.invoke('send-branded-magic-link', {
+              body: {
+                email: fallbackEmail,
+                firstName: 'Golfer',
+                lastName: '',
+                phone: '',
+                ageYears: 18,
+                handicap: null,
+                competitionUrl,
+                competitionName: competitionSlug ? competitionSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : undefined,
+                clubName: clubSlug ? clubSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : undefined,
               }
-            } else {
-              await sendOtp(fallbackEmail, true);
+            });
+
+            if (error || !data?.success) {
+              console.warn('[ExpiredLink] Branded auto-resend failed:', error || data);
+              throw new Error(data?.error || error?.message || 'Failed to send link');
             }
 
             const messageMap = {
@@ -111,7 +110,7 @@ const ExpiredLinkPage = () => {
               expired: "Your secure link has expired. We're sending a new one.",
               missing: "We're sending you a new secure link.",
             } as const;
-            
+
             toast({
               title: "New link sent!",
               description: messageMap[(reason as 'pkce_missing' | 'expired' | 'missing')] || "Check your inbox for the new secure link.",
