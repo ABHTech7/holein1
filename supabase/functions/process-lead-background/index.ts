@@ -90,10 +90,10 @@ const handler = async (req: Request): Promise<Response> => {
       subject: `New Club Partnership Application - ${lead.clubName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2563eb;">New Partnership Application</h2>
+          <h2 style="color: #0F3D2E; border-bottom: 3px solid #C7A24C; padding-bottom: 10px;">New Partnership Application</h2>
           
-          <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="color: #1e40af; margin-bottom: 15px;">Club Information</h3>
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #C7A24C;">
+            <h3 style="color: #0F3D2E; margin-bottom: 15px;">Club Information</h3>
             <p><strong>Club Name:</strong> ${lead.clubName}</p>
             <p><strong>Contact Name:</strong> ${lead.contactName}</p>
             <p><strong>Role:</strong> ${lead.role}</p>
@@ -102,8 +102,8 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
 
           ${lead.message ? `
-            <div style="background: #f1f5f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #1e40af; margin-bottom: 15px;">Additional Message</h3>
+            <div style="background: #f1f5f9; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #C7A24C;">
+              <h3 style="color: #0F3D2E; margin-bottom: 15px;">Additional Message</h3>
               <p style="line-height: 1.6;">${lead.message}</p>
             </div>
           ` : ''}
