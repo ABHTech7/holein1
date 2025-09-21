@@ -8,13 +8,14 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  const startTime = Date.now();
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('Starting lead conversion process');
     
     // Get the authorization header to validate the user
     const authHeader = req.headers.get('authorization');
@@ -76,6 +77,9 @@ serve(async (req) => {
 
     // Parse the request body
     const { leadId, clubName, adminEmail, metadata } = await req.json();
+    
+    // Log function start with details
+    console.log('Convert-to-Club started', { userId: user.id, leadId });
     console.log('Conversion request:', { leadId, clubName, adminEmail, metadata });
 
     // Validate required fields
@@ -110,16 +114,25 @@ serve(async (req) => {
     }
 
     // Call the database function to handle the conversion
-    console.log('Calling convert_partnership_lead_to_club RPC');
-    const { data: result, error: rpcError } = await userSupabase.rpc('convert_partnership_lead_to_club', {
+    const rpcPayload = {
       p_lead_id: leadId,
       p_club_name: clubName,
       p_admin_email: adminEmail,
       p_metadata: metadata || {}
+    };
+    console.log('Calling RPC convert_to_club', rpcPayload);
+    
+    const { data: result, error: rpcError } = await userSupabase.rpc('convert_partnership_lead_to_club', rpcPayload);
+    
+    // Log RPC response
+    console.log('RPC Response:', { 
+      status: rpcError ? 'error' : 'success', 
+      data: result, 
+      error: rpcError 
     });
 
     if (rpcError) {
-      console.error('RPC conversion error:', rpcError);
+      console.error('Convert-to-Club ERROR:', rpcError.message);
       
       // Handle specific error cases
       if (rpcError.code === '28000') {
@@ -156,6 +169,8 @@ serve(async (req) => {
     }
 
     console.log('Conversion completed successfully:', result);
+    console.log('Convert-to-Club finished', { elapsedMs: Date.now() - startTime });
+    
     return new Response(
       JSON.stringify({ 
         success: true,
@@ -173,7 +188,9 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Unexpected error in lead conversion:', error);
+    console.error('Convert-to-Club ERROR:', error.message);
+    console.log('Convert-to-Club finished', { elapsedMs: Date.now() - startTime });
+    
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
