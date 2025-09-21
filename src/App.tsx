@@ -93,17 +93,17 @@ const App = () => {
     // Clean up expired entry contexts on app load
     cleanupExpiredContexts();
     
-    // Development-only RLS probe
-    if (process.env.NODE_ENV !== 'production') {
-      const runProbe = async () => {
-        const { probeRLS } = await import('@/lib/rlsProbe');
-        await probeRLS('AppMount');
-      };
-      
-      // Small delay to ensure auth is initialized
-      const timer = setTimeout(runProbe, 1000);
-      return () => clearTimeout(timer);
-    }
+    // Development-only RLS probe - disabled to prevent production errors
+    // if (process.env.NODE_ENV !== 'production') {
+    //   const runProbe = async () => {
+    //     const { probeRLS } = await import('@/lib/rlsProbe');
+    //     await probeRLS('AppMount');
+    //   };
+    //   
+    //   // Small delay to ensure auth is initialized
+    //   const timer = setTimeout(runProbe, 1000);
+    //   return () => clearTimeout(timer);
+    // }
   }, []);
 
   return (
