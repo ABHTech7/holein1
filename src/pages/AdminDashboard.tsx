@@ -378,31 +378,6 @@ const AdminDashboard = () => {
                   <Settings className="w-4 h-4" />
                   <span className="hidden sm:inline">Settings</span>
                 </Button>
-                <Button variant="outline" className="gap-2" onClick={() => navigate('/dashboard/admin/entries')}>
-                  <Trophy className="w-4 h-4" />
-                  <span className="hidden sm:inline">Entry Management</span>
-                  <span className="sm:hidden">Entries</span>
-                </Button>
-                <Button variant="outline" className="gap-2" onClick={() => navigate('/dashboard/admin/claims')}>
-                  <TrendingUp className="w-4 h-4" />
-                  <span className="hidden sm:inline">Claims Review</span>
-                  <span className="sm:hidden">Claims</span>
-                </Button>
-                <Button variant="outline" className="gap-2" onClick={() => navigate(ROUTES.ADMIN.ENQUIRIES)}>
-                  <UserPlus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Partnership Enquiries</span>
-                  <span className="sm:hidden">Enquiries</span>
-                </Button>
-                <Button variant="outline" className="gap-2" onClick={handleUserManagement}>
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Manage Users</span>
-                  <span className="sm:hidden">Users</span>
-                </Button>
-                <Button className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2" onClick={handleAddUser}>
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden md:inline">Add New User</span>
-                  <span className="md:hidden">Add User</span>
-                </Button>
               </div>
             </div>
 
@@ -492,6 +467,7 @@ const AdminDashboard = () => {
                   activeCompetitions: stats.activeCompetitions,
                   totalClubs: stats.totalClubs
                 }}
+                onAddUser={handleAddUser}
               />
             </div>
 

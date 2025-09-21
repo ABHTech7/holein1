@@ -11,7 +11,8 @@ import {
   Building, 
   TrendingUp,
   Clock,
-  CheckCircle
+  CheckCircle,
+  UserPlus
 } from "lucide-react";
 
 interface QuickActionsProps {
@@ -23,32 +24,13 @@ interface QuickActionsProps {
     activeCompetitions: number;
     totalClubs: number;
   };
+  onAddUser?: () => void;
 }
 
-const AdminQuickActions = ({ stats }: QuickActionsProps) => {
+const AdminQuickActions = ({ stats, onAddUser }: QuickActionsProps) => {
   const navigate = useNavigate();
 
   const actions = [
-    {
-      title: "Entry Management",
-      description: "Monitor all competition entries",
-      icon: Trophy,
-      path: "/dashboard/admin/entries",
-      count: stats.pendingEntries,
-      countLabel: "Pending",
-      color: "bg-blue-50 border-blue-200 hover:bg-blue-100",
-      iconColor: "text-blue-600"
-    },
-    {
-      title: "Claims Review",
-      description: "Review hole-in-one claims",
-      icon: AlertTriangle,
-      path: "/dashboard/admin/claims",
-      count: stats.pendingClaims,
-      countLabel: "Awaiting",
-      color: "bg-orange-50 border-orange-200 hover:bg-orange-100",
-      iconColor: "text-orange-600"
-    },
     {
       title: "Player Management",
       description: "View and manage all players",
@@ -89,6 +71,25 @@ const AdminQuickActions = ({ stats }: QuickActionsProps) => {
       countLabel: "Partners",
       color: "bg-indigo-50 border-indigo-200 hover:bg-indigo-100",
       iconColor: "text-indigo-600"
+    },
+    {
+      title: "User Management",
+      description: "Manage all platform users",
+      icon: Users,
+      path: "/dashboard/admin/users",
+      color: "bg-teal-50 border-teal-200 hover:bg-teal-100",
+      iconColor: "text-teal-600",
+      hasSubAction: true,
+      subActionText: "Add User",
+      subActionPath: "/dashboard/admin/users/new"
+    },
+    {
+      title: "Partnership Enquiries",
+      description: "Review club partnership requests",
+      icon: FileText,
+      path: "/dashboard/admin/enquiries",
+      color: "bg-pink-50 border-pink-200 hover:bg-pink-100",
+      iconColor: "text-pink-600"
     }
   ];
 
@@ -123,13 +124,31 @@ const AdminQuickActions = ({ stats }: QuickActionsProps) => {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-sm text-gray-900">{action.title}</h3>
                     <p className="text-xs text-gray-600 mt-1">{action.description}</p>
+                    {action.hasSubAction && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-2 text-xs h-7 px-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onAddUser) {
+                            onAddUser();
+                          } else {
+                            navigate('/dashboard/admin/users');
+                          }
+                        }}
+                      >
+                        <UserPlus className="w-3 h-3 mr-1" />
+                        {action.subActionText}
+                      </Button>
+                    )}
                   </div>
                 </div>
                 
-                {action.count > 0 && (
+                {(action.count ?? 0) > 0 && (
                   <div className="text-right">
                     <div className="text-lg font-bold text-gray-900">
-                      {formatCount(action.count, action.isAmount)}
+                      {formatCount(action.count!, action.isAmount)}
                     </div>
                     <div className="text-xs text-gray-600">{action.countLabel}</div>
                   </div>
@@ -137,7 +156,7 @@ const AdminQuickActions = ({ stats }: QuickActionsProps) => {
               </div>
               
               {/* Priority indicators */}
-              {action.path.includes('claims') && action.count > 0 && (
+              {action.path.includes('claims') && (action.count ?? 0) > 0 && (
                 <div className="mt-3">
                   <Badge variant="destructive" className="text-xs">
                     Needs Attention
@@ -145,7 +164,7 @@ const AdminQuickActions = ({ stats }: QuickActionsProps) => {
                 </div>
               )}
               
-              {action.path.includes('entries') && action.count > 0 && (
+              {action.path.includes('entries') && (action.count ?? 0) > 0 && (
                 <div className="mt-3">
                   <Badge variant="secondary" className="text-xs">
                     {action.count} Awaiting Payment
