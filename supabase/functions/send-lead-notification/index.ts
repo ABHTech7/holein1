@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_DEMO_API_KEY"));
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,11 +29,11 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { lead }: LeadNotificationRequest = await req.json();
 
-    console.log(`Sending lead notification email to: info@holeinchallenge.co.uk for club: ${lead.clubName}`);
+    console.log(`Sending lead notification email to: info@holein1challenge.co.uk for club: ${lead.clubName}`);
     
     const emailResponse = await resend.emails.send({
-      from: "Official Hole in 1 <noreply@demo.holein1challenge.co.uk>",
-      to: ["info@holeinchallenge.co.uk"],
+      from: "Official Hole in 1 <onboarding@resend.dev>",
+      to: ["info@holein1challenge.co.uk"],
       reply_to: lead.email,
       subject: `New Club Partnership Application - ${lead.clubName}`,
       html: `
