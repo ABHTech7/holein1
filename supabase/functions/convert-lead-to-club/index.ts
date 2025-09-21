@@ -178,7 +178,8 @@ serve(async (req) => {
           leadId,
           clubId: result.club_id,
           clubName: result.club_name,
-          adminEmail: result.admin_email
+          adminEmail: result.admin_email,
+          profileCreated: result.profile_created
         }
       }), 
       { 
