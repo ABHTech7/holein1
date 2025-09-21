@@ -192,8 +192,10 @@ const EntriesPage = () => {
   };
 
   const getStatusColor = (status: string, outcome_self: string | null) => {
-    // Check outcome_self first for auto_miss
+    // Check outcome_self first for specific outcomes
     if (outcome_self === 'auto_miss') return 'destructive';
+    if (outcome_self === 'win') return 'default';
+    if (outcome_self === 'miss') return 'secondary';
     
     switch (status.toLowerCase()) {
       case 'completed': return 'default';
@@ -204,8 +206,17 @@ const EntriesPage = () => {
   };
 
   const getStatusDisplay = (status: string, outcome_self: string | null) => {
+    // Show outcome-specific status if available
     if (outcome_self === 'auto_miss') return 'Auto Missed';
-    return status || 'pending';
+    if (outcome_self === 'win') return 'Won';
+    if (outcome_self === 'miss') return 'Missed';
+    
+    // Capitalize status for display
+    if (status) {
+      return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+    }
+    
+    return 'Pending';
   };
 
   const getAttemptWindow = (entry: Entry) => {

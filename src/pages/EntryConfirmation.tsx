@@ -307,16 +307,17 @@ const EntryConfirmation = () => {
 
     setSubmitting(true);
     try {
-      // For now, just update the outcome - full win reporting form will be separate
+      // Update the outcome and mark as completed
       await supabase
         .from('entries')
         .update({
           outcome_self: 'win',
-          outcome_reported_at: new Date().toISOString()
+          outcome_reported_at: new Date().toISOString(),
+          status: 'completed'
         })
         .eq('id', entry.id);
 
-      setEntry(prev => prev ? { ...prev, outcome_self: 'win' } : null);
+      setEntry(prev => prev ? { ...prev, outcome_self: 'win', status: 'completed' } : null);
       
       toast({
         title: "Win reported!",
@@ -343,11 +344,12 @@ const EntryConfirmation = () => {
         .from('entries')
         .update({
           outcome_self: 'miss',
-          outcome_reported_at: new Date().toISOString()
+          outcome_reported_at: new Date().toISOString(),
+          status: 'completed'
         })
         .eq('id', entry.id);
 
-      setEntry(prev => prev ? { ...prev, outcome_self: 'miss' } : null);
+      setEntry(prev => prev ? { ...prev, outcome_self: 'miss', status: 'completed' } : null);
       
       toast({
         title: "Outcome recorded",
