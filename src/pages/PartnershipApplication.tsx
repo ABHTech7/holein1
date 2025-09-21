@@ -48,10 +48,12 @@ const PartnershipApplication = () => {
     setIsSubmitting(true);
     
     try {
-      // Store lead in database with email tracking fields
-      const { data: leadData, error: leadError } = await supabase
+      // Store lead in database with email tracking fields (avoid SELECT due to RLS)
+      const leadId = (crypto?.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const { error: leadError } = await supabase
         .from('leads')
         .insert({
+          id: leadId,
           name: formData.contactName,
           email: formData.email,
           phone: formData.phone,
@@ -60,12 +62,10 @@ const PartnershipApplication = () => {
           notes: `Club: ${formData.clubName}, Role: ${formData.role}, Message: ${formData.message}`,
           email_sent: false,
           email_sent_at: null
-        })
-        .select('id')
-        .maybeSingle();
+        });
+
 
       if (leadError) throw leadError;
-      if (!leadData) throw new Error('Failed to create lead record');
 
       // Show immediate success - no more waiting for email
       setIsSubmitted(true);
@@ -78,7 +78,7 @@ const PartnershipApplication = () => {
       try {
         const { data: emailResult, error: emailError } = await supabase.functions.invoke('process-lead-background', {
           body: {
-            leadId: leadData.id,
+            leadId: leadId,
             lead: {
               clubName: formData.clubName,
               contactName: formData.contactName,
