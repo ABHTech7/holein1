@@ -213,47 +213,87 @@ const AdminEnquiries = () => {
   const convertToClub = async () => {
     if (!selectedLead) return;
 
+    // Validate required fields
+    if (!conversionData.clubName || !conversionData.adminEmail) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields (Club Name and Admin Email)",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Guard against self-demotion
+    if (conversionData.adminEmail.toLowerCase() === 'admin@holein1.test') {
+      toast({
+        title: "Error", 
+        description: "Cannot convert using the current admin email. This would cause permission issues.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setConverting(true);
     try {
-      const { data, error } = await supabase.rpc('convert_partnership_lead_to_club', {
-        p_lead_id: selectedLead.id,
-        p_club_name: conversionData.clubName || undefined,
-        p_admin_email: conversionData.adminEmail || undefined,
-        p_metadata: {
+      console.log('Starting conversion with data:', {
+        leadId: selectedLead.id,
+        clubName: conversionData.clubName,
+        adminEmail: conversionData.adminEmail,
+        metadata: {
           website: conversionData.website || '',
           address: conversionData.address || ''
         }
       });
 
+      const { data, error } = await supabase.functions.invoke('convert-lead-to-club', {
+        body: {
+          leadId: selectedLead.id,
+          clubName: conversionData.clubName,
+          adminEmail: conversionData.adminEmail,
+          metadata: {
+            website: conversionData.website || '',
+            address: conversionData.address || ''
+          }
+        }
+      });
+
       if (error) {
-        console.error('Conversion error:', error);
-        showSupabaseError(error, 'AdminEnquiries.convertToClub');
+        console.error('Edge function error:', error);
         toast({
-          title: "Conversion failed",
-          description: "Please check the details and try again.",
+          title: "Conversion failed!",
+          description: error.message || "Please try again later",
           variant: "destructive"
         });
         return;
       }
 
-      // Cast data to proper type - handle both object and null cases
-      const conversionResult = data as unknown as ConversionResult;
+      if (!data?.success) {
+        console.error('Conversion failed with response:', data);
+        toast({
+          title: "Conversion failed!",
+          description: data?.error || "Unknown error occurred",
+          variant: "destructive"
+        });
+        return;
+      }
 
+      console.log('Conversion successful:', data);
+      
       // Success!
       toast({
         title: "Conversion successful! 🎉",
-        description: `${conversionResult.club_name} has been created successfully.`,
+        description: `${data.data.clubName} has been created successfully.`,
       });
 
       // Update local state
       setLeads(prev => prev.map(lead => 
         lead.id === selectedLead.id 
-          ? { ...lead, status: 'CONVERTED', club_id: conversionResult.club_id }
+          ? { ...lead, status: 'CONVERTED', club_id: data.data.clubId }
           : lead
       ));
 
       // Update selected lead
-      setSelectedLead(prev => prev ? { ...prev, status: 'CONVERTED', club_id: conversionResult.club_id } : null);
+      setSelectedLead(prev => prev ? { ...prev, status: 'CONVERTED', club_id: data.data.clubId } : null);
 
       // Close modals
       setConvertModalOpen(false);
@@ -269,7 +309,7 @@ const AdminEnquiries = () => {
               <Button 
                 size="sm" 
                 variant="outline"
-                onClick={() => navigate(ROUTES.DETAIL.CLUB(conversionResult.club_id))}
+                onClick={() => navigate(ROUTES.DETAIL.CLUB(data.data.clubId))}
               >
                 <ExternalLink className="w-3 h-3 mr-1" />
                 Open Club
@@ -279,11 +319,11 @@ const AdminEnquiries = () => {
         });
       }, 1000);
 
-    } catch (error) {
-      console.error('Error converting lead:', error);
+    } catch (error: any) {
+      console.error('Unexpected error during conversion:', error);
       toast({
-        title: "Conversion error",
-        description: "An unexpected error occurred during conversion.",
+        title: "Conversion failed!",
+        description: error.message || "An unexpected error occurred",
         variant: "destructive"
       });
     } finally {

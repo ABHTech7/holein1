@@ -45,3 +45,6 @@ verify_jwt = false
 
 [functions.process-lead-background]
 verify_jwt = false
+
+[functions.convert-lead-to-club]
+verify_jwt = true
