@@ -274,9 +274,13 @@ const AdminEnquiries = () => {
 
       if (error) {
         console.error('Edge function error:', error);
+        
+        // Extract detailed error information from the network error
+        const errorMessage = error.message || "Network error occurred";
+        
         toast({
           title: "Conversion failed!",
-          description: error.message || "Please try again later",
+          description: errorMessage,
           variant: "destructive"
         });
         return;
@@ -284,9 +288,15 @@ const AdminEnquiries = () => {
 
       if (!data?.success) {
         console.error('Conversion failed with response:', data);
+        
+        // Extract detailed error information from the response
+        const errorMessage = data?.error || "Unknown error occurred";
+        const errorDetails = data?.details ? ` Details: ${data.details}` : '';
+        const errorHint = data?.hint ? ` Hint: ${data.hint}` : '';
+        
         toast({
           title: "Conversion failed!",
-          description: data?.error || "Unknown error occurred",
+          description: `${errorMessage}${errorDetails}${errorHint}`,
           variant: "destructive"
         });
         return;

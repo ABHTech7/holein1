@@ -73,24 +73,15 @@ serve(async (req) => {
     }
 
     console.log('User authenticated as admin:', user.email);
-    
-    // Initialize Supabase client with service role key for admin privileges
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
 
-    // Get request body
-    const { leadId, clubName, adminEmail, metadata = {} } = await req.json();
-    
+    // Parse the request body
+    const { leadId, clubName, adminEmail, metadata } = await req.json();
     console.log('Conversion request:', { leadId, clubName, adminEmail, metadata });
 
     // Validate required fields
-    if (!leadId || !clubName || !adminEmail) {
+    if (!leadId) {
       return new Response(
-        JSON.stringify({ 
-          error: 'Missing required fields: leadId, clubName, and adminEmail are required' 
-        }), 
+        JSON.stringify({ error: 'Lead ID is required' }), 
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -98,13 +89,9 @@ serve(async (req) => {
       );
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(adminEmail)) {
+    if (!clubName || clubName.trim().length === 0) {
       return new Response(
-        JSON.stringify({ 
-          error: 'Invalid email format' 
-        }), 
+        JSON.stringify({ error: 'Club name is required' }), 
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -112,34 +99,9 @@ serve(async (req) => {
       );
     }
 
-    // Step 1: Get and validate the lead
-    console.log('Fetching lead:', leadId);
-    const { data: lead, error: leadError } = await supabaseAdmin
-      .from('leads')
-      .select('*')
-      .eq('id', leadId)
-      .eq('source', 'Partnership Application')
-      .single();
-
-    if (leadError) {
-      console.error('Error fetching lead:', leadError);
+    if (!adminEmail || !adminEmail.includes('@')) {
       return new Response(
-        JSON.stringify({ 
-          error: 'Lead not found or not a partnership application',
-          details: leadError.message 
-        }), 
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    if (lead.status === 'CONVERTED') {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Lead has already been converted' 
-        }), 
+        JSON.stringify({ error: 'Valid admin email is required' }), 
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -147,28 +109,34 @@ serve(async (req) => {
       );
     }
 
-    // Step 2: Create the club
-    console.log('Creating club:', clubName);
-    const { data: club, error: clubError } = await supabaseAdmin
-      .from('clubs')
-      .insert({
-        name: clubName,
-        email: adminEmail,
-        phone: lead.phone || null,
-        address: metadata.address || '',
-        website: metadata.website || '',
-        active: true,
-        archived: false
-      })
-      .select()
-      .single();
+    // Call the database function to handle the conversion
+    console.log('Calling convert_partnership_lead_to_club RPC');
+    const { data: result, error: rpcError } = await userSupabase.rpc('convert_partnership_lead_to_club', {
+      p_lead_id: leadId,
+      p_club_name: clubName,
+      p_admin_email: adminEmail,
+      p_metadata: metadata || {}
+    });
 
-    if (clubError) {
-      console.error('Error creating club:', clubError);
+    if (rpcError) {
+      console.error('RPC conversion error:', rpcError);
+      
+      // Handle specific error cases
+      if (rpcError.code === '28000') {
+        return new Response(
+          JSON.stringify({ error: 'Admin access required' }), 
+          { 
+            status: 403, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to create club',
-          details: clubError.message 
+          error: 'Conversion failed', 
+          details: rpcError.message,
+          hint: rpcError.hint 
         }), 
         { 
           status: 500, 
@@ -177,140 +145,30 @@ serve(async (req) => {
       );
     }
 
-    console.log('Club created successfully:', club.id);
-
-    // Step 3: Check if profile already exists for this email
-    console.log('Checking for existing profile:', adminEmail);
-    const { data: existingProfile, error: profileCheckError } = await supabaseAdmin
-      .from('profiles')
-      .select('id, email, role')
-      .eq('email', adminEmail)
-      .maybeSingle();
-
-    if (profileCheckError) {
-      console.error('Error checking existing profile:', profileCheckError);
+    if (!result) {
+      return new Response(
+        JSON.stringify({ error: 'Conversion returned no result' }), 
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
     }
 
-    let profileId;
-
-    if (existingProfile) {
-      // Update existing profile to CLUB role and link to new club
-      console.log('Updating existing profile:', existingProfile.id);
-      const { error: updateError } = await supabaseAdmin
-        .from('profiles')
-        .update({
-          role: 'CLUB',
-          club_id: club.id,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existingProfile.id);
-
-      if (updateError) {
-        console.error('Error updating existing profile:', updateError);
-        // Try to rollback club creation
-        await supabaseAdmin.from('clubs').delete().eq('id', club.id);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Failed to update existing user profile',
-            details: updateError.message 
-          }), 
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-      profileId = existingProfile.id;
-    } else {
-      // Create new profile placeholder (will be activated when user signs up)
-      console.log('Creating new profile placeholder for:', adminEmail);
-      const { data: newProfile, error: createProfileError } = await supabaseAdmin
-        .from('profiles')
-        .insert({
-          id: crypto.randomUUID(),
-          email: adminEmail,
-          role: 'CLUB',
-          club_id: club.id,
-          first_name: lead.name.split(' ')[0] || '',
-          last_name: lead.name.split(' ').slice(1).join(' ') || '',
-          status: 'active'
-        })
-        .select()
-        .single();
-
-      if (createProfileError) {
-        console.error('Error creating profile:', createProfileError);
-        // Try to rollback club creation
-        await supabaseAdmin.from('clubs').delete().eq('id', club.id);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Failed to create user profile',
-            details: createProfileError.message 
-          }), 
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-      profileId = newProfile.id;
-    }
-
-    // Step 4: Update the lead status to CONVERTED
-    console.log('Updating lead status to CONVERTED');
-    const { error: leadUpdateError } = await supabaseAdmin
-      .from('leads')
-      .update({
-        status: 'CONVERTED',
-        club_id: club.id,
-        converted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', leadId);
-
-    if (leadUpdateError) {
-      console.error('Error updating lead status:', leadUpdateError);
-      // This is not critical, so we'll log but continue
-    }
-
-    // Step 5: Create audit log entry
-    console.log('Creating audit log entry');
-    const { error: auditError } = await supabaseAdmin
-      .from('audit_events')
-      .insert({
-        entity_type: 'lead_conversion',
-        entity_id: leadId,
-        action: 'CONVERT_TO_CLUB',
-        new_values: {
-          lead_id: leadId,
-          club_id: club.id,
-          club_name: clubName,
-          admin_email: adminEmail,
-          metadata
-        },
-        user_id: null // System operation
-      });
-
-    if (auditError) {
-      console.error('Error creating audit log:', auditError);
-      // This is not critical, so we'll continue
-    }
-
-    console.log('Lead conversion completed successfully');
-    
+    console.log('Conversion completed successfully:', result);
     return new Response(
-      JSON.stringify({
+      JSON.stringify({ 
         success: true,
         data: {
           leadId,
-          clubId: club.id,
-          clubName: club.name,
-          adminEmail,
-          profileId
+          clubId: result.club_id,
+          clubName: result.club_name,
+          adminEmail: result.admin_email
         }
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }), 
+      { 
+        status: 200, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
 
