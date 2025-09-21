@@ -98,6 +98,24 @@ const ClubDetailPage = () => {
     active: true
   });
 
+  // Calculate activation status based on contract state
+  const getActivationStatus = () => {
+    if (!club) return "Pending";
+    
+    // Club is active if:
+    // 1. Contract is signed, OR
+    // 2. Contract file is uploaded, OR  
+    // 3. Admin has manually set active=true AND contract is signed
+    const hasContract = club.contract_url || club.contract_signed;
+    const isManuallyActive = club.active && club.contract_signed;
+    
+    if (hasContract || isManuallyActive) {
+      return "Active";
+    }
+    
+    return "Pending";
+  };
+
   useEffect(() => {
     if (clubId) {
       fetchClubDetails();
@@ -929,8 +947,8 @@ const ClubDetailPage = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              <Badge variant={club.active ? "default" : "outline"}>
-                {club.active ? "Active" : "Inactive"}
+              <Badge variant={getActivationStatus() === "Active" ? "default" : "outline"}>
+                {getActivationStatus()}
               </Badge>
               {editMode ? (
                 <div className="flex gap-2">
@@ -1205,8 +1223,8 @@ const ClubDetailPage = () => {
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
                         <Label className="text-base font-semibold">Activation Status:</Label>
-                        <Badge variant={club.active ? "default" : "outline"}>
-                          {club.active ? "Active" : "Inactive"}
+                        <Badge variant={getActivationStatus() === "Active" ? "default" : "outline"}>
+                          {getActivationStatus()}
                         </Badge>
                       </div>
                       
