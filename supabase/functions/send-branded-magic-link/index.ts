@@ -103,7 +103,7 @@ const createBrandedEmailTemplate = (data: BrandedMagicLinkRequest, magicLink: st
           <!-- Security Notice -->
           <div style="background: #fef7f7; border: 1px solid #f1c6c6; border-radius: 8px; padding: 15px; margin: 20px 0;">
             <p style="color: #c53030; font-size: 13px; margin: 0; text-align: center;">
-              🔒 <strong>Security Notice:</strong> This secure link expires in 15 minutes and can only be used once.
+              🔒 <strong>Security Notice:</strong> This secure link expires in 6 hours and can only be used once.
             </p>
           </div>
         </div>
@@ -181,7 +181,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Generate secure token
     const token = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    const expiresAt = new Date(Date.now() + 6 * 60 * 60 * 1000); // 6 hours
 
     // Store token with all data
     const { error: insertError } = await supabaseAdmin

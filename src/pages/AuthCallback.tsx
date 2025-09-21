@@ -86,7 +86,7 @@ export default function AuthCallback() {
 
       // Handle branded token flow (edge function verifies and returns a Supabase action link)
       if (branded_token) {
-        console.log('[AuthCallback] branded token found, invoking verify-magic-link');
+        console.log('[AuthCallback] branded token found, invoking verify-magic-link for token:', branded_token);
 
         try {
           const { data, error: invokeError } = await supabase.functions.invoke('verify-magic-link', {
@@ -94,7 +94,11 @@ export default function AuthCallback() {
           });
 
           if (invokeError || !data?.success) {
-            console.error('[AuthCallback] verify-magic-link failed:', invokeError || data?.error);
+            console.error('[AuthCallback] verify-magic-link failed:', {
+              invokeError: invokeError?.message,
+              data,
+              token: branded_token
+            });
             const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired&auto_resend=1` : '/auth/expired-link?reason=expired&auto_resend=1';
             navigate(redirectUrl, { replace: true });
             return;
