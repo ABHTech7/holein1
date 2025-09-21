@@ -17,6 +17,7 @@ import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
 import ClubCommissionSection from "@/components/admin/ClubCommissionSection";
 import ClubBankDetailsSection from "@/components/admin/ClubBankDetailsSection";
+import NewClubUserModal from "@/components/admin/NewClubUserModal";
 import { useAuth } from "@/hooks/useAuth";
 import { trackClubChanges } from "@/lib/auditTracker";
 
@@ -85,6 +86,7 @@ const ClubDetailPage = () => {
   const [uploadingContract, setUploadingContract] = useState(false);
   const [clubUsers, setClubUsers] = useState<any[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [showNewUserModal, setShowNewUserModal] = useState(false);
 
   // Form data for editing
   const [formData, setFormData] = useState({
@@ -1287,9 +1289,19 @@ const ClubDetailPage = () => {
             <TabsContent value="users">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    Club Users & Management
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-5 h-5" />
+                      Club Users & Management
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => setShowNewUserModal(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Club User
+                    </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -1457,6 +1469,17 @@ const ClubDetailPage = () => {
           </Tabs>
         </div>
       </Section>
+
+      <NewClubUserModal
+        isOpen={showNewUserModal}
+        onClose={() => setShowNewUserModal(false)}
+        clubId={clubId!}
+        clubName={club?.name || ''}
+        onSuccess={() => {
+          fetchClubUsers();
+          setShowNewUserModal(false);
+        }}
+      />
     </div>
   );
 };

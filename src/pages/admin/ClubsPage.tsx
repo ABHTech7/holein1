@@ -31,6 +31,8 @@ interface Club {
   total_commission: number;
   manager_name: string | null;
   manager_email: string | null;
+  contract_signed: boolean;
+  contract_url: string | null;
 }
 
 const ClubsPage = () => {
@@ -82,7 +84,7 @@ const ClubsPage = () => {
         .from('clubs')
         .select(`
           id, name, address, email, phone, website, logo_url,
-          active, created_at, updated_at, archived, contract_signed
+          active, created_at, updated_at, archived, contract_signed, contract_url
         `)
         .eq('archived', showArchived)
         .order('created_at', { ascending: false });
@@ -367,9 +369,16 @@ const ClubsPage = () => {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge variant={club.active ? "default" : "outline"}>
-                                {club.active ? "Active" : "Inactive"}
-                              </Badge>
+                              <div className="flex flex-col gap-1">
+                                <Badge variant={club.active ? "default" : "outline"}>
+                                  {club.active ? "Active" : "Inactive"}
+                                </Badge>
+                                {!club.contract_signed && !club.contract_url && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Pending Contract
+                                  </Badge>
+                                )}
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))
