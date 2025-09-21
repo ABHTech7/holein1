@@ -8,8 +8,9 @@ import Container from "@/components/layout/Container";
 import { AlertCircle, Mail, RefreshCw } from "lucide-react";
 import { ResendMagicLink } from "@/components/auth/ResendMagicLink";
 import { toast } from "@/hooks/use-toast";
-import { getLastAuthEmail } from "@/lib/entryContextPersistence";
+import { getLastAuthEmail, storePendingEntryContext } from "@/lib/entryContextPersistence";
 import useAuth from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const LAST_AUTH_EMAIL_KEY = 'last_auth_email';
 const EMAIL_TTL_MINUTES = parseInt(import.meta.env.VITE_AUTH_EMAIL_TTL_MINUTES as string, 10) || 360; // 6 hours
@@ -29,6 +30,8 @@ const ExpiredLinkPage = () => {
     const emailFromParams = searchParams.get('email');
     const reason = searchParams.get('reason');
     const autoResend = searchParams.get('auto_resend') === '1';
+    const clubSlug = searchParams.get('club') || searchParams.get('clubSlug');
+    const competitionSlug = searchParams.get('competition') || searchParams.get('competitionSlug');
     
     // Try to get stored email with 6-hour TTL
     const storedEmail = getLastAuthEmail() || (() => {
@@ -52,6 +55,21 @@ const ExpiredLinkPage = () => {
     const fallbackEmail = emailFromParams || storedEmail;
     if (fallbackEmail) {
       setEmail(fallbackEmail);
+
+      // If slugs are present in the URL, persist a minimal pending entry context so Resend can be branded
+      if (clubSlug && competitionSlug) {
+        try {
+          storePendingEntryContext({
+            email: fallbackEmail,
+            clubSlug,
+            competitionSlug,
+            formData: undefined,
+            termsAccepted: false,
+          });
+        } catch (e) {
+          console.warn('[ExpiredLink] Failed to persist minimal entry context', e);
+        }
+      }
       
       // Auto-resend if requested and not already triggered
       if (autoResend && !autoResendOnceRef.current && !autoResendTriggered) {
@@ -61,21 +79,41 @@ const ExpiredLinkPage = () => {
         // Wait briefly then auto-resend
         setTimeout(async () => {
           try {
-            const result = await sendOtp(fallbackEmail, true);
-            if (result.error) {
-              console.warn('[ExpiredLink] Auto-resend failed:', result.error);
-            } else {
-              const messageMap = {
-                pkce_missing: "Looks like you opened the link in a different app or browser. We're sending a new one now.",
-                expired: "Your secure link has expired. We're sending a new one.",
-                missing: "We're sending you a new secure link."
-              };
-              
-              toast({
-                title: "New link sent!",
-                description: messageMap[reason as keyof typeof messageMap] || "Check your inbox for the new secure link.",
+            // Prefer branded resend when we have enough context
+            if (clubSlug && competitionSlug) {
+              const competitionUrl = `${window.location.origin}/competition/${clubSlug}/${competitionSlug}/enter`;
+              const { data, error } = await supabase.functions.invoke('send-branded-magic-link', {
+                body: {
+                  email: fallbackEmail,
+                  firstName: undefined,
+                  lastName: undefined,
+                  phone: undefined,
+                  ageYears: undefined,
+                  handicap: undefined,
+                  competitionUrl,
+                  competitionName: competitionSlug.replace(/-/g, ' '),
+                  clubName: clubSlug.replace(/-/g, ' ')
+                }
               });
+
+              if (error || !data?.success) {
+                console.warn('[ExpiredLink] Branded auto-resend failed, falling back to standard OTP', error || data);
+                await sendOtp(fallbackEmail, true);
+              }
+            } else {
+              await sendOtp(fallbackEmail, true);
             }
+
+            const messageMap = {
+              pkce_missing: "Looks like you opened the link in a different app or browser. We're sending a new one now.",
+              expired: "Your secure link has expired. We're sending a new one.",
+              missing: "We're sending you a new secure link.",
+            } as const;
+            
+            toast({
+              title: "New link sent!",
+              description: messageMap[(reason as 'pkce_missing' | 'expired' | 'missing')] || "Check your inbox for the new secure link.",
+            });
           } catch (error) {
             console.error('[ExpiredLink] Auto-resend error:', error);
           }

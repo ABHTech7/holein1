@@ -47,6 +47,22 @@ export default function AuthCallback() {
       
       const email = emailFromUrl || fallbackEmail;
 
+      // Attempt to capture slugs from any existing entry context for better redirects
+      const entryContextForSlugs = getEntryContext();
+      const ctxClubSlug = entryContextForSlugs?.clubSlug;
+      const ctxCompetitionSlug = entryContextForSlugs?.competitionSlug;
+
+      const buildExpiredUrl = (reason: string, autoResend = true) => {
+        const paramsArr = [
+          email ? `email=${encodeURIComponent(email)}` : null,
+          `reason=${encodeURIComponent(reason)}`,
+          autoResend ? 'auto_resend=1' : null,
+          ctxClubSlug ? `club=${encodeURIComponent(ctxClubSlug)}` : null,
+          ctxCompetitionSlug ? `competition=${encodeURIComponent(ctxCompetitionSlug)}` : null,
+        ].filter(Boolean);
+        return `/auth/expired-link?${paramsArr.join('&')}`;
+      };
+
       // Determine authentication mode
       const mode = branded_token ? 'branded_token' : (token_hash ? 'token_hash' : (code ? 'auth_code' : 'legacy_hash'));
       console.log(`[AuthCallback] mode=${mode}`, { 
@@ -56,7 +72,9 @@ export default function AuthCallback() {
         type,
         error, 
         hasEmail: !!email,
-        emailSource: emailFromUrl ? 'url' : 'localStorage'
+        emailSource: emailFromUrl ? 'url' : 'localStorage',
+        ctxClubSlug,
+        ctxCompetitionSlug
       });
 
 
@@ -70,7 +88,7 @@ export default function AuthCallback() {
         
         // Handle expired/invalid links with proper UI
         if (error === 'expired_token' || error === 'invalid_grant' || error_description?.includes('expired')) {
-          const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired` : '/auth/expired-link?reason=expired';
+          const redirectUrl = buildExpiredUrl('expired', false);
           navigate(redirectUrl, { replace: true });
           return;
         }
@@ -99,9 +117,9 @@ export default function AuthCallback() {
               data,
               token: branded_token
             });
-            const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired&auto_resend=1` : '/auth/expired-link?reason=expired&auto_resend=1';
-            navigate(redirectUrl, { replace: true });
-            return;
+          const redirectUrl = buildExpiredUrl('expired', true);
+          navigate(redirectUrl, { replace: true });
+          return;
           }
 
           // If the function provided a Supabase action link, redirect there to establish the session
@@ -117,7 +135,7 @@ export default function AuthCallback() {
           return;
         } catch (e) {
           console.error('[AuthCallback] Error calling verify-magic-link:', e);
-          const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired&auto_resend=1` : '/auth/expired-link?reason=expired&auto_resend=1';
+          const redirectUrl = buildExpiredUrl('expired', true);
           navigate(redirectUrl, { replace: true });
           return;
         }
@@ -144,9 +162,7 @@ export default function AuthCallback() {
             if (exchangeError.message?.includes('code verifier') || 
                 exchangeError.message?.includes('both auth code and code verifier should be non-empty')) {
               console.warn('[AuthCallback] PKCE verifier missing - redirecting to auto-resend');
-              const redirectUrl = email ? 
-                `/auth/expired-link?email=${encodeURIComponent(email)}&reason=pkce_missing&auto_resend=1` : 
-                '/auth/expired-link?reason=pkce_missing&auto_resend=1';
+              const redirectUrl = buildExpiredUrl('pkce_missing', true);
               navigate(redirectUrl, { replace: true });
               return;
             }
@@ -155,7 +171,7 @@ export default function AuthCallback() {
             else if (exchangeError.message?.includes('expired') || 
                      exchangeError.message?.includes('invalid_grant')) {
               console.warn('[AuthCallback] Token expired or invalid grant');
-              const redirectUrl = email ? `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired&auto_resend=1` : '/auth/expired-link?reason=expired';
+              const redirectUrl = buildExpiredUrl('expired', true);
               navigate(redirectUrl, { replace: true });
               return;
             }
@@ -175,7 +191,8 @@ export default function AuthCallback() {
             console.log('[AuthCallback] auth_code exchange successful');
           } catch (error: any) {
             console.error('[AuthCallback] Exchange threw error:', error);
-            navigate("/auth/expired-link", { replace: true });
+            const redirectUrl = buildExpiredUrl('expired', true);
+            navigate(redirectUrl, { replace: true });
             return;
           }
         }
@@ -186,9 +203,7 @@ export default function AuthCallback() {
         
         if (!hash) {
           console.warn('[AuthCallback] No token_hash, code, or hash found');
-          const redirectUrl = email ? 
-            `/auth/expired-link?email=${encodeURIComponent(email)}&reason=missing&auto_resend=1` : 
-            '/auth/expired-link?reason=missing&auto_resend=1';
+          const redirectUrl = buildExpiredUrl('missing', true);
           navigate(redirectUrl, { replace: true });
           return;
         }
@@ -198,9 +213,7 @@ export default function AuthCallback() {
           
           if (hashError) {
             console.error('[AuthCallback] legacy_hash exchange failed:', hashError.message);
-            const redirectUrl = email ? 
-              `/auth/expired-link?email=${encodeURIComponent(email)}&reason=expired&auto_resend=1` : 
-              '/auth/expired-link?reason=expired&auto_resend=1';
+            const redirectUrl = buildExpiredUrl('expired', true);
             navigate(redirectUrl, { replace: true });
             return;
           }
