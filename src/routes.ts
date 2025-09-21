@@ -42,6 +42,7 @@ export const ROUTES = {
     ENTRIES: '/dashboard/admin/entries',
     CLAIMS: '/dashboard/admin/claims',
     USERS: '/dashboard/admin/users',
+    ENQUIRIES: '/dashboard/admin/enquiries',
   },
   
   // Competition & Entry Routes

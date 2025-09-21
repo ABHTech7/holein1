@@ -14,7 +14,7 @@ import SiteSettingsModal from "@/components/admin/SiteSettingsModal";
 import NewUserModal from "@/components/admin/NewUserModal";
 import AdminQuickActions from "@/components/admin/AdminQuickActions";
 import SecurityMonitor from "@/components/security/SecurityMonitor";
-import { Users, Calendar, Trophy, TrendingUp, Plus, Settings, PoundSterling } from "lucide-react";
+import { Users, Calendar, Trophy, TrendingUp, Plus, Settings, PoundSterling, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate, formatRelativeTime } from "@/lib/formatters";
@@ -387,6 +387,11 @@ const AdminDashboard = () => {
                   <TrendingUp className="w-4 h-4" />
                   <span className="hidden sm:inline">Claims Review</span>
                   <span className="sm:hidden">Claims</span>
+                </Button>
+                <Button variant="outline" className="gap-2" onClick={() => navigate(ROUTES.ADMIN.ENQUIRIES)}>
+                  <UserPlus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Partnership Enquiries</span>
+                  <span className="sm:hidden">Enquiries</span>
                 </Button>
                 <Button variant="outline" className="gap-2" onClick={handleUserManagement}>
                   <Plus className="w-4 h-4" />

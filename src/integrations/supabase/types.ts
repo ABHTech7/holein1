@@ -1115,6 +1115,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      convert_partnership_lead_to_club: {
+        Args: {
+          p_admin_email?: string
+          p_club_name?: string
+          p_lead_id: string
+          p_metadata?: Json
+        }
+        Returns: Json
+      }
       get_competition_status: {
         Args: { end_date: string; is_year_round: boolean; start_date: string }
         Returns: Database["public"]["Enums"]["competition_status"]
@@ -1265,7 +1274,13 @@ export type Database = {
     Enums: {
       claim_status: "PENDING" | "VERIFIED" | "REJECTED"
       competition_status: "SCHEDULED" | "ACTIVE" | "ENDED"
-      lead_status: "NEW" | "CONTACTED" | "CONVERTED" | "LOST"
+      lead_status:
+        | "NEW"
+        | "CONTACTED"
+        | "CONVERTED"
+        | "LOST"
+        | "IN_REVIEW"
+        | "REJECTED"
       user_role: "ADMIN" | "CLUB" | "PLAYER"
     }
     CompositeTypes: {
@@ -1396,7 +1411,14 @@ export const Constants = {
     Enums: {
       claim_status: ["PENDING", "VERIFIED", "REJECTED"],
       competition_status: ["SCHEDULED", "ACTIVE", "ENDED"],
-      lead_status: ["NEW", "CONTACTED", "CONVERTED", "LOST"],
+      lead_status: [
+        "NEW",
+        "CONTACTED",
+        "CONVERTED",
+        "LOST",
+        "IN_REVIEW",
+        "REJECTED",
+      ],
       user_role: ["ADMIN", "CLUB", "PLAYER"],
     },
   },

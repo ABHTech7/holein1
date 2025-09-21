@@ -40,6 +40,7 @@ import CompetitionDetailEnhanced from "./pages/CompetitionDetailEnhanced";
 import CompetitionEditPage from "./pages/admin/CompetitionEditPage";
 import EntriesPage from "./pages/admin/EntriesPage";
 import ClaimsPage from "./pages/admin/ClaimsPage";
+import AdminEnquiries from "./pages/admin/AdminEnquiries";
 import ClubClaimsPage from "./pages/club/ClaimsPage";
 import ClubBankingPage from "./pages/club/ClubBankingPage";
 import ClaimDetailPage from "./pages/admin/ClaimDetailPage";
@@ -310,6 +311,14 @@ const App = () => {
             element={
               <EnhancedRoleGuard allowedRoles={['ADMIN']}>
                 <EntriesPage />
+              </EnhancedRoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/admin/enquiries" 
+            element={
+              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
+                <AdminEnquiries />
               </EnhancedRoleGuard>
             } 
           />
