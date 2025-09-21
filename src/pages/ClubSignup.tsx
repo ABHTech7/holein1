@@ -45,8 +45,8 @@ const ClubSignup = () => {
     setIsSubmitting(true);
     
     try {
-      // Store lead in database
-      const { error: leadError } = await supabase
+      // Store lead in database with email tracking fields
+      const { data: leadData, error: leadError } = await supabase
         .from('leads')
         .insert({
           name: formData.contactName,
@@ -54,15 +54,27 @@ const ClubSignup = () => {
           phone: formData.phone,
           source: 'Club Signup Form',
           status: 'NEW',
-          notes: `Club: ${formData.clubName}, Role: ${formData.role}, Message: ${formData.message}`
-        });
+          notes: `Club: ${formData.clubName}, Role: ${formData.role}, Message: ${formData.message}`,
+          email_sent: false,
+          email_sent_at: null
+        })
+        .select('id')
+        .single();
 
       if (leadError) throw leadError;
 
-      // Send internal notification email
+      // Show immediate success - no more waiting for email
+      setIsSubmitted(true);
+      toast({
+        title: "Application Submitted!",
+        description: "Thank you for your interest. We'll be in touch within 24 hours."
+      });
+
+      // Trigger background email processing (non-blocking)
       try {
-        const emailResult = await supabase.functions.invoke('send-lead-notification', {
+        supabase.functions.invoke('process-lead-background', {
           body: {
+            leadId: leadData.id,
             lead: {
               clubName: formData.clubName,
               contactName: formData.contactName,
@@ -73,29 +85,13 @@ const ClubSignup = () => {
             }
           }
         });
-
-        if (emailResult.error) {
-          console.error('Email notification failed:', emailResult.error);
-          toast({
-            title: "Application Submitted",
-            description: "Your application was saved successfully, but there was an issue sending the notification email. We'll still review your application within 24 hours.",
-            variant: "default"
-          });
-        }
-      } catch (emailError) {
-        console.error('Failed to send notification email:', emailError);
-        toast({
-          title: "Application Submitted",
-          description: "Your application was saved successfully, but there was an issue sending the notification email. We'll still review your application within 24 hours.", 
-          variant: "default"
-        });
+        // Note: We don't await this - it runs in the background
+        console.log('Background email processing initiated');
+      } catch (backgroundError) {
+        // Background email processing failed, but user already got success message
+        console.error('Background email processing failed:', backgroundError);
       }
 
-      setIsSubmitted(true);
-      toast({
-        title: "Application Submitted!",
-        description: "Thank you for your interest. We'll be in touch within 24 hours."
-      });
     } catch (error: any) {
       console.error('Submission error:', error);
       toast({

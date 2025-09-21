@@ -547,6 +547,8 @@ export type Database = {
           converted_at: string | null
           created_at: string
           email: string
+          email_sent: boolean | null
+          email_sent_at: string | null
           id: string
           name: string
           notes: string | null
@@ -561,6 +563,8 @@ export type Database = {
           converted_at?: string | null
           created_at?: string
           email: string
+          email_sent?: boolean | null
+          email_sent_at?: string | null
           id?: string
           name: string
           notes?: string | null
@@ -575,6 +579,8 @@ export type Database = {
           converted_at?: string | null
           created_at?: string
           email?: string
+          email_sent?: boolean | null
+          email_sent_at?: string | null
           id?: string
           name?: string
           notes?: string | null
