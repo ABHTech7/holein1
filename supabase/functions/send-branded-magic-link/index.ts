@@ -210,7 +210,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send branded email
     const emailResponse = await resend.emails.send({
-      from: "Official Hole in 1 <onboarding@resend.dev>",
+      from: "Official Hole in 1 <entry@demo.holein1challenge.co.uk>",
       to: [requestData.email.toLowerCase().trim()],
       subject: `Complete Your Entry - ${requestData.competitionName || 'Official Hole in 1'}`,
       html: createBrandedEmailTemplate(requestData, magicLink),
@@ -218,7 +218,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (emailResponse.error) {
       console.error("Error sending branded email:", emailResponse.error);
-      throw new Error("Failed to send entry confirmation email");
+      const errMsg = emailResponse.error?.message || "Failed to send entry confirmation email";
+      const statusCode = emailResponse.error?.statusCode === 403 ? 400 : 500;
+      return new Response(
+        JSON.stringify({ success: false, error: errMsg, code: emailResponse.error?.name || "email_send_error" }),
+        { status: statusCode, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
     }
 
     console.log("Branded magic link email sent successfully:", emailResponse.data);
@@ -237,16 +242,10 @@ const handler = async (req: Request): Promise<Response> => {
 
   } catch (error: any) {
     console.error("Error in branded magic link function:", error);
-    
+    const message = error?.message || (typeof error === 'string' ? error : 'Failed to send entry confirmation');
     return new Response(
-      JSON.stringify({ 
-        success: false,
-        error: error.message || "Failed to send entry confirmation"
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      JSON.stringify({ success: false, error: message }),
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
 };
