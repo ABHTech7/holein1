@@ -263,7 +263,7 @@ const PartnershipApplication = () => {
                         required
                       />
                       <Label htmlFor="consent" className="text-sm leading-5">
-                        I agree to be contacted by Hole in 1 Challenge regarding this partnership opportunity. 
+                        I agree to be contacted by Official Hole in 1 regarding this partnership opportunity. 
                         I understand that submitting this form does not create any binding obligations.
                       </Label>
                     </div>

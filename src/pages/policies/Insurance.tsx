@@ -19,7 +19,7 @@ const Insurance = () => {
                 <section>
                   <h2 className="font-display text-2xl font-semibold text-foreground mb-4">Coverage Overview</h2>
                   <p className="text-foreground mb-4">
-                    Hole in 1 Challenge maintains comprehensive insurance coverage to protect our platform, 
+                    Official Hole in 1 maintains comprehensive insurance coverage to protect our platform, 
                     users, and club data. This policy outlines our insurance commitments and coverage areas.
                   </p>
                 </section>

@@ -30,7 +30,7 @@ const handler = async (req: Request): Promise<Response> => {
     const { lead }: LeadNotificationRequest = await req.json();
 
     const emailResponse = await resend.emails.send({
-      from: "Hole in 1 Challenge <noreply@officialholein1.com>",
+      from: "Official Hole in 1 <noreply@officialholein1.com>",
       to: ["info@officialholein1.com"],
       subject: `New Club Partnership Application - ${lead.clubName}`,
       html: `
@@ -62,7 +62,7 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
           
           <p style="color: #666; font-size: 12px; text-align: center; margin-top: 30px;">
-            This email was generated automatically from the Hole in 1 Challenge club signup form.
+            This email was generated automatically from the Official Hole in 1 club signup form.
           </p>
         </div>
       `,

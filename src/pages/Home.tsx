@@ -20,7 +20,7 @@ const Home = () => {
           <Container>
             <div className="text-center mb-8">
               <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-4">
-                Welcome to Hole in 1 Challenge
+                Welcome to Official Hole in 1
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 Choose your path to discover how we're transforming golf experiences

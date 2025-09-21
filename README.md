@@ -1,4 +1,4 @@
-# Hole in 1 Challenge Platform
+# Official Hole in 1 Platform
 
 A comprehensive golf competition platform built with React, TypeScript, and Supabase.
 

@@ -19,7 +19,7 @@ const Accessibility = () => {
                 <section>
                   <h2 className="font-display text-2xl font-semibold text-foreground mb-4">Our Commitment</h2>
                   <p className="text-foreground mb-4">
-                    Hole in 1 Challenge is committed to ensuring digital accessibility for all users, including 
+                    Official Hole in 1 is committed to ensuring digital accessibility for all users, including 
                     those with disabilities. We strive to provide an inclusive experience that works 
                     for everyone.
                   </p>
@@ -63,7 +63,7 @@ const Accessibility = () => {
                 <section>
                   <h2 className="font-display text-2xl font-semibold text-foreground mb-4">Browser and Assistive Technology Support</h2>
                   <p className="text-foreground mb-4">
-                    Hole in 1 Challenge is designed to work with:
+                    Official Hole in 1 is designed to work with:
                   </p>
                   <ul className="list-disc pl-6 space-y-2 text-foreground">
                     <li>Modern web browsers (Chrome, Firefox, Safari, Edge)</li>
@@ -76,7 +76,7 @@ const Accessibility = () => {
                 <section>
                   <h2 className="font-display text-2xl font-semibold text-foreground mb-4">Feedback and Support</h2>
                   <p className="text-foreground mb-4">
-                    We welcome feedback about the accessibility of Hole in 1 Challenge. If you encounter 
+                    We welcome feedback about the accessibility of Official Hole in 1. If you encounter 
                     accessibility barriers or have suggestions for improvement, please contact us:
                   </p>
                   <ul className="list-disc pl-6 space-y-2 text-foreground">

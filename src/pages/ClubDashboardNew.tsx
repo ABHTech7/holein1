@@ -372,7 +372,7 @@ const ClubDashboardNew = () => {
                     Hi {profile.first_name}, welcome back!
                   </p>
                 )}
-                <p className="text-muted-foreground mt-1">Manage your Hole in 1 Challenge competitions</p>
+                <p className="text-muted-foreground mt-1">Manage your Official Hole in 1 competitions</p>
               </div>
               
               {/* Club Info */}

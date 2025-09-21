@@ -1,6 +1,6 @@
 # Authentication Setup
 
-Your Hole in 1 Challenge app now has complete authentication setup with Supabase! Here's what has been implemented:
+Your Official Hole in 1 app now has complete authentication setup with Supabase! Here's what has been implemented:
 
 ## 🔐 Features Implemented
 

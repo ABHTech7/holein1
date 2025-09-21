@@ -135,7 +135,7 @@ const DeveloperDemo = () => {
                 </div>
                 <h1 className="text-3xl font-bold mb-4">Demo Data Management</h1>
                 <p className="text-muted-foreground max-w-2xl mx-auto">
-                  Seed and flush demo data for Hole in 1 Challenge. Use these tools to quickly 
+                  Seed and flush demo data for Official Hole in 1. Use these tools to quickly 
                   set up test accounts, clubs, competitions, and entries.
                 </p>
               </div>

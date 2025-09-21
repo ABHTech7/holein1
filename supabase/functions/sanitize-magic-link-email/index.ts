@@ -136,7 +136,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send sanitized email
     const emailResponse = await resend.emails.send({
-      from: "Hole in 1 Challenge <noreply@holein1.test>",
+      from: "Official Hole in 1 <noreply@officialholein1.com>",
       to: [sanitizedData.email],
       subject: "Complete Your Golf Competition Entry",
       html: `
@@ -151,7 +151,7 @@ const handler = async (req: Request): Promise<Response> => {
             </p>
             
             <p style="font-size: 16px; color: #333; margin-bottom: 25px;">
-              You're one step away from entering the Hole in 1 Challenge! Click the button below to complete your registration and make your attempt.
+              You're one step away from entering Official Hole in 1! Click the button below to complete your registration and make your attempt.
             </p>
             
             <div style="text-align: center; margin: 35px 0;">
@@ -182,7 +182,7 @@ const handler = async (req: Request): Promise<Response> => {
             
             <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; text-align: center;">
               <p style="font-size: 12px; color: #888; margin: 0;">
-                Hole in 1 Challenge - Making Golf History, One Shot at a Time
+                Official Hole in 1 - Making Golf History, One Shot at a Time
               </p>
             </div>
           </div>

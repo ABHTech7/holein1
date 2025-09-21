@@ -93,13 +93,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send the email using Resend with custom domain
     const emailResponse = await resend.emails.send({
-      from: "Hole in 1 Challenge <noreply@officialholein1.com>",
+      from: "Official Hole in 1 <noreply@officialholein1.com>",
       to: [email],
-      subject: "Your Magic Link - Hole in 1 Challenge",
+      subject: "Your Magic Link - Official Hole in 1",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #0F3D2E; font-size: 28px; margin-bottom: 10px;">Welcome to Hole in 1 Challenge!</h1>
+            <h1 style="color: #0F3D2E; font-size: 28px; margin-bottom: 10px;">Welcome to Official Hole in 1!</h1>
             <p style="color: #666; font-size: 16px; margin: 0;">Hi ${firstName}, ready to take on the challenge?</p>
           </div>
           
@@ -132,7 +132,7 @@ const handler = async (req: Request): Promise<Response> => {
           <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
             <p style="color: #666; font-size: 12px; margin: 0;">
               If you didn't request this email, you can safely ignore it.<br>
-              This email was sent by Hole in 1 Challenge Demo System.
+              This email was sent by Official Hole in 1.
             </p>
           </div>
         </div>

@@ -376,7 +376,7 @@ const ClubCompetitionManagement = () => {
                             id="name"
                             value={formData.name}
                             onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                            placeholder="e.g., Sunday Morning Hole in 1 Challenge"
+                            placeholder="e.g., Sunday Morning Official Hole in 1"
                             required
                           />
                         </div>

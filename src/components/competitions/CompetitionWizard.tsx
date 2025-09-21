@@ -308,7 +308,7 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
 
       toast({
         title: 'Challenge Created!',
-        description: 'Your Hole in 1 Challenge has been published successfully.',
+        description: 'Your Official Hole in 1 has been published successfully.',
       });
 
       // Navigate based on user role
@@ -364,7 +364,7 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
               <Input
                 id="name"
                 {...form.register('name')}
-                placeholder="e.g., Weekend Hole in 1 Challenge"
+                placeholder="e.g., Weekend Official Hole in 1"
               />
               {form.formState.errors.name && (
                 <p className="text-sm text-destructive mt-1">{form.formState.errors.name.message}</p>
