@@ -211,6 +211,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send branded email
     const emailResponse = await resend.emails.send({
       from: "Official Hole in 1 <entry@demo.holein1challenge.co.uk>",
+      reply_to: "entry@demo.holein1challenge.co.uk",
       to: [requestData.email.toLowerCase().trim()],
       subject: `Complete Your Entry - ${requestData.competitionName || 'Official Hole in 1'}`,
       html: createBrandedEmailTemplate(requestData, magicLink),
@@ -219,10 +220,9 @@ const handler = async (req: Request): Promise<Response> => {
     if (emailResponse.error) {
       console.error("Error sending branded email:", emailResponse.error);
       const errMsg = emailResponse.error?.message || "Failed to send entry confirmation email";
-      const statusCode = emailResponse.error?.statusCode === 403 ? 400 : 500;
       return new Response(
         JSON.stringify({ success: false, error: errMsg, code: emailResponse.error?.name || "email_send_error" }),
-        { status: statusCode, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
