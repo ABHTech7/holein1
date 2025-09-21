@@ -30,7 +30,7 @@ const handler = async (req: Request): Promise<Response> => {
     const { lead }: LeadNotificationRequest = await req.json();
 
     const emailResponse = await resend.emails.send({
-      from: "Official Hole in 1 <noreply@officialholein1.com>",
+      from: "Official Hole in 1 <onboarding@resend.dev>",
       to: ["info@officialholein1.com"],
       subject: `New Club Partnership Application - ${lead.clubName}`,
       html: `
