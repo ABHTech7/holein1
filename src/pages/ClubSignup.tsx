@@ -60,22 +60,35 @@ const ClubSignup = () => {
       if (leadError) throw leadError;
 
       // Send internal notification email
-      const { error: emailError } = await supabase.functions.invoke('send-lead-notification', {
-        body: {
-          lead: {
-            clubName: formData.clubName,
-            contactName: formData.contactName,
-            role: formData.role,
-            email: formData.email,
-            phone: formData.phone,
-            message: formData.message
+      try {
+        const emailResult = await supabase.functions.invoke('send-lead-notification', {
+          body: {
+            lead: {
+              clubName: formData.clubName,
+              contactName: formData.contactName,
+              role: formData.role,
+              email: formData.email,
+              phone: formData.phone,
+              message: formData.message
+            }
           }
-        }
-      });
+        });
 
-      if (emailError) {
-        console.warn('Email notification failed:', emailError);
-        // Don't fail the whole process if email fails
+        if (emailResult.error) {
+          console.error('Email notification failed:', emailResult.error);
+          toast({
+            title: "Application Submitted",
+            description: "Your application was saved successfully, but there was an issue sending the notification email. We'll still review your application within 24 hours.",
+            variant: "default"
+          });
+        }
+      } catch (emailError) {
+        console.error('Failed to send notification email:', emailError);
+        toast({
+          title: "Application Submitted",
+          description: "Your application was saved successfully, but there was an issue sending the notification email. We'll still review your application within 24 hours.", 
+          variant: "default"
+        });
       }
 
       setIsSubmitted(true);

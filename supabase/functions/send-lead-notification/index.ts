@@ -29,9 +29,12 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { lead }: LeadNotificationRequest = await req.json();
 
+    console.log(`Sending lead notification email to: info@holeinchallenge.co.uk for club: ${lead.clubName}`);
+    
     const emailResponse = await resend.emails.send({
       from: "Official Hole in 1 <noreply@demo.holein1challenge.co.uk>",
       to: ["info@holeinchallenge.co.uk"],
+      reply_to: lead.email,
       subject: `New Club Partnership Application - ${lead.clubName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

@@ -39,3 +39,6 @@ enable_confirmations = false
 
 [functions.admin-delete-incomplete-user]
 verify_jwt = true
+
+[functions.send-lead-notification]
+verify_jwt = false
