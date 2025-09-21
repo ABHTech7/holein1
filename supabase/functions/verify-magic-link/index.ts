@@ -345,7 +345,9 @@ const handler = async (req: Request): Promise<Response> => {
     } else {
       // Create new entry for the user
       const entryTime = new Date();
-      const attemptWindowEnd = new Date(entryTime.getTime() + 15 * 60 * 1000); // 15 minutes from now
+      // Use configurable timeout from environment (default 12 hours if not set)
+      const timeoutHours = parseInt(Deno.env.get("VITE_VERIFICATION_TIMEOUT_HOURS") || "12");
+      const attemptWindowEnd = new Date(entryTime.getTime() + timeoutHours * 60 * 60 * 1000);
       
       console.log("Creating new entry for user:", user.id, "competition:", competitionId);
       
