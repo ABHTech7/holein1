@@ -66,7 +66,7 @@ const SiteHeader = () => {
 
           {/* User Menu (Desktop) */}
           <div className="hidden md:block">
-            {user && (
+            {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm">
@@ -81,6 +81,13 @@ const SiteHeader = () => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+            ) : (
+              <Button asChild variant="default" size="sm">
+                <Link to={ROUTES.AUTH}>
+                  <User className="w-4 h-4 mr-2" />
+                  Login
+                </Link>
+              </Button>
             )}
           </div>
 
@@ -114,7 +121,7 @@ const SiteHeader = () => {
                 {item.name}
               </Link>
             ))}
-            {user && (
+            {user ? (
               <div className="pt-2">
                 <Button 
                   variant="outline"
@@ -126,6 +133,20 @@ const SiteHeader = () => {
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   Sign Out
+                </Button>
+              </div>
+            ) : (
+              <div className="pt-2">
+                <Button 
+                  asChild
+                  variant="default"
+                  className="w-full"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Link to={ROUTES.AUTH}>
+                    <User className="w-4 h-4 mr-2" />
+                    Login
+                  </Link>
                 </Button>
               </div>
             )}

@@ -19,7 +19,8 @@ import { ImprovedAuthModal } from "@/components/entry/ImprovedAuthModal";
 import { MiniProfileForm } from "@/components/entry/MiniProfileForm";
 import PlayerJourneyEntryForm from "@/components/entry/PlayerJourneyEntryForm";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, Clock, ArrowLeft } from "lucide-react";
 
 interface VenueCompetition {
   id: string;
@@ -412,6 +413,19 @@ const EntryPageNew = () => {
         <div className="py-12">
           <Container>
             <div className="max-w-2xl mx-auto space-y-8">
+              {/* Back Button */}
+              <div className="flex justify-start">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate(-1)}
+                  className="gap-2 text-muted-foreground hover:text-foreground"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back
+                </Button>
+              </div>
+
               {/* Entry Resend Banner */}
               <EntryResendBanner />
               
