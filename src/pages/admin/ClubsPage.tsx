@@ -45,6 +45,22 @@ const ClubsPage = () => {
   const [showArchived, setShowArchived] = useState(false);
   const [showNewClubModal, setShowNewClubModal] = useState(false);
 
+  // Calculate activation status based on contract state
+  const getActivationStatus = (club: Club) => {
+    // Club is active if:
+    // 1. Contract is signed, OR
+    // 2. Contract file is uploaded, OR  
+    // 3. Admin has manually set active=true AND contract is signed
+    const hasContract = club.contract_url || club.contract_signed;
+    const isManuallyActive = club.active && club.contract_signed;
+    
+    if (hasContract || isManuallyActive) {
+      return "Active";
+    }
+    
+    return "Pending";
+  };
+
   useEffect(() => {
     fetchClubs();
   }, [showArchived]);
@@ -53,7 +69,6 @@ const ClubsPage = () => {
     const filtered = clubs.filter(club => {
       const search = searchTerm.toLowerCase();
       return club.name.toLowerCase().includes(search) || 
-             club.address?.toLowerCase().includes(search) ||
              club.email?.toLowerCase().includes(search);
     });
     setFilteredClubs(filtered);
@@ -273,7 +288,7 @@ const ClubsPage = () => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
-                  placeholder="Search clubs by name, address, or email..."
+                  placeholder="Search clubs by name or email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -296,9 +311,7 @@ const ClubsPage = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Club Name</TableHead>
-                        <TableHead>Address</TableHead>
                         <TableHead>Manager</TableHead>
-                        <TableHead>Contact</TableHead>
                         <TableHead>Competitions</TableHead>
                         <TableHead>Revenue</TableHead>
                         <TableHead>Commission</TableHead>
@@ -308,7 +321,7 @@ const ClubsPage = () => {
                     <TableBody>
                       {filteredClubs.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                             {searchTerm ? 'No clubs found matching your search.' : 'No clubs found.'}
                           </TableCell>
                         </TableRow>
@@ -324,28 +337,7 @@ const ClubsPage = () => {
                               </button>
                             </TableCell>
                             <TableCell>
-                              <div className="max-w-48 truncate">
-                                {club.address || 'No address provided'}
-                              </div>
-                            </TableCell>
-                            <TableCell>
                               {club.manager_name || 'No manager assigned'}
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
-                                {club.email && (
-                                  <div className="flex items-center gap-1 text-sm">
-                                    <Mail className="w-3 h-3 text-muted-foreground" />
-                                    <span className="truncate max-w-32">{club.email}</span>
-                                  </div>
-                                )}
-                                {club.phone && (
-                                  <div className="flex items-center gap-1 text-sm">
-                                    <Phone className="w-3 h-3 text-muted-foreground" />
-                                    <span>{club.phone}</span>
-                                  </div>
-                                )}
-                              </div>
                             </TableCell>
                             <TableCell>
                               <Badge variant="secondary">
@@ -370,12 +362,12 @@ const ClubsPage = () => {
                             </TableCell>
                             <TableCell>
                               <div className="flex flex-col gap-1">
-                                <Badge variant={club.active ? "default" : "outline"}>
-                                  {club.active ? "Active" : "Inactive"}
+                                <Badge variant={getActivationStatus(club) === "Active" ? "default" : "outline"}>
+                                  {getActivationStatus(club)}
                                 </Badge>
                                 {!club.contract_signed && !club.contract_url && (
                                   <Badge variant="secondary" className="text-xs">
-                                    Pending Contract
+                                    Contract Required
                                   </Badge>
                                 )}
                               </div>
