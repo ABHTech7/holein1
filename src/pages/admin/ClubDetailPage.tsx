@@ -526,19 +526,24 @@ const ClubDetailPage = () => {
         .from('club-contracts')
         .getPublicUrl(fileName);
 
-      // Update the club record with the contract URL and mark as signed
-      const { error: updateError } = await supabase
+      // Update contract URL first
+      const { error: urlError } = await supabase
         .from('clubs')
-        .update({ 
-          contract_url: publicUrl,
-          contract_signed: true,
-          contract_signed_date: new Date().toISOString(),
-          contract_signed_by_name: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || user?.email || 'Unknown',
-          contract_signed_by_email: user?.email || null
-        })
+        .update({ contract_url: publicUrl })
         .eq('id', clubId);
 
-      if (updateError) throw updateError;
+      if (urlError) throw urlError;
+
+      // Mark contract as signed using secure RPC
+      const { error: statusError } = await supabase
+        .rpc('update_club_contract_status', {
+          p_club_id: clubId,
+          p_signed: true,
+          p_signed_by_name: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || user?.email || 'Unknown',
+          p_signed_by_email: user?.email || null
+        });
+
+      if (statusError) throw statusError;
 
       // Update local state
       setClub(prev => prev ? { 
@@ -674,42 +679,19 @@ const ClubDetailPage = () => {
     setUploadingContract(true);
 
     const doUpdate = async () => {
-      const updateData: any = { contract_signed: checked };
-      if (checked) {
-        updateData.contract_signed_date = new Date().toISOString();
-        updateData.contract_signed_by_name = `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || user?.email || 'Unknown';
-        updateData.contract_signed_by_email = user?.email || null;
-      } else {
-        updateData.contract_signed_date = null;
-        updateData.contract_signed_by_name = null;
-        updateData.contract_signed_by_email = null;
-      }
+      console.log('📊 [CONTRACT_TOGGLE] Using secure RPC function');
 
-      console.log('📊 [CONTRACT_TOGGLE] Update payload:', updateData);
-
-      // Test if we can read the club first
-      const { data: readTest, error: readError } = await supabase
-        .from('clubs')
-        .select('id, contract_signed, active')
-        .eq('id', clubId)
-        .single();
-
-      if (readError) {
-        console.error('🚨 [CONTRACT_TOGGLE] Read test failed:', readError);
-        throw new Error(`Cannot read club data: ${readError.message}`);
-      }
-
-      console.log('✅ [CONTRACT_TOGGLE] Read test successful:', readTest);
-
-      const { data: updateResult, error: updateError } = await supabase
-        .from('clubs')
-        .update(updateData)
-        .eq('id', clubId)
-        .select('*')
-        .single();
+      // Use secure RPC function to update contract status
+      const { error: updateError } = await supabase
+        .rpc('update_club_contract_status', {
+          p_club_id: clubId,
+          p_signed: checked,
+          p_signed_by_name: checked ? (`${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || user?.email || 'Unknown') : null,
+          p_signed_by_email: checked ? (user?.email || null) : null
+        });
 
       if (updateError) {
-        console.error('🚨 [CONTRACT_TOGGLE] Update failed:', {
+        console.error('🚨 [CONTRACT_TOGGLE] RPC update failed:', {
           error: updateError,
           code: updateError.code,
           message: updateError.message,
@@ -719,7 +701,7 @@ const ClubDetailPage = () => {
         throw updateError;
       }
 
-      console.log('✅ [CONTRACT_TOGGLE] Update successful:', updateResult);
+      console.log('✅ [CONTRACT_TOGGLE] RPC update successful');
 
       // Update local state
       setClub(prev => prev ? { 

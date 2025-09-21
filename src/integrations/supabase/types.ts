@@ -1241,6 +1241,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      update_club_contract_status: {
+        Args: {
+          p_club_id: string
+          p_signed: boolean
+          p_signed_by_email?: string
+          p_signed_by_name?: string
+        }
+        Returns: boolean
+      }
       update_expired_entries: {
         Args: Record<PropertyKey, never>
         Returns: number
