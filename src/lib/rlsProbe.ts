@@ -15,10 +15,17 @@ export async function probeRLS(label: string) {
 
     // 1. Fetch current user profile
     console.log(`🔍 [RLS Probe: ${label}] Testing profile access...`);
+    const userId = (await supabase.auth.getUser()).data.user?.id;
+    
+    if (!userId) {
+      console.log(`🔍 [RLS Probe: ${label}] No authenticated user, stopping probe`);
+      return;
+    }
+    
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, role, club_id')
-      .eq('id', (await supabase.auth.getUser()).data.user?.id || '')
+      .eq('id', userId)
       .maybeSingle();
 
     console.log(`🔍 [RLS Probe: ${label}] Profile:`, { 
