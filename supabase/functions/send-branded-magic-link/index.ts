@@ -11,11 +11,11 @@ const corsHeaders = {
 
 interface BrandedMagicLinkRequest {
   email: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  ageYears: number;
-  handicap: number;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  ageYears?: number;
+  handicap?: number | null;
   competitionUrl: string;
   competitionName?: string;
   clubName?: string;
@@ -143,28 +143,42 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const requestData: BrandedMagicLinkRequest = await req.json();
     
-    // Validate required fields
-    if (!requestData.email || !requestData.firstName || !requestData.competitionUrl) {
-      throw new Error("Missing required fields: email, firstName, and competitionUrl are required");
+    // Apply defaults for missing fields
+    const processedData = {
+      ...requestData,
+      firstName: requestData.firstName?.trim() || 'Golfer',
+      lastName: requestData.lastName?.trim() || '',
+      phone: requestData.phone?.trim() || '',
+      ageYears: requestData.ageYears || 18,
+      handicap: requestData.handicap ?? null
+    };
+    
+    // Validate required fields (only email and competitionUrl are truly required)
+    if (!processedData.email || !processedData.competitionUrl) {
+      throw new Error("Missing required fields: email and competitionUrl are required");
     }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(requestData.email)) {
+    if (!emailRegex.test(processedData.email)) {
       throw new Error("Invalid email format");
     }
 
-    // Age validation
-    if (requestData.ageYears < 13 || requestData.ageYears > 120) {
+    // Age validation (with default applied)
+    if (processedData.ageYears < 13 || processedData.ageYears > 120) {
       throw new Error("Age must be between 13 and 120");
     }
 
-    // Handicap validation
-    if (requestData.handicap !== null && (requestData.handicap < -10 || requestData.handicap > 54)) {
+    // Handicap validation (allowing null)
+    if (processedData.handicap !== null && (processedData.handicap < -10 || processedData.handicap > 54)) {
       throw new Error("Handicap must be between -10 and 54");
     }
     
-    console.log("Processing branded magic link for:", requestData.email);
+    console.log("Processing branded magic link for:", processedData.email, "with defaults applied:", {
+      firstName: processedData.firstName,
+      ageYears: processedData.ageYears,
+      handicap: processedData.handicap
+    });
 
     // Initialize Supabase Admin Client
     const supabaseAdmin = createClient(
@@ -176,7 +190,7 @@ const handler = async (req: Request): Promise<Response> => {
     await supabaseAdmin
       .from('magic_link_tokens')
       .update({ used: true, used_at: new Date().toISOString() })
-      .eq('email', requestData.email.toLowerCase().trim())
+      .eq('email', processedData.email.toLowerCase().trim())
       .eq('used', false);
 
     // Generate secure token
@@ -188,13 +202,13 @@ const handler = async (req: Request): Promise<Response> => {
       .from('magic_link_tokens')
       .insert({
         token,
-        email: requestData.email.toLowerCase().trim(),
-        first_name: requestData.firstName.trim(),
-        last_name: requestData.lastName?.trim() || '',
-        phone_e164: requestData.phone?.trim() || '',
-        age_years: requestData.ageYears,
-        handicap: requestData.handicap,
-        competition_url: requestData.competitionUrl,
+        email: processedData.email.toLowerCase().trim(),
+        first_name: processedData.firstName,
+        last_name: processedData.lastName,
+        phone_e164: processedData.phone,
+        age_years: processedData.ageYears,
+        handicap: processedData.handicap,
+        competition_url: processedData.competitionUrl,
         expires_at: expiresAt.toISOString(),
         used: false
       });
@@ -205,16 +219,16 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Create magic link
-    const baseUrl = new URL(requestData.competitionUrl).origin;
-    const magicLink = `${baseUrl}/auth/callback?token=${token}&redirect=${encodeURIComponent(requestData.competitionUrl)}`;
+    const baseUrl = new URL(processedData.competitionUrl).origin;
+    const magicLink = `${baseUrl}/auth/callback?token=${token}&redirect=${encodeURIComponent(processedData.competitionUrl)}`;
 
     // Send branded email
     const emailResponse = await resend.emails.send({
       from: "Official Hole in 1 <entry@demo.holein1challenge.co.uk>",
       reply_to: "entry@demo.holein1challenge.co.uk",
-      to: [requestData.email.toLowerCase().trim()],
-      subject: `Complete Your Entry - ${requestData.competitionName || 'Official Hole in 1'}`,
-      html: createBrandedEmailTemplate(requestData, magicLink),
+      to: [processedData.email.toLowerCase().trim()],
+      subject: `Complete Your Entry - ${processedData.competitionName || 'Official Hole in 1'}`,
+      html: createBrandedEmailTemplate(processedData, magicLink),
     });
 
     if (emailResponse.error) {

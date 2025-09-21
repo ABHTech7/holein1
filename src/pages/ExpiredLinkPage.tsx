@@ -85,14 +85,14 @@ const ExpiredLinkPage = () => {
               const { data, error } = await supabase.functions.invoke('send-branded-magic-link', {
                 body: {
                   email: fallbackEmail,
-                  firstName: undefined,
-                  lastName: undefined,
-                  phone: undefined,
-                  ageYears: undefined,
-                  handicap: undefined,
+                  firstName: 'Golfer',
+                  lastName: '',
+                  phone: '',
+                  ageYears: 18,
+                  handicap: null,
                   competitionUrl,
-                  competitionName: competitionSlug.replace(/-/g, ' '),
-                  clubName: clubSlug.replace(/-/g, ' ')
+                  competitionName: competitionSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                  clubName: clubSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
                 }
               });
 
@@ -190,6 +190,13 @@ const ExpiredLinkPage = () => {
           </CardHeader>
           
           <CardContent className="space-y-6">
+            {/* Important notice about email links */}
+            <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                💡 <strong>Only the most recent email link works.</strong> If you requested multiple links, please use the latest one.
+              </p>
+            </div>
+            
             {showEmailField ? (
               <form onSubmit={handleEmailSubmit} className="space-y-4">
                 <div>

@@ -143,7 +143,7 @@ export const ResendMagicLink = ({
           const { data, error } = await supabase.functions.invoke('send-branded-magic-link', {
             body: {
               email: entryContext.email,
-              firstName: entryContext.formData?.firstName || '',
+              firstName: entryContext.formData?.firstName || 'Golfer',
               lastName: entryContext.formData?.lastName || '',
               phone: entryContext.formData?.phone || '',
               ageYears: entryContext.formData?.age || 18,
