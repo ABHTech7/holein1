@@ -652,7 +652,7 @@ const AdminEnquiries = () => {
 
       {/* Conversion Modal */}
       <Dialog open={convertModalOpen} onOpenChange={setConvertModalOpen}>
-        <DialogContent className="sm:max-w-[425px] z-[100]" data-testid="convert-modal">
+        <DialogContent className="sm:max-w-[425px]" data-testid="convert-modal">
           <DialogHeader>
             <DialogTitle>Convert to Club</DialogTitle>
             <DialogDescription>
