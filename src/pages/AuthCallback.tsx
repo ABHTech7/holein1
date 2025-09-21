@@ -129,8 +129,13 @@ export default function AuthCallback() {
       else if (code) {
         console.log('[AuthCallback] auth_code found, attempting PKCE exchange');
         
-        try {
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(fullUrl);
+        // First check if we already have a session to avoid unnecessary exchanges
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (currentSession?.user) {
+          console.log('[AuthCallback] Already have valid session, skipping exchange');
+        } else {
+          try {
+            const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(fullUrl);
           
           if (exchangeError) {
             console.error('[AuthCallback] Code exchange failed:', exchangeError.message);
@@ -167,11 +172,12 @@ export default function AuthCallback() {
             }
           }
           
-          console.log('[AuthCallback] auth_code exchange successful');
-        } catch (error: any) {
-          console.error('[AuthCallback] Exchange threw error:', error);
-          navigate("/auth/expired-link", { replace: true });
-          return;
+            console.log('[AuthCallback] auth_code exchange successful');
+          } catch (error: any) {
+            console.error('[AuthCallback] Exchange threw error:', error);
+            navigate("/auth/expired-link", { replace: true });
+            return;
+          }
         }
       } else {
         // Legacy hash-based flow (fallback)

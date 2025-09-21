@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,18 +7,36 @@ import { Card, CardContent } from "@/components/ui/card";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Mail } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { ROUTES } from "@/routes";
+import { ResendMagicLink } from "@/components/auth/ResendMagicLink";
+import { getPendingEntryContext, getLastAuthEmail } from "@/lib/entryContextPersistence";
 
 const Auth = () => {
   const { user, profile, loading, signIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [showCheckEmail, setShowCheckEmail] = useState(false);
+  const [checkEmailAddress, setCheckEmailAddress] = useState<string | null>(null);
   
   const [signInData, setSignInData] = useState({
     email: "",
     password: "",
   });
+
+  // Check for pending entry context or recent auth email
+  useEffect(() => {
+    const entryContext = getPendingEntryContext();
+    const lastEmail = getLastAuthEmail();
+    
+    if (entryContext?.email) {
+      setCheckEmailAddress(entryContext.email);
+      setShowCheckEmail(true);
+    } else if (lastEmail) {
+      setCheckEmailAddress(lastEmail);
+      setShowCheckEmail(true);
+    }
+  }, []);
 
   // Redirect based on user role
   if (user && profile) {
@@ -50,6 +68,63 @@ const Auth = () => {
     e.preventDefault();
     await signIn(signInData.email, signInData.password);
   };
+
+  // Show check email state if we have pending entry context
+  if (showCheckEmail && checkEmailAddress) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <SiteHeader />
+        
+        <main className="flex-1">
+          <Section spacing="xl" className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+            <div className="w-full max-w-md">
+              <div className="text-center mb-8">
+                <h1 className="font-display text-3xl font-bold text-foreground mb-2">
+                  Check Your Email
+                </h1>
+                <p className="text-muted-foreground">
+                  We sent you a secure entry link
+                </p>
+              </div>
+
+              <Card className="shadow-medium">
+                <CardContent className="p-6 text-center">
+                  <Mail className="h-16 w-16 text-primary mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">Link Sent</h3>
+                  <p className="text-muted-foreground mb-4">
+                    We've sent a secure link to <strong>{checkEmailAddress}</strong>
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Click the link in your email to complete your entry
+                  </p>
+                  
+                  <div className="w-full mb-4">
+                    <ResendMagicLink
+                      email={checkEmailAddress}
+                      redirectUrl={`${window.location.origin}/auth/callback?email=${encodeURIComponent(checkEmailAddress)}`}
+                      showAsCard={false}
+                      size="default"
+                      variant="outline"
+                    />
+                  </div>
+                  
+                  <Button 
+                    variant="ghost"
+                    onClick={() => setShowCheckEmail(false)}
+                    className="text-sm"
+                  >
+                    Show sign-in form instead
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </Section>
+        </main>
+
+        <SiteFooter />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">

@@ -12,6 +12,7 @@ import { getFormGreeting } from "@/lib/copyEngine";
 import { getAvailablePaymentProviders, createPaymentIntent, confirmPayment, updateEntryPaymentInfo } from "@/lib/paymentService";
 import { getPaymentMode } from "@/lib/featureFlags";
 import { Loader2, CreditCard, Shield, Zap, Badge, Flag, User, Mail, Phone, Target, Info } from "lucide-react";
+import { ResendMagicLink } from "@/components/auth/ResendMagicLink";
 import type { Gender } from '@/lib/copyEngine';
 
 interface PlayerJourneyEntryFormProps {
@@ -58,7 +59,7 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [paymentStep, setPaymentStep] = useState<'form' | 'payment' | 'processing'>('form');
+  const [paymentStep, setPaymentStep] = useState<'form' | 'payment' | 'processing' | 'check_email'>('form');
   const [entryId, setEntryId] = useState<string | null>(null);
   
   // Auto-populate from existing profile if user is logged in
@@ -219,14 +220,29 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
         
         console.info('[Entry] Branded magic link sent successfully');
         
-        toast({ 
-          title: "Check your email!", 
-          description: `We've sent a secure entry link to ${formData.email}. Click the link to complete your entry.`,
-        });
+        // Store additional context for enhanced resend functionality
+        try {
+          const { storePendingEntryContext } = await import('@/lib/entryContextPersistence');
+          storePendingEntryContext({
+            email: formData.email,
+            clubSlug: window.location.pathname.split('/')[2],
+            competitionSlug: window.location.pathname.split('/')[3],
+            formData: {
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+              phone: formData.phone,
+              age: formData.age,
+              gender: formData.gender,
+              handicap: formData.handicap,
+            },
+            termsAccepted
+          });
+        } catch (error) {
+          console.warn('[Entry] Failed to store pending entry context:', error);
+        }
         
-        // Show confirmation state - for magic link flow, we don't have an entryId yet
-        // So we'll pass a placeholder and the form data
-        onSuccess?.('pending-magic-link', formData);
+        // Show inline check email state instead of navigating
+        setPaymentStep('check_email');
         return;
       }
 
@@ -403,6 +419,47 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
         <CardContent className="flex items-center justify-center p-8">
           <Loader2 className="h-8 w-8 animate-spin" />
           <span className="ml-2">Loading your profile...</span>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (paymentStep === 'check_email') {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardContent className="flex flex-col items-center justify-center p-8 text-center">
+          <Mail className="h-16 w-16 text-primary mb-4" />
+          <h3 className="text-2xl font-semibold mb-2">Check Your Email</h3>
+          <p className="text-muted-foreground mb-4">
+            We've sent a secure entry link to <strong>{formData.email}</strong>
+          </p>
+          <p className="text-sm text-muted-foreground mb-6">
+            Click the link in your email to complete your entry for <strong>{competition.name}</strong>
+          </p>
+          
+          <div className="w-full max-w-sm">
+            <ResendMagicLink
+              email={formData.email}
+              redirectUrl={`${window.location.origin}/auth/callback?email=${encodeURIComponent(formData.email)}`}
+              showAsCard={false}
+              size="default"
+              variant="outline"
+              onResendSuccess={() => {
+                toast({ 
+                  title: "Link sent!", 
+                  description: "Check your email for the new entry link."
+                });
+              }}
+            />
+          </div>
+          
+          <Button 
+            variant="ghost" 
+            onClick={() => setPaymentStep('form')}
+            className="mt-4"
+          >
+            ← Back to form
+          </Button>
         </CardContent>
       </Card>
     );
