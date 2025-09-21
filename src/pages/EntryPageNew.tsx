@@ -410,22 +410,26 @@ const EntryPageNew = () => {
           heroImageUrl={competition.hero_image_url}
         />
 
+        {/* Back Button */}
+        <div className="py-4 border-b">
+          <Container>
+            <div className="flex justify-start">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate(-1)}
+                className="gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </Button>
+            </div>
+          </Container>
+        </div>
+
         <div className="py-12">
           <Container>
             <div className="max-w-2xl mx-auto space-y-8">
-              {/* Back Button */}
-              <div className="flex justify-start">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate(-1)}
-                  className="gap-2 text-muted-foreground hover:text-foreground"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back
-                </Button>
-              </div>
-
               {/* Entry Resend Banner */}
               <EntryResendBanner showOnlyWithContext={false} />
               
