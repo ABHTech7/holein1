@@ -655,11 +655,8 @@ const ClubDetailPage = () => {
 
     setUploadingContract(true);
 
-    try {
-      const updateData: any = {
-        contract_signed: checked
-      };
-
+    const doUpdate = async () => {
+      const updateData: any = { contract_signed: checked };
       if (checked) {
         updateData.contract_signed_date = new Date().toISOString();
         updateData.contract_signed_by_name = `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || user?.email || 'Unknown';
@@ -732,8 +729,70 @@ const ClubDetailPage = () => {
         title: "Success",
         description: `Contract marked as ${checked ? 'signed' : 'not signed'} successfully.`,
       });
+    };
+
+    try {
+      // Ensure we have a valid authenticated session before proceeding
+      const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+      if (sessionErr) {
+        console.warn('⚠️ [CONTRACT_TOGGLE] getSession error:', sessionErr);
+      }
+      if (!sessionData?.session) {
+        console.warn('🚫 [CONTRACT_TOGGLE] No active session found');
+        toast({
+          title: 'Session expired',
+          description: 'Please sign in again to update the contract status.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Probe current DB role for diagnostics
+      try {
+        const { data: currentRole, error: roleErr } = await supabase.rpc('get_current_user_role');
+        if (roleErr) console.warn('⚠️ [CONTRACT_TOGGLE] Role probe error:', roleErr);
+        console.log('🪪 [CONTRACT_TOGGLE] Current DB role:', currentRole);
+      } catch (e) {
+        console.warn('⚠️ [CONTRACT_TOGGLE] Role probe failed:', e);
+      }
+
+      // First attempt
+      await doUpdate();
 
     } catch (error: any) {
+      // If permission issue, try a one-time refresh + retry
+      const msg: string = error?.message?.toLowerCase?.() || '';
+      const isPermissionDenied = msg.includes('permission denied') || error?.code === '42501';
+
+      if (isPermissionDenied) {
+        console.warn('🔁 [CONTRACT_TOGGLE] Permission denied, attempting session refresh and retry...');
+        try {
+          const { error: refreshErr } = await supabase.auth.refreshSession();
+          if (refreshErr) {
+            console.error('🚨 [CONTRACT_TOGGLE] refreshSession error:', refreshErr);
+            throw error; // keep original
+          }
+
+          // Re-probe role after refresh
+          try {
+            const { data: currentRole2 } = await supabase.rpc('get_current_user_role');
+            console.log('🪪 [CONTRACT_TOGGLE] Role after refresh:', currentRole2);
+          } catch {}
+
+          await doUpdate();
+          return; // success after retry
+        } catch (retryErr: any) {
+          console.error('🚨 [CONTRACT_TOGGLE] Retry failed:', retryErr);
+          // Attempt RLS probe in dev to surface details
+          try {
+            const mod = await import('@/lib/rlsProbe');
+            await mod.probeRLS('ContractToggleRetry');
+          } catch {}
+          // Fall through to show error toast
+          error = retryErr;
+        }
+      }
+
       console.error('🚨 [CONTRACT_TOGGLE] Full error details:', {
         error,
         message: error?.message,
@@ -743,18 +802,20 @@ const ClubDetailPage = () => {
         stack: error?.stack
       });
 
-      let errorMessage = "Failed to update contract status. Please try again.";
-      
+      let errorMessage = 'Failed to update contract status. Please try again.';
       if (error?.message) {
         errorMessage = `Database error: ${error.message}`;
         if (error.details) errorMessage += ` Details: ${error.details}`;
         if (error.hint) errorMessage += ` Hint: ${error.hint}`;
       }
+      if (isPermissionDenied) {
+        errorMessage += ' Your account may not have the required permissions, or your profile record is missing. Try reloading and ensure your profile has ADMIN role.';
+      }
 
       toast({
-        title: "Contract Update Error",
+        title: 'Contract Update Error',
         description: errorMessage,
-        variant: "destructive"
+        variant: 'destructive'
       });
     } finally {
       setUploadingContract(false);
