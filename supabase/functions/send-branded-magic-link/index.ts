@@ -210,7 +210,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send branded email
     const emailResponse = await resend.emails.send({
-      from: "Official Hole in 1 <hello@holein1challenge.co.uk>",
+      from: "Official Hole in 1 <onboarding@resend.dev>",
       to: [requestData.email.toLowerCase().trim()],
       subject: `Complete Your Entry - ${requestData.competitionName || 'Official Hole in 1'}`,
       html: createBrandedEmailTemplate(requestData, magicLink),
