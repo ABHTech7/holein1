@@ -117,14 +117,37 @@ export default function AuthCallback() {
               data,
               token: branded_token
             });
-          const redirectUrl = buildExpiredUrl('expired', true);
-          navigate(redirectUrl, { replace: true });
-          return;
+            
+            // If it's a cooldown error, still proceed with authentication but show a message
+            if (data?.cooldown_active && data?.action_link) {
+              console.log('[AuthCallback] Cooldown active but auth link available, proceeding with sign-in');
+              toast({
+                title: "Already entered recently",
+                description: data.message || "You've already entered this competition recently.",
+                variant: "destructive",
+              });
+              window.location.replace(data.action_link);
+              return;
+            }
+            
+            const redirectUrl = buildExpiredUrl('expired', true);
+            navigate(redirectUrl, { replace: true });
+            return;
           }
 
           // If the function provided a Supabase action link, redirect there to establish the session
           if (data.action_link) {
             console.log('[AuthCallback] Redirecting to Supabase action_link to complete sign-in');
+            
+            // If cooldown is active, show message but still proceed with auth
+            if (data.cooldown_active) {
+              toast({
+                title: "Already entered recently",
+                description: data.message || "You've already entered this competition recently.",
+                variant: "destructive"
+              });
+            }
+            
             window.location.replace(data.action_link);
             return;
           }

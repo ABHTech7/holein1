@@ -334,14 +334,58 @@ const handler = async (req: Request): Promise<Response> => {
     if (entryError || !entry) {
       console.error("Error creating entry:", entryError);
       
-      // Handle specific cooldown error with better messaging
+      // Handle specific cooldown error more gracefully
       if (entryError.message?.includes("Players must wait 12 hours")) {
+        console.log("Cooldown period active - still authenticating user but no new entry");
+        
+        // Mark the token as used
+        await supabaseAdmin
+          .from('magic_link_tokens')
+          .update({ used: true, used_at: new Date().toISOString() })
+          .eq('token', token);
+          
+        // Generate action link for authentication
+        const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'magiclink',
+          email: tokenData.email,
+          options: {
+            redirectTo: `${(() => {
+              try {
+                return new URL(competitionUrl).origin;
+              } catch {
+                return Deno.env.get('SITE_URL') || '';
+              }
+            })()}/auth/callback?email=${encodeURIComponent(tokenData.email)}&continue=${encodeURIComponent('/players/entries')}`
+          }
+        });
+
+        if (linkError) {
+          console.error("Error generating action link for cooldown user:", linkError);
+          return new Response(JSON.stringify({ 
+            success: false,
+            error: "Authentication link generation failed"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
+
         return new Response(JSON.stringify({ 
-          success: false,
-          error: "You must wait 12 hours between entries for the same competition. Please try again later.",
-          error_type: "cooldown"
+          success: true,
+          cooldown_active: true,
+          message: "You've already entered this competition recently. Please wait 12 hours between entries.",
+          // @ts-ignore - properties type differs in Deno env typings
+          action_link: linkData?.properties?.action_link || linkData?.action_link,
+          redirect_url: '/players/entries',
+          user: {
+            id: user.id,
+            email: user.email,
+            first_name: tokenData.first_name,
+            last_name: tokenData.last_name,
+            role: 'PLAYER'
+          }
         }), {
-          status: 400,
+          status: 200,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }

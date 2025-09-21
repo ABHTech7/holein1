@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Container from "@/components/layout/Container";
+import SiteHeader from "@/components/layout/SiteHeader";
+import SiteFooter from "@/components/layout/SiteFooter";
 import { AlertCircle, Mail, RefreshCw } from "lucide-react";
 import { ResendMagicLink } from "@/components/auth/ResendMagicLink";
 import { toast } from "@/hooks/use-toast";
@@ -163,97 +165,103 @@ const ExpiredLinkPage = () => {
   };
 
   return (
-    <Container className="py-24">
-      <div className="mx-auto max-w-md">
-        <Card className="shadow-lg">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
-                <AlertCircle className="w-8 h-8 text-destructive" />
-              </div>
-            </div>
-            <CardTitle className="text-xl">
-              {searchParams.get('reason') === 'pkce_missing' ? 'Link opened in different app' : 'Your sign-in link expired'}
-            </CardTitle>
-            <CardDescription>
-              {(() => {
-                const reason = searchParams.get('reason');
-                if (reason === 'pkce_missing') {
-                  return "Looks like you opened the link in a different app or browser. We'll send you a fresh link.";
-                } else if (reason === 'expired') {
-                  return "Your secure link has expired for security reasons. You can request a new one below.";
-                } else {
-                  return "The secure link in your email has expired for security reasons. You can request a new one below.";
-                }
-              })()}
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-6">
-            {/* Important notice about email links */}
-            <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <p className="text-sm text-blue-700 dark:text-blue-300">
-                💡 <strong>Only the most recent email link works.</strong> If you requested multiple links, please use the latest one.
-              </p>
-            </div>
-            
-            {showEmailField ? (
-              <form onSubmit={handleEmailSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="email">Email address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email address"
-                    required
-                  />
+    <div className="min-h-screen flex flex-col">
+      <SiteHeader />
+      <main className="flex-1">
+        <Container className="py-24">
+          <div className="mx-auto max-w-md">
+            <Card className="shadow-lg">
+              <CardHeader className="text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
+                    <AlertCircle className="w-8 h-8 text-destructive" />
+                  </div>
                 </div>
-                <Button type="submit" className="w-full" disabled={!email.trim()}>
-                  Continue
-                </Button>
-              </form>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center p-3 bg-muted rounded-lg">
-                  <Mail className="w-5 h-5 text-muted-foreground mr-3" />
-                  <span className="text-sm font-medium">{email}</span>
+                <CardTitle className="text-xl">
+                  {searchParams.get('reason') === 'pkce_missing' ? 'Link opened in different app' : 'Your sign-in link expired'}
+                </CardTitle>
+                <CardDescription>
+                  {(() => {
+                    const reason = searchParams.get('reason');
+                    if (reason === 'pkce_missing') {
+                      return "Looks like you opened the link in a different app or browser. We'll send you a fresh link.";
+                    } else if (reason === 'expired') {
+                      return "Your secure link has expired for security reasons. You can request a new one below.";
+                    } else {
+                      return "The secure link in your email has expired for security reasons. You can request a new one below.";
+                    }
+                  })()}
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent className="space-y-6">
+                {/* Important notice about email links */}
+                <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    💡 <strong>Only the most recent email link works.</strong> If you requested multiple links, please use the latest one.
+                  </p>
                 </div>
                 
-            <ResendMagicLink
-              email={email}
-              redirectUrl={`${window.location.origin}/auth/callback?email=${encodeURIComponent(email)}`}
-              onResendSuccess={handleResendSuccess}
-              onResendError={handleResendError}
-              showAsCard={false}
-              size="lg"
-              variant="default"
-            />
+                {showEmailField ? (
+                  <form onSubmit={handleEmailSubmit} className="space-y-4">
+                    <div>
+                      <Label htmlFor="email">Email address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter your email address"
+                        required
+                      />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={!email.trim()}>
+                      Continue
+                    </Button>
+                  </form>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center p-3 bg-muted rounded-lg">
+                      <Mail className="w-5 h-5 text-muted-foreground mr-3" />
+                      <span className="text-sm font-medium">{email}</span>
+                    </div>
+                    
+                <ResendMagicLink
+                  email={email}
+                  redirectUrl={`${window.location.origin}/auth/callback?email=${encodeURIComponent(email)}`}
+                  onResendSuccess={handleResendSuccess}
+                  onResendError={handleResendError}
+                  showAsCard={false}
+                  size="lg"
+                  variant="default"
+                />
+                    
+                    <Button 
+                      variant="outline" 
+                      onClick={handleDifferentEmail}
+                      className="w-full"
+                    >
+                      Use a different email
+                    </Button>
+                  </div>
+                )}
                 
-                <Button 
-                  variant="outline" 
-                  onClick={handleDifferentEmail}
-                  className="w-full"
-                >
-                  Use a different email
-                </Button>
-              </div>
-            )}
-            
-            <div className="text-center">
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate('/auth')}
-                className="text-sm"
-              >
-                Back to sign in
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </Container>
+                <div className="text-center">
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => navigate('/auth')}
+                    className="text-sm"
+                  >
+                    Back to sign in
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </Container>
+      </main>
+      <SiteFooter />
+    </div>
   );
 };
 
