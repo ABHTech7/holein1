@@ -14,7 +14,7 @@ import SiteSettingsModal from "@/components/admin/SiteSettingsModal";
 import NewUserModal from "@/components/admin/NewUserModal";
 import AdminQuickActions from "@/components/admin/AdminQuickActions";
 import SecurityMonitor from "@/components/security/SecurityMonitor";
-import { Users, Calendar, Trophy, TrendingUp, Plus, Settings, PoundSterling, UserPlus } from "lucide-react";
+import { Users, Calendar, Trophy, TrendingUp, Plus, Settings, PoundSterling, UserPlus, Edit3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate, formatRelativeTime } from "@/lib/formatters";
@@ -48,6 +48,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showSiteSettings, setShowSiteSettings] = useState(false);
   const [showNewUser, setShowNewUser] = useState(false);
+  const [isEditingActions, setIsEditingActions] = useState(false);
   const [stats, setStats] = useState<DashboardStats>({
     totalPlayers: 0,
     newPlayersThisMonth: 0,
@@ -455,8 +456,19 @@ const AdminDashboard = () => {
             {/* Quick Actions Grid - New Enhanced Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Quick Actions</h2>
-                <p className="text-sm text-muted-foreground">Fast access to key management areas</p>
+                <div>
+                  <h2 className="text-lg font-semibold">Quick Actions</h2>
+                  <p className="text-sm text-muted-foreground">Fast access to key management areas</p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => setIsEditingActions(!isEditingActions)}
+                >
+                  <Edit3 className="w-4 h-4" />
+                  {isEditingActions ? 'Done' : 'Edit Order'}
+                </Button>
               </div>
               <AdminQuickActions 
                 stats={{
@@ -468,6 +480,7 @@ const AdminDashboard = () => {
                   totalClubs: stats.totalClubs
                 }}
                 onAddUser={handleAddUser}
+                isEditing={isEditingActions}
               />
             </div>
 

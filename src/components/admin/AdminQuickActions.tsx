@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,9 @@ import {
   TrendingUp,
   Clock,
   CheckCircle,
-  UserPlus
+  UserPlus,
+  GripVertical,
+  Move
 } from "lucide-react";
 
 interface QuickActionsProps {
@@ -25,13 +28,22 @@ interface QuickActionsProps {
     totalClubs: number;
   };
   onAddUser?: () => void;
+  isEditing?: boolean;
 }
 
-const AdminQuickActions = ({ stats, onAddUser }: QuickActionsProps) => {
+const AdminQuickActions = ({ stats, onAddUser, isEditing = false }: QuickActionsProps) => {
   const navigate = useNavigate();
+  const [actionOrder, setActionOrder] = useState<string[]>(() => {
+    // Load saved order from localStorage, fallback to default order
+    const saved = localStorage.getItem('admin-quick-actions-order');
+    return saved ? JSON.parse(saved) : [
+      'players', 'revenue', 'competitions', 'clubs', 'entries', 'claims', 'users', 'enquiries'
+    ];
+  });
 
   const actions = [
     {
+      id: "players",
       title: "Player Management",
       description: "View and manage all players",
       icon: Users,
@@ -42,6 +54,7 @@ const AdminQuickActions = ({ stats, onAddUser }: QuickActionsProps) => {
       iconColor: "text-green-600"
     },
     {
+      id: "revenue",
       title: "Revenue Overview",
       description: "Financial analytics and reports",
       icon: PoundSterling,
@@ -53,6 +66,7 @@ const AdminQuickActions = ({ stats, onAddUser }: QuickActionsProps) => {
       isAmount: true
     },
     {
+      id: "competitions",
       title: "Competitions",
       description: "Manage active competitions",
       icon: Trophy,
@@ -63,6 +77,7 @@ const AdminQuickActions = ({ stats, onAddUser }: QuickActionsProps) => {
       iconColor: "text-yellow-600"
     },
     {
+      id: "clubs",
       title: "Club Management",
       description: "Oversee partner clubs",
       icon: Building,
@@ -73,6 +88,7 @@ const AdminQuickActions = ({ stats, onAddUser }: QuickActionsProps) => {
       iconColor: "text-indigo-600"
     },
     {
+      id: "entries",
       title: "Entry Management",
       description: "Monitor and manage entries",
       icon: Clock,
@@ -83,6 +99,7 @@ const AdminQuickActions = ({ stats, onAddUser }: QuickActionsProps) => {
       iconColor: "text-orange-600"
     },
     {
+      id: "claims",
       title: "Claims Review",
       description: "Review pending win claims",
       icon: CheckCircle,
@@ -93,6 +110,7 @@ const AdminQuickActions = ({ stats, onAddUser }: QuickActionsProps) => {
       iconColor: "text-red-600"
     },
     {
+      id: "users",
       title: "User Management",
       description: "Manage all platform users",
       icon: Users,
@@ -104,6 +122,7 @@ const AdminQuickActions = ({ stats, onAddUser }: QuickActionsProps) => {
       subActionPath: "/dashboard/admin/users/new"
     },
     {
+      id: "enquiries",
       title: "Partnership Enquiries",
       description: "Review club partnership requests",
       icon: FileText,
@@ -112,6 +131,29 @@ const AdminQuickActions = ({ stats, onAddUser }: QuickActionsProps) => {
       iconColor: "text-pink-600"
     }
   ];
+
+  // Save order to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('admin-quick-actions-order', JSON.stringify(actionOrder));
+  }, [actionOrder]);
+
+  // Create ordered actions based on current order
+  const orderedActions = actionOrder
+    .map(id => actions.find(action => action.id === id))
+    .filter(Boolean) as typeof actions;
+
+  // Add any new actions that aren't in the saved order
+  const newActions = actions.filter(action => !actionOrder.includes(action.id));
+  const allOrderedActions = [...orderedActions, ...newActions];
+
+  const moveAction = (fromIndex: number, toIndex: number) => {
+    if (!isEditing) return;
+    
+    const newOrder = [...actionOrder];
+    const [movedItem] = newOrder.splice(fromIndex, 1);
+    newOrder.splice(toIndex, 0, movedItem);
+    setActionOrder(newOrder);
+  };
 
   const formatCount = (count: number, isAmount: boolean = false) => {
     if (isAmount) {
@@ -122,19 +164,44 @@ const AdminQuickActions = ({ stats, onAddUser }: QuickActionsProps) => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {actions.map((action) => {
+      {allOrderedActions.map((action, index) => {
         const Icon = action.icon;
         
         return (
           <Card 
-            key={action.path}
-            className={`${action.color} cursor-pointer transition-all duration-200 hover:shadow-md border`}
+            key={action.id}
+            className={`${action.color} ${isEditing ? 'cursor-move' : 'cursor-pointer'} transition-all duration-200 hover:shadow-md border ${isEditing ? 'ring-2 ring-primary/20' : ''}`}
             onClick={() => {
-              console.log('Quick action clicked:', action.title, action.path);
-              navigate(action.path);
+              if (!isEditing) {
+                console.log('Quick action clicked:', action.title, action.path);
+                navigate(action.path);
+              }
+            }}
+            draggable={isEditing}
+            onDragStart={(e) => {
+              if (isEditing) {
+                e.dataTransfer.setData('text/plain', index.toString());
+              }
+            }}
+            onDragOver={(e) => {
+              if (isEditing) {
+                e.preventDefault();
+              }
+            }}
+            onDrop={(e) => {
+              if (isEditing) {
+                e.preventDefault();
+                const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                moveAction(fromIndex, index);
+              }
             }}
           >
             <CardContent className="p-4">
+              {isEditing && (
+                <div className="flex justify-center mb-2">
+                  <GripVertical className="w-4 h-4 text-muted-foreground" />
+                </div>
+              )}
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-lg bg-white/60 ${action.iconColor}`}>
@@ -144,7 +211,7 @@ const AdminQuickActions = ({ stats, onAddUser }: QuickActionsProps) => {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-sm text-gray-900">{action.title}</h3>
                     <p className="text-xs text-gray-600 mt-1">{action.description}</p>
-                    {action.hasSubAction && (
+                    {action.hasSubAction && !isEditing && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -175,8 +242,8 @@ const AdminQuickActions = ({ stats, onAddUser }: QuickActionsProps) => {
                 )}
               </div>
               
-              {/* Priority indicators */}
-              {action.path.includes('claims') && (action.count ?? 0) > 0 && (
+              {/* Priority indicators - only show when not editing */}
+              {!isEditing && action.path.includes('claims') && (action.count ?? 0) > 0 && (
                 <div className="mt-3">
                   <Badge variant="destructive" className="text-xs">
                     Needs Attention
@@ -184,7 +251,7 @@ const AdminQuickActions = ({ stats, onAddUser }: QuickActionsProps) => {
                 </div>
               )}
               
-              {action.path.includes('entries') && (action.count ?? 0) > 0 && (
+              {!isEditing && action.path.includes('entries') && (action.count ?? 0) > 0 && (
                 <div className="mt-3">
                   <Badge variant="secondary" className="text-xs">
                     {action.count} Awaiting Payment
