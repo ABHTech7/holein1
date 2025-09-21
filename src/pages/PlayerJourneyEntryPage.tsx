@@ -10,6 +10,7 @@ import PlayerJourneyEntryForm from "@/components/entry/PlayerJourneyEntryForm";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ArrowLeft } from "lucide-react";
+import { EntryResendBanner } from "@/components/entry/EntryResendBanner";
 
 interface VenueCompetition {
   id: string;
@@ -182,6 +183,9 @@ const PlayerJourneyEntryPage = () => {
                 Back
               </Button>
             </div>
+
+            {/* Entry Resend Banner - Only show if user has active entry context */}
+            <EntryResendBanner showOnlyWithContext={true} />
 
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold mb-2">{competition.name}</h1>

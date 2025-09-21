@@ -427,7 +427,7 @@ const EntryPageNew = () => {
               </div>
 
               {/* Entry Resend Banner */}
-              <EntryResendBanner />
+              <EntryResendBanner showOnlyWithContext={false} />
               
               {/* Trust Banner */}
               <TrustBanner />

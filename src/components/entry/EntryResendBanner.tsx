@@ -6,25 +6,34 @@ import { getLastAuthEmail, getPendingEntryContext } from "@/lib/entryContextPers
 
 interface EntryResendBannerProps {
   onDismiss?: () => void;
+  showOnlyWithContext?: boolean; // Only show if there's active entry context
 }
 
-export const EntryResendBanner = ({ onDismiss }: EntryResendBannerProps) => {
+export const EntryResendBanner = ({ onDismiss, showOnlyWithContext = false }: EntryResendBannerProps) => {
   const [email, setEmail] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // Show banner if we have valid entry context OR last auth email within 6 hours
     const entryContext = getPendingEntryContext();
     const lastEmail = getLastAuthEmail();
     
-    if (entryContext?.email) {
-      setEmail(entryContext.email);
-      setVisible(true);
-    } else if (lastEmail) {
-      setEmail(lastEmail);
-      setVisible(true);
+    // If showOnlyWithContext is true, only show if there's active entry context
+    if (showOnlyWithContext) {
+      if (entryContext?.email) {
+        setEmail(entryContext.email);
+        setVisible(true);
+      }
+    } else {
+      // Show banner if we have valid entry context OR last auth email within 6 hours
+      if (entryContext?.email) {
+        setEmail(entryContext.email);
+        setVisible(true);
+      } else if (lastEmail) {
+        setEmail(lastEmail);
+        setVisible(true);
+      }
     }
-  }, []);
+  }, [showOnlyWithContext]);
 
   const handleDismiss = () => {
     setVisible(false);
