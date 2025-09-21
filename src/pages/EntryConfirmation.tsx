@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import useAuth from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
@@ -40,15 +40,24 @@ const EntryConfirmation = () => {
   const [loading, setLoading] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
-    console.log('🔍 EntryConfirmation: Component mounted', { user: !!user, entryId });
+    console.log('🔍 EntryConfirmation: Component mounted', { user: !!user, entryId, initialized: initializedRef.current });
     
     if (!entryId) {
       console.log('❌ EntryConfirmation: No entryId provided');
       navigate('/');
       return;
     }
+
+    // Only initialize once per entryId
+    if (initializedRef.current) {
+      console.log('🔍 EntryConfirmation: Already initialized, skipping');
+      return;
+    }
+
+    initializedRef.current = true;
 
     // Force check for session and attempt to fetch entry
     const initializeEntry = async () => {
@@ -122,7 +131,7 @@ const EntryConfirmation = () => {
     
     initializeEntry().finally(cleanup);
     return cleanup;
-  }, [entryId, user, navigate, forceRefresh]);
+  }, [entryId, navigate]);
 
   const fetchEntry = async () => {
     if (!entryId) {
@@ -148,7 +157,10 @@ const EntryConfirmation = () => {
     }
 
     try {
-        setLoading(true);
+        // Only show loading if we don't have entry data yet
+        if (!entry) {
+          setLoading(true);
+        }
         console.log('🔄 fetchEntry: Querying database...', { entryId, userId });
         
         const { data, error } = await supabase

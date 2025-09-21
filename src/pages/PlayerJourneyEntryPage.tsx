@@ -1,5 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import useAuth from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { ClubService } from "@/lib/clubService";
 import { createClubSlug, createCompetitionSlug } from "@/lib/competitionUtils";
@@ -31,8 +33,36 @@ const PlayerJourneyEntryPage = () => {
     competitionSlug: string;
   }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [competition, setCompetition] = useState<VenueCompetition | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Check for existing pending entry on mount
+  useEffect(() => {
+    const checkExistingEntry = async () => {
+      if (!user?.id || !competition?.id) return;
+
+      try {
+        const { data: existingEntry } = await supabase
+          .from('entries')
+          .select('id')
+          .eq('competition_id', competition.id)
+          .eq('player_id', user.id)
+          .is('outcome_self', null)
+          .single();
+
+        if (existingEntry) {
+          console.log('🔄 Found existing pending entry, redirecting...', existingEntry.id);
+          navigate(`/entry/${existingEntry.id}/confirmation`, { replace: true });
+        }
+      } catch (error) {
+        // No existing entry found, which is expected
+        console.log('🔍 No existing pending entry found');
+      }
+    };
+
+    checkExistingEntry();
+  }, [user, competition, navigate]);
 
   useEffect(() => {
     const fetchCompetition = async () => {
@@ -120,7 +150,7 @@ const PlayerJourneyEntryPage = () => {
   }, [clubSlug, competitionSlug, navigate]);
 
   const handleSuccess = (entryId: string, playerData: any) => {
-    navigate(`/entry-success/${entryId}`);
+    navigate(`/entry/${entryId}/confirmation`);
   };
 
   if (loading) {
