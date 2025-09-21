@@ -30,7 +30,52 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    console.log('Process-lead-background function invoked');
+    
     const { leadId, lead }: LeadBackgroundRequest = await req.json();
+    
+    // Validate required fields
+    if (!leadId) {
+      console.error('Missing required field: leadId');
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'leadId is required' 
+      }), {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      });
+    }
+
+    if (!lead?.email) {
+      console.error('Missing required field: lead.email');
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'lead.email is required' 
+      }), {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      });
+    }
+
+    if (!lead?.clubName) {
+      console.error('Missing required field: lead.clubName');
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'lead.clubName is required' 
+      }), {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      });
+    }
     
     console.log(`Starting background email processing for lead: ${leadId}, club: ${lead.clubName}`);
 
@@ -73,6 +118,21 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
+    if (!emailResponse.data?.id) {
+      console.error('Email send failed: no email ID returned', emailResponse);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Email send failed: no email ID returned',
+        leadId 
+      }), {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      });
+    }
+
     console.log("Email sent successfully:", emailResponse);
 
     // Update lead record with email status
@@ -86,7 +146,18 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (updateError) {
       console.error('Failed to update lead email status:', updateError);
-      // Don't throw error - email was sent successfully
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Database update failed after email was sent',
+        emailId: emailResponse.data?.id,
+        leadId 
+      }), {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      });
     } else {
       console.log(`Lead ${leadId} updated with email sent status`);
     }
@@ -106,14 +177,12 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error in process-lead-background function:", error);
     
-    // Still return success to avoid blocking user experience
-    // The error is logged for monitoring
     return new Response(JSON.stringify({ 
       success: false, 
       error: error.message,
       note: "Background processing failed but lead was saved"
     }), {
-      status: 200, // Return 200 to avoid frontend errors
+      status: 500,
       headers: { 
         "Content-Type": "application/json", 
         ...corsHeaders 

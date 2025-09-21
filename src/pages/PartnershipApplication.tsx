@@ -74,9 +74,9 @@ const PartnershipApplication = () => {
         description: "Thank you for your interest. We'll be in touch within 24 hours."
       });
 
-      // Trigger background email processing (non-blocking)
+      // Call background function to send email with proper error handling
       try {
-        supabase.functions.invoke('process-lead-background', {
+        const { data: emailResult, error: emailError } = await supabase.functions.invoke('process-lead-background', {
           body: {
             leadId: leadData.id,
             lead: {
@@ -89,11 +89,14 @@ const PartnershipApplication = () => {
             }
           }
         });
-        // Note: We don't await this - it runs in the background
-        console.log('Background email processing initiated');
-      } catch (backgroundError) {
-        // Background email processing failed, but user already got success message
-        console.error('Background email processing failed:', backgroundError);
+
+        if (emailError) {
+          console.error('Background email function error:', emailError);
+        } else {
+          console.log('Background email function succeeded:', emailResult);
+        }
+      } catch (emailFunctionError) {
+        console.error('Failed to call background email function:', emailFunctionError);
       }
 
     } catch (error: any) {
