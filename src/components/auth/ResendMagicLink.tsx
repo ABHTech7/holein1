@@ -91,13 +91,63 @@ export const ResendMagicLink = ({
     setIsResending(true);
     
     try {
-      console.info('[ResendMagicLink] Attempting to resend OTP for:', email);
+      console.info('[ResendMagicLink] Attempting to resend branded OTP for:', email);
       console.log(`[Resend] started for ${email} to ${redirectUrl || `${window.location.origin}/auth/callback?email=${encodeURIComponent(email)}`}`);
       
-      const { error } = await sendOtp(email, true); // Enable context persistence
+      // Get entry context to determine if we should use branded magic link
+      const { getPendingEntryContext } = await import('@/lib/entryContextPersistence');
+      const entryContext = getPendingEntryContext();
       
-      if (error) {
-        throw new Error(error);
+      let success = false;
+      let errorMessage = '';
+      
+      if (entryContext && entryContext.email === email) {
+        // Use branded magic link for active entry context
+        console.log('[ResendMagicLink] Using branded magic link for entry context');
+        
+        try {
+          const { supabase } = await import('@/integrations/supabase/client');
+          const competitionUrl = `${window.location.origin}/competition/${entryContext.clubSlug}/${entryContext.competitionSlug}/enter`;
+          
+          const { data, error } = await supabase.functions.invoke('send-branded-magic-link', {
+            body: {
+              email: entryContext.email,
+              firstName: entryContext.formData?.firstName || '',
+              lastName: entryContext.formData?.lastName || '',
+              phone: entryContext.formData?.phone || '',
+              ageYears: entryContext.formData?.age || 18,
+              handicap: entryContext.formData?.handicap || null,
+              competitionUrl,
+              competitionName: `${entryContext.clubSlug} Competition`,
+              clubName: entryContext.clubSlug.replace(/-/g, ' ')
+            }
+          });
+          
+          if (error || !data?.success) {
+            throw new Error(data?.error || 'Failed to send branded magic link');
+          }
+          
+          success = true;
+        } catch (brandedError: any) {
+          console.warn('[ResendMagicLink] Branded link failed, falling back to standard OTP:', brandedError);
+          errorMessage = brandedError.message;
+        }
+      }
+      
+      // Fallback to standard OTP if branded failed or no entry context
+      if (!success) {
+        console.log('[ResendMagicLink] Using standard OTP as fallback');
+        const { error } = await sendOtp(email, true); // Enable context persistence
+        
+        if (error) {
+          throw new Error(error);
+        }
+        
+        success = true;
+      }
+      
+      if (!success) {
+        throw new Error(errorMessage || 'Failed to send magic link');
       }
       
       // Clear rate limit on successful send
