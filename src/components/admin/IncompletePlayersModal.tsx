@@ -35,6 +35,7 @@ const IncompletePlayersModal = ({ isOpen, onClose, onPlayersDeleted }: Incomplet
   const [selectedPlayers, setSelectedPlayers] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [deletionResults, setDeletionResults] = useState<{ deleted: number; skipped: number; errors: string[] } | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Feature flag for soft delete
   const softDeleteEnabled = import.meta.env.VITE_SOFT_DELETE_PLAYERS !== 'false';
@@ -109,18 +110,27 @@ const IncompletePlayersModal = ({ isOpen, onClose, onPlayersDeleted }: Incomplet
 
     try {
       setDeleting(true);
+      // Keep confirmation dialog open during deletion
       const results = { deleted: 0, skipped: 0, errors: [] as string[] };
+      
+      console.log(`[IncompletePlayersModal] Starting deletion of ${selectedPlayers.size} players`);
       
       for (const playerId of selectedPlayers) {
         const player = players.find(p => p.id === playerId);
-        if (!player) continue;
+        if (!player) {
+          console.warn(`[IncompletePlayersModal] Player not found: ${playerId}`);
+          continue;
+        }
 
         if (!isPlayerDeletable(player)) {
+          console.log(`[IncompletePlayersModal] Skipping non-deletable player: ${player.email}`);
           results.skipped++;
           continue;
         }
 
         try {
+          console.log(`[IncompletePlayersModal] Deleting player: ${player.email}`);
+          
           const { data, error } = await supabase.functions.invoke('admin-delete-incomplete-user', {
             body: { 
               user_id: playerId,
@@ -128,9 +138,16 @@ const IncompletePlayersModal = ({ isOpen, onClose, onPlayersDeleted }: Incomplet
             }
           });
 
-          if (error) throw error;
+          console.log(`[IncompletePlayersModal] Delete response for ${player.email}:`, { data, error });
+
+          if (error) {
+            const errorMsg = typeof error === 'string' ? error : error.message || JSON.stringify(error);
+            console.error(`[IncompletePlayersModal] Delete error for ${player.email}:`, errorMsg);
+            throw new Error(errorMsg);
+          }
           
           if (data?.success) {
+            console.log(`[IncompletePlayersModal] Successfully deleted: ${player.email}`);
             results.deleted++;
             
             // Show freed email message if email was freed for reuse
@@ -138,14 +155,19 @@ const IncompletePlayersModal = ({ isOpen, onClose, onPlayersDeleted }: Incomplet
               console.log(`[IncompletePlayersModal] Email freed for reuse: ${player.email}`);
             }
           } else {
+            const errorMsg = data?.error || 'Unknown error - no success flag';
+            console.error(`[IncompletePlayersModal] Delete failed for ${player.email}:`, errorMsg);
             results.skipped++;
-            results.errors.push(`${player.email}: ${data?.error || 'Unknown error'}`);
+            results.errors.push(`${player.email}: ${errorMsg}`);
           }
         } catch (error: any) {
-          results.errors.push(`${player.email}: ${error.message}`);
+          const errorMsg = error?.message || error?.toString() || 'Unknown error';
+          console.error(`[IncompletePlayersModal] Exception deleting ${player.email}:`, errorMsg);
+          results.errors.push(`${player.email}: ${errorMsg}`);
         }
       }
 
+      console.log(`[IncompletePlayersModal] Deletion complete:`, results);
       setDeletionResults(results);
       
       // Show result toast
@@ -157,6 +179,7 @@ const IncompletePlayersModal = ({ isOpen, onClose, onPlayersDeleted }: Incomplet
       }
 
       if (results.errors.length > 0) {
+        console.error(`[IncompletePlayersModal] Deletion errors:`, results.errors);
         toast({
           title: "Some deletions failed",
           description: `${results.errors.length} error(s) occurred`,
@@ -164,18 +187,23 @@ const IncompletePlayersModal = ({ isOpen, onClose, onPlayersDeleted }: Incomplet
         });
       }
 
+      // Close confirmation dialog
+      setConfirmOpen(false);
+      
       // Refresh data and notify parent
       await fetchIncompleteUsers();
       setSelectedPlayers(new Set());
       onPlayersDeleted?.();
 
     } catch (error: any) {
-      console.error('Bulk deletion error:', error);
+      const errorMsg = error?.message || error?.toString() || 'Unknown bulk deletion error';
+      console.error('[IncompletePlayersModal] Bulk deletion error:', errorMsg);
       toast({
         title: "Deletion failed",
-        description: error.message,
+        description: errorMsg,
         variant: "destructive"
       });
+      setConfirmOpen(false);
     } finally {
       setDeleting(false);
     }
@@ -336,9 +364,14 @@ const IncompletePlayersModal = ({ isOpen, onClose, onPlayersDeleted }: Incomplet
             </Button>
             
             {selectedPlayers.size > 0 && (
-              <AlertDialog>
+              <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" disabled={deleting || deletableCount === 0} data-testid="incomplete-delete-selected">
+                  <Button 
+                    variant="destructive" 
+                    disabled={deleting || deletableCount === 0} 
+                    data-testid="incomplete-delete-selected"
+                    onClick={() => setConfirmOpen(true)}
+                  >
                     {deleting ? 'Deleting...' : `Delete Selected (${deletableCount})`}
                   </Button>
                 </AlertDialogTrigger>
@@ -352,9 +385,14 @@ const IncompletePlayersModal = ({ isOpen, onClose, onPlayersDeleted }: Incomplet
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" data-testid="confirm-delete-btn">
-                      {softDeleteEnabled ? 'Soft Delete' : 'Permanently Delete'}
+                    <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleDelete} 
+                      disabled={deleting}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90" 
+                      data-testid="confirm-delete-btn"
+                    >
+                      {deleting ? 'Deleting...' : (softDeleteEnabled ? 'Soft Delete' : 'Permanently Delete')}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
