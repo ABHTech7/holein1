@@ -98,6 +98,15 @@ export const ResendMagicLink = ({
       const { getPendingEntryContext } = await import('@/lib/entryContextPersistence');
       const entryContext = getPendingEntryContext();
       
+      console.log('[ResendMagicLink] Entry context check:', {
+        hasEntryContext: !!entryContext,
+        entryEmail: entryContext?.email,
+        targetEmail: email,
+        emailsMatch: entryContext?.email === email,
+        clubSlug: entryContext?.clubSlug,
+        competitionSlug: entryContext?.competitionSlug
+      });
+      
       let success = false;
       let errorMessage = '';
       
@@ -109,6 +118,28 @@ export const ResendMagicLink = ({
           const { supabase } = await import('@/integrations/supabase/client');
           const competitionUrl = `${window.location.origin}/competition/${entryContext.clubSlug}/${entryContext.competitionSlug}/enter`;
           
+          // Fetch real competition and club data
+          const { data: competitionData } = await supabase.rpc('get_safe_competition_data', {
+            club_uuid: null, // We'll search by slug
+            competition_slug_param: entryContext.competitionSlug
+          });
+          
+          // Find the matching club and competition
+          let competitionName = 'Hole in 1 Challenge';
+          let clubName = entryContext.clubSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          
+          if (competitionData && competitionData.length > 0) {
+            const competition = competitionData.find(c => 
+              c.club_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') === entryContext.clubSlug
+            );
+            if (competition) {
+              competitionName = competition.name;
+              clubName = competition.club_name;
+            }
+          }
+          
+          console.log('[ResendMagicLink] Using competition:', competitionName, 'at club:', clubName);
+          
           const { data, error } = await supabase.functions.invoke('send-branded-magic-link', {
             body: {
               email: entryContext.email,
@@ -118,8 +149,8 @@ export const ResendMagicLink = ({
               ageYears: entryContext.formData?.age || 18,
               handicap: entryContext.formData?.handicap || null,
               competitionUrl,
-              competitionName: `${entryContext.clubSlug} Competition`,
-              clubName: entryContext.clubSlug.replace(/-/g, ' ')
+              competitionName,
+              clubName
             }
           });
           
@@ -132,6 +163,8 @@ export const ResendMagicLink = ({
           console.warn('[ResendMagicLink] Branded link failed, falling back to standard OTP:', brandedError);
           errorMessage = brandedError.message;
         }
+      } else {
+        console.log('[ResendMagicLink] No valid entry context found for branded link, using standard OTP');
       }
       
       // Fallback to standard OTP if branded failed or no entry context
