@@ -309,6 +309,7 @@ const AdminEnquiries = () => {
     });
     setConvertModalOpen(true);
     console.log('Convert modal should now be open:', true);
+    toast({ title: "Convert to Club", description: `Preparing conversion for ${lead.name}` });
   };
 
   const totalPages = Math.ceil(totalCount / pageSize);
