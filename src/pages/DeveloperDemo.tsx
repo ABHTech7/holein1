@@ -206,7 +206,7 @@ const DeveloperDemo = () => {
                           <li>• 38 realistic UK golf clubs with locations</li>
                           <li>• ~76 competitions (1-2 per club)</li>
                           <li>• 2000 diverse player profiles</li>
-                          <li>• ~91,200 entries across 4 months (June-Sept 2025)</li>
+                          <li>• ~22,800 entries across 4 months (June-Sept 2025)</li>
                           <li>• Winners, verifications, and claims data</li>
                           <li>• Comprehensive dashboard data for testing</li>
                         </ul>
