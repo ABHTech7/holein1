@@ -61,9 +61,14 @@ const WinClaimPage: React.FC = () => {
         }
 
         // Check if user is authorized to claim this entry
+        // Allow the PLAYER who owns the entry, and also allow ADMIN/CLUB users to assist
         if (user && entryRecord.player_id !== user.id) {
-          setError('You are not authorized to access this entry');
-          return;
+          const role = (user.user_metadata as any)?.role;
+          const isPrivileged = role === 'ADMIN' || role === 'CLUB';
+          if (!isPrivileged) {
+            setError('You are not authorized to access this entry');
+            return;
+          }
         }
 
         // Check if entry is in correct state
