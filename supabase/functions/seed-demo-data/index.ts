@@ -346,7 +346,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Created ${createdPlayers.length} players total`);
 
-    // Generate entries (300-500 per month per competition)
+    // Generate entries (50-100 per month per competition)
     console.log("Generating entries...");
     const entriesToCreate = [];
     const { months: targetMonths } = getDateRange();
@@ -354,7 +354,7 @@ const handler = async (req: Request): Promise<Response> => {
     for (const competition of createdCompetitions) {
       // Generate entries for each month June-Sept 2025
       for (const month of targetMonths) {
-        const entriesThisMonth = getRandomInt(300, 500);
+        const entriesThisMonth = getRandomInt(50, 100);
         
         for (let i = 0; i < entriesThisMonth; i++) {
           const randomPlayer = getRandomElement(createdPlayers);
