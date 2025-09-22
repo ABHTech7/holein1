@@ -11,7 +11,8 @@ import {
   Users, 
   PoundSterling, 
   Plus,
-  ArrowLeft
+  ArrowLeft,
+  Trophy
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
@@ -254,6 +255,16 @@ const AdminInsuranceManagement = () => {
               <ArrowLeft className="w-4 h-4" />
               Back to Admin Dashboard
             </Button>
+
+            {/* Logo */}
+            <div className="flex items-center space-x-2 mb-2">
+              <div className="flex items-center justify-center w-8 h-8 bg-gradient-primary rounded-lg">
+                <Trophy className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <span className="font-display text-xl font-semibold text-foreground">
+                Official Hole in 1
+              </span>
+            </div>
 
             {/* Header */}
             <div className="flex justify-between items-center">

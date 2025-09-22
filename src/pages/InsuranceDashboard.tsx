@@ -13,7 +13,8 @@ import {
   Users, 
   TrendingUp,
   Download,
-  Eye
+  Eye,
+  Trophy
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -169,6 +170,16 @@ const InsuranceDashboard = () => {
       <main className="flex-1 bg-muted/30">
         <Section spacing="lg">
           <div className="max-w-7xl mx-auto space-y-8">
+            {/* Logo */}
+            <div className="flex items-center space-x-2 mb-2">
+              <div className="flex items-center justify-center w-8 h-8 bg-gradient-primary rounded-lg">
+                <Trophy className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <span className="font-display text-xl font-semibold text-foreground">
+                Official Hole in 1
+              </span>
+            </div>
+
             {/* Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
