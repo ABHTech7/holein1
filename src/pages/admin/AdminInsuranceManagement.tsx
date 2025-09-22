@@ -261,7 +261,7 @@ const AdminInsuranceManagement = () => {
                 <h1 className="text-3xl font-bold">Insurance Partner Management</h1>
                 <p className="text-muted-foreground">
                   {hasInsurancePartner 
-                    ? `Current partner: ${currentCompany.name} • Rate: ${formatCurrency(currentCompany.premium_rate_per_entry)} per entry` 
+                    ? `Current partner: ${currentCompany.name} • Rate: ${formatCurrency(Math.round(currentCompany.premium_rate_per_entry * 100))} per entry` 
                     : 'No insurance partner configured'
                   }
                 </p>
@@ -358,9 +358,9 @@ const AdminInsuranceManagement = () => {
                       <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{formatCurrency(monthToDatePremiums)}</div>
+                      <div className="text-2xl font-bold">{formatCurrency(Math.round(monthToDatePremiums * 100))}</div>
                       <p className="text-xs text-muted-foreground">
-                        {monthToDateEntries.toLocaleString()} entries × {formatCurrency(currentCompany.premium_rate_per_entry)}
+                        {monthToDateEntries.toLocaleString()} entries × {formatCurrency(Math.round(currentCompany.premium_rate_per_entry * 100))}
                       </p>
                     </CardContent>
                   </Card>
@@ -371,9 +371,9 @@ const AdminInsuranceManagement = () => {
                       <PoundSterling className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{formatCurrency(yearToDatePremiums)}</div>
+                      <div className="text-2xl font-bold">{formatCurrency(Math.round(yearToDatePremiums * 100))}</div>
                       <p className="text-xs text-muted-foreground">
-                        {yearToDateEntries.toLocaleString()} entries × {formatCurrency(currentCompany.premium_rate_per_entry)}
+                        {yearToDateEntries.toLocaleString()} entries × {formatCurrency(Math.round(currentCompany.premium_rate_per_entry * 100))}
                       </p>
                     </CardContent>
                   </Card>
@@ -390,11 +390,11 @@ const AdminInsuranceManagement = () => {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="month" />
                         <YAxis 
-                          tickFormatter={(value) => formatCurrency(value)}
+                          tickFormatter={(value) => formatCurrency(Math.round((value as number) * 100))}
                         />
                         <Tooltip 
                           formatter={(value: number, name: string) => [
-                            name === 'premiums' ? formatCurrency(value) : value.toLocaleString(),
+                            name === 'premiums' ? formatCurrency(Math.round((value as number) * 100)) : (value as number).toLocaleString(),
                             name === 'premiums' ? 'Premiums' : 'Entries'
                           ]}
                         />
@@ -433,7 +433,7 @@ const AdminInsuranceManagement = () => {
                         <h3 className="font-semibold text-lg">{currentCompany.name}</h3>
                         <p className="text-sm text-muted-foreground">{currentCompany.contact_email}</p>
                         <p className="text-sm">
-                          <strong>Premium Rate:</strong> {formatCurrency(currentCompany.premium_rate_per_entry)} per entry
+                          <strong>Premium Rate:</strong> {formatCurrency(Math.round(currentCompany.premium_rate_per_entry * 100))} per entry
                         </p>
                         <p className="text-sm text-muted-foreground">
                           Partner since {new Date(currentCompany.created_at).toLocaleDateString()}
