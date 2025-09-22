@@ -799,6 +799,57 @@ export type Database = {
         }
         Relationships: []
       }
+      site_settings: {
+        Row: {
+          created_at: string
+          email_notifications_enabled: boolean | null
+          id: string
+          maintenance_message: string | null
+          maintenance_mode: boolean
+          max_competitions_per_club: number | null
+          max_entry_fee_pounds: number | null
+          password_min_length: number | null
+          site_description: string | null
+          site_name: string
+          stripe_connected: boolean | null
+          support_email: string | null
+          two_factor_required: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email_notifications_enabled?: boolean | null
+          id?: string
+          maintenance_message?: string | null
+          maintenance_mode?: boolean
+          max_competitions_per_club?: number | null
+          max_entry_fee_pounds?: number | null
+          password_min_length?: number | null
+          site_description?: string | null
+          site_name?: string
+          stripe_connected?: boolean | null
+          support_email?: string | null
+          two_factor_required?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email_notifications_enabled?: boolean | null
+          id?: string
+          maintenance_message?: string | null
+          maintenance_mode?: boolean
+          max_competitions_per_club?: number | null
+          max_entry_fee_pounds?: number | null
+          password_min_length?: number | null
+          site_description?: string | null
+          site_name?: string
+          stripe_connected?: boolean | null
+          support_email?: string | null
+          two_factor_required?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       staff: {
         Row: {
           active: boolean
@@ -1198,6 +1249,25 @@ export type Database = {
           prize_pool: number
           start_date: string
           status: Database["public"]["Enums"]["competition_status"]
+        }[]
+      }
+      get_site_settings: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          email_notifications_enabled: boolean
+          id: string
+          maintenance_message: string
+          maintenance_mode: boolean
+          max_competitions_per_club: number
+          max_entry_fee_pounds: number
+          password_min_length: number
+          site_description: string
+          site_name: string
+          stripe_connected: boolean
+          support_email: string
+          two_factor_required: boolean
+          updated_at: string
         }[]
       }
       get_user_role_safe: {

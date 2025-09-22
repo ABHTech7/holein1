@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useNotificationCounts } from "@/hooks/useNotificationCounts";
+import NotificationBadge from "@/components/ui/notification-badge";
 import { 
   Trophy, 
   Users, 
@@ -33,6 +35,8 @@ interface QuickActionsProps {
 
 const AdminQuickActions = ({ stats, onAddUser, isEditing = false }: QuickActionsProps) => {
   const navigate = useNavigate();
+  const { newLeads, pendingClaims } = useNotificationCounts();
+  
   const [actionOrder, setActionOrder] = useState<string[]>(() => {
     // Load saved order from localStorage, fallback to default order
     const saved = localStorage.getItem('admin-quick-actions-order');
@@ -104,10 +108,11 @@ const AdminQuickActions = ({ stats, onAddUser, isEditing = false }: QuickActions
       description: "Review pending win claims",
       icon: CheckCircle,
       path: "/dashboard/admin/claims",
-      count: stats.pendingClaims,
+      count: pendingClaims,
       countLabel: "Pending",
       color: "bg-red-50 border-red-200 hover:bg-red-100",
-      iconColor: "text-red-600"
+      iconColor: "text-red-600",
+      hasNotification: pendingClaims > 0
     },
     {
       id: "users",
@@ -122,13 +127,16 @@ const AdminQuickActions = ({ stats, onAddUser, isEditing = false }: QuickActions
       subActionPath: "/dashboard/admin/users/new"
     },
     {
-      id: "enquiries",
+      id: "enquiries", 
       title: "Partnership Enquiries",
       description: "Review club partnership requests",
       icon: FileText,
       path: "/dashboard/admin/enquiries",
+      count: newLeads,
+      countLabel: "New",
       color: "bg-pink-50 border-pink-200 hover:bg-pink-100",
-      iconColor: "text-pink-600"
+      iconColor: "text-pink-600",
+      hasNotification: newLeads > 0
     }
   ];
 
@@ -170,7 +178,7 @@ const AdminQuickActions = ({ stats, onAddUser, isEditing = false }: QuickActions
         return (
           <Card 
             key={action.id}
-            className={`${action.color} ${isEditing ? 'cursor-move' : 'cursor-pointer'} transition-all duration-200 hover:shadow-md border ${isEditing ? 'ring-2 ring-primary/20' : ''}`}
+            className={`${action.color} ${isEditing ? 'cursor-move' : 'cursor-pointer'} transition-all duration-200 hover:shadow-md border ${isEditing ? 'ring-2 ring-primary/20' : ''} relative`}
             onClick={() => {
               if (!isEditing) {
                 console.log('Quick action clicked:', action.title, action.path);
@@ -196,6 +204,12 @@ const AdminQuickActions = ({ stats, onAddUser, isEditing = false }: QuickActions
               }
             }}
           >
+            {action.hasNotification && (
+              <NotificationBadge 
+                count={action.count || 0}
+                variant={action.count && action.count > 5 ? 'urgent' : 'default'}
+              />
+            )}
             <CardContent className="p-4">
               {isEditing && (
                 <div className="flex justify-center mb-2">
@@ -243,10 +257,18 @@ const AdminQuickActions = ({ stats, onAddUser, isEditing = false }: QuickActions
               </div>
               
               {/* Priority indicators - only show when not editing */}
-              {!isEditing && action.path.includes('claims') && (action.count ?? 0) > 0 && (
+              {!isEditing && action.id === 'claims' && (action.count ?? 0) > 0 && (
                 <div className="mt-3">
                   <Badge variant="destructive" className="text-xs">
                     Needs Attention
+                  </Badge>
+                </div>
+              )}
+              
+              {!isEditing && action.id === 'enquiries' && (action.count ?? 0) > 0 && (
+                <div className="mt-3">
+                  <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700">
+                    New Partnerships
                   </Badge>
                 </div>
               )}
