@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Container from "./Container";
-import { Trophy, Menu, User, LogOut } from "lucide-react";
+import { Trophy, Menu, User, LogOut, BarChart3 } from "lucide-react";
 import { useState } from "react";
 import useAuth from "@/hooks/useAuth";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -21,6 +21,7 @@ const SiteHeader = () => {
   const authNavigation = user ? [
     ...((profile?.role === 'SUPER_ADMIN' || profile?.role === 'ADMIN') ? [{ name: "Admin", href: ROUTES.ADMIN.DASHBOARD }] : []),
     ...(profile?.role === 'CLUB' ? [{ name: "Dashboard", href: ROUTES.CLUB.DASHBOARD }] : []),
+    ...(profile?.role === 'INSURANCE_PARTNER' ? [{ name: "Insurance Dashboard", href: ROUTES.INSURANCE.DASHBOARD }] : []),
   ] : [];
 
   const isActive = (href: string) => location.pathname === href;
