@@ -115,6 +115,27 @@ const handler = async (req: Request): Promise<Response> => {
       return matchesEmailPattern;
     }) || [];
 
+    // If recentOnly, include all players who created entries recently (last 3 hours)
+    let recentEntryIds: string[] = [];
+    if (recentOnly) {
+      const { data: recentEntries, error: recentEntriesError } = await supabaseAdmin
+        .from("entries")
+        .select("id, player_id, competition_id, created_at")
+        .gte("created_at", thresholdIso);
+      if (recentEntriesError) {
+        console.error("Error fetching recent entries:", recentEntriesError);
+      }
+      const recentPlayerIds = [...new Set((recentEntries || []).map(e => e.player_id))];
+      recentEntryIds = (recentEntries || []).map(e => e.id);
+      if (recentPlayerIds.length > 0) {
+        const unionIds = new Set<string>([
+          ...demoUsers.map(u => u.id),
+          ...recentPlayerIds,
+        ]);
+        demoUsers = allUsers.users?.filter(u => unionIds.has(u.id)) || [];
+      }
+    }
+
     // Also find all players who have entries in demo competitions
     if (demoClubIds.length > 0) {
       // Get all competitions from demo clubs
@@ -129,7 +150,7 @@ const handler = async (req: Request): Promise<Response> => {
         // Get all players who have entries in these competitions
         const { data: demoPlayerEntries } = await supabaseAdmin
           .from("entries")
-          .select("player_id")
+          .select("player_id, id")
           .in("competition_id", demoCompetitionIds);
 
         if (demoPlayerEntries && demoPlayerEntries.length > 0) {
@@ -147,6 +168,12 @@ const handler = async (req: Request): Promise<Response> => {
           ]);
           
           demoUsers = allUsers.users?.filter(u => allDemoUserIds.has(u.id)) || [];
+
+          // Merge entry ids so we can delete by explicit entry id too
+          recentEntryIds = [...new Set([
+            ...recentEntryIds,
+            ...demoPlayerEntries.map(e => e.id)
+          ])];
         }
       }
     }
@@ -213,6 +240,37 @@ const handler = async (req: Request): Promise<Response> => {
         } else {
           console.log("Deleted demo entries");
         }
+      }
+    }
+
+    // Delete by recent-only entries if applicable
+    if (recentOnly && recentEntryIds.length > 0) {
+      try {
+        const { error: claimsRecentError } = await supabaseAdmin
+          .from("claims")
+          .delete()
+          .in("entry_id", recentEntryIds);
+        if (claimsRecentError && claimsRecentError.code !== 'PGRST116') {
+          console.error("Error deleting recent claims:", claimsRecentError);
+        }
+        const { error: verifsRecentError } = await supabaseAdmin
+          .from("verifications")
+          .delete()
+          .in("entry_id", recentEntryIds);
+        if (verifsRecentError && verifsRecentError.code !== 'PGRST116') {
+          console.error("Error deleting recent verifications:", verifsRecentError);
+        }
+        const { error: entriesRecentError } = await supabaseAdmin
+          .from("entries")
+          .delete()
+          .in("id", recentEntryIds);
+        if (entriesRecentError && entriesRecentError.code !== 'PGRST116') {
+          console.error("Error deleting recent entries:", entriesRecentError);
+        } else {
+          console.log(`Deleted ${recentEntryIds.length} recent entries`);
+        }
+      } catch (e) {
+        console.error("Error during recent-only entry cleanup:", e);
       }
     }
 
