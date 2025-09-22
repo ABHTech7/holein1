@@ -17,6 +17,7 @@ import VerificationSuccess from "@/components/entry/VerificationSuccess";
 import { VideoEvidenceCapture } from '@/components/entry/VideoEvidenceCapture';
 import { SocialConsent } from '@/components/entry/SocialConsent';
 import { updateVerificationEvidence } from '@/lib/verificationService';
+import { getFileUrl } from '@/lib/fileUploadService';
 import type { Gender } from '@/lib/copyEngine';
 
 interface EntryData {
@@ -41,8 +42,9 @@ interface EntryData {
 
 interface WitnessData {
   name: string;
-  contact: string;
-  relationship: string;
+  email: string;
+  phone: string;
+  notes?: string;
 }
 
 interface VerificationData {
@@ -194,33 +196,33 @@ const WinClaimPageNew: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      const { user } = await supabase.auth.getUser();
-      if (!user.data.user?.id) throw new Error('User not authenticated');
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser?.id) throw new Error('User not authenticated');
 
       // Upload files
       const uploads: Record<string, string> = {};
 
       // Upload selfie
-      const { url: selfieUrl } = await uploadFile(verificationData.selfie, user.data.user.id, {
+      const selfieFile = await uploadFile(verificationData.selfie, authUser.id, {
         purpose: 'selfie',
         expiresInHours: 24
       });
-      uploads.selfie_url = selfieUrl;
+      uploads.selfie_url = `${selfieFile.storage_bucket}/${selfieFile.storage_path}`;
 
       // Upload ID document
-      const { url: idUrl } = await uploadFile(verificationData.idDocument, user.data.user.id, {
+      const idFile = await uploadFile(verificationData.idDocument, authUser.id, {
         purpose: 'id_document', 
         expiresInHours: 24
       });
-      uploads.id_document_url = idUrl;
+      uploads.id_document_url = `${idFile.storage_bucket}/${idFile.storage_path}`;
 
       // Upload video if provided
       if (verificationData.videoEvidence) {
-        const { url: videoUrl } = await uploadFile(verificationData.videoEvidence, user.data.user.id, {
+        const videoFile = await uploadFile(verificationData.videoEvidence, authUser.id, {
           purpose: 'shot_video',
           expiresInHours: 24
         });
-        uploads.video_url = videoUrl;
+        uploads.video_url = `${videoFile.storage_bucket}/${videoFile.storage_path}`;
       }
 
       // Update verification with all evidence
@@ -385,10 +387,9 @@ const WinClaimPageNew: React.FC = () => {
 
             {currentStep === 'witness' && (
               <WitnessForm
-                onSubmit={handleWitnessSubmit}
+                onWitnessSubmit={handleWitnessSubmit}
                 onNext={() => handleStepNavigation('next')}
                 onBack={() => handleStepNavigation('back')}
-                canProceed={!!verificationData.witness}
               />
             )}
 
@@ -446,7 +447,11 @@ const WinClaimPageNew: React.FC = () => {
             )}
 
             {currentStep === 'success' && (
-              <VerificationSuccess onComplete={handleComplete} />
+              <VerificationSuccess 
+                competitionName={entryData?.competition?.name || 'Golf Competition'}
+                prizeAmount={1000}
+                onComplete={handleComplete} 
+              />
             )}
 
             {/* Navigation Buttons for Main Steps */}

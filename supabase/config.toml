@@ -51,3 +51,9 @@ verify_jwt = true
 
 [functions.send-branded-magic-link]
 verify_jwt = false
+
+[functions.send-winners-email]
+verify_jwt = false
+
+[functions.send-claim-notification]
+verify_jwt = false
