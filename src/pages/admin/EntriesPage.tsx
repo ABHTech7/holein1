@@ -243,53 +243,23 @@ const EntriesPage = () => {
   };
 
   const handleMarkAllUnpaidAsPaid = async () => {
-    const unpaidEntries = entries.filter(e => !e.paid);
-    if (unpaidEntries.length === 0) {
-      toast({
-        title: "No unpaid entries",
-        description: "All entries are already marked as paid.",
-        variant: "default"
-      });
+    const unpaidCount = entries.filter(e => !e.paid).length;
+    if (unpaidCount === 0) {
+      toast({ title: "No unpaid entries", description: "All entries are already marked as paid." });
       return;
     }
-
-    if (!confirm(`Mark ${unpaidEntries.length} unpaid entries as paid?`)) {
-      return;
-    }
+    if (!confirm(`Mark ${unpaidCount} unpaid entries as paid?`)) return;
 
     setBulkUpdating(true);
     try {
-      const { data, error } = await supabase
-        .from('entries')
-        .update({ 
-          paid: true, 
-          payment_date: new Date().toISOString() 
-        })
-        .eq('paid', false)
-        .select('id');
+      const { data, error } = await supabase.rpc('admin_mark_all_unpaid_entries_paid');
+      if (error) throw error;
 
-      if (error) {
-        console.error('Database error:', error);
-        throw error;
-      }
-
-      const updatedCount = data?.length || 0;
-      
-      toast({
-        title: "Success",
-        description: `${updatedCount} entries marked as paid`,
-        variant: "default"
-      });
-
-      // Force refresh the entries data
+      toast({ title: "Success", description: `${data ?? 0} entries marked as paid` });
       await fetchEntries();
-    } catch (error) {
-      console.error('Error updating payments:', error);
-      toast({
-        title: "Error",
-        description: `Failed to update entry payments: ${(error as any)?.message || 'Unknown error'}`,
-        variant: "destructive"
-      });
+    } catch (err) {
+      console.error('Error updating payments:', err);
+      toast({ title: "Error", description: `Failed to update payments: ${(err as any)?.message || 'Unknown error'}`, variant: "destructive" });
     } finally {
       setBulkUpdating(false);
     }
@@ -298,21 +268,13 @@ const EntriesPage = () => {
   const handleEnsureWinVerifications = async () => {
     setBulkUpdating(true);
     try {
-      const { ensureAllWinVerifications } = await import('@/lib/verificationService');
-      const newVerifications = await ensureAllWinVerifications();
-      
-      toast({
-        title: "Success",
-        description: `${newVerifications.length} win claims synchronized`,
-        variant: "default"
-      });
-    } catch (error) {
-      console.error('Error syncing win verifications:', error);
-      toast({
-        title: "Error", 
-        description: `Failed to sync win claims: ${(error as any)?.message || 'Unknown error'}`,
-        variant: "destructive"
-      });
+      const { data, error } = await supabase.rpc('create_verifications_for_wins');
+      if (error) throw error;
+
+      toast({ title: "Success", description: `${data ?? 0} win claims synchronized` });
+    } catch (err) {
+      console.error('Error syncing win verifications:', err);
+      toast({ title: "Error", description: `Failed to sync win claims: ${(err as any)?.message || 'Unknown error'}`, variant: "destructive" });
     } finally {
       setBulkUpdating(false);
     }

@@ -1373,6 +1373,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_mark_all_unpaid_entries_paid: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       calculate_monthly_premiums: {
         Args: { company_id: string; period_end: string; period_start: string }
         Returns: {
@@ -1389,6 +1393,10 @@ export type Database = {
           p_metadata?: Json
         }
         Returns: Json
+      }
+      create_verifications_for_wins: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       get_competition_status: {
         Args: { end_date: string; is_year_round: boolean; start_date: string }

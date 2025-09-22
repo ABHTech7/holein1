@@ -7,7 +7,7 @@ export async function ensureVerificationRecord(entryId: string) {
     .upsert({
       entry_id: entryId,
       status: 'initiated',
-      witnesses: '[]',
+      witnesses: [],
       evidence_captured_at: new Date().toISOString(),
       social_consent: false
     }, {
@@ -74,7 +74,7 @@ export async function ensureAllWinVerifications() {
     const verifications = missingWins.map(entry => ({
       entry_id: entry.id,
       status: 'pending',
-      witnesses: '[]',
+      witnesses: [],
       evidence_captured_at: entry.outcome_reported_at || new Date().toISOString(),
       social_consent: false
     }));
@@ -115,7 +115,7 @@ export async function ensureWinVerificationForEntry(entryId: string) {
       .insert({
         entry_id: entryId,
         status: 'pending',
-        witnesses: '[]',
+        witnesses: [],
         evidence_captured_at: new Date().toISOString(),
         social_consent: false
       })
