@@ -110,21 +110,51 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Create the admin user
-    const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email: email,
-      password: password,
-      email_confirm: true,
-      user_metadata: {
-        first_name: firstName,
-        last_name: lastName,
-        role: role
+    // Check if user already exists
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    
+    let userData: any;
+    
+    if (existingUser) {
+      console.log("User already exists, updating their profile:", existingUser.id);
+      userData = { user: existingUser };
+      
+      // Update the existing user's metadata
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        existingUser.id,
+        {
+          user_metadata: {
+            first_name: firstName,
+            last_name: lastName,
+            role: role
+          }
+        }
+      );
+      
+      if (updateError) {
+        console.error("Error updating existing user:", updateError);
+        throw new Error("Failed to update existing user account");
       }
-    });
+    } else {
+      // Create new user
+      const { data: newUserData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email: email,
+        password: password,
+        email_confirm: true,
+        user_metadata: {
+          first_name: firstName,
+          last_name: lastName,
+          role: role
+        }
+      });
 
-    if (createError || !userData.user) {
-      console.error("Error creating admin user:", createError);
-      throw new Error("Failed to create admin account");
+      if (createError || !newUserData.user) {
+        console.error("Error creating admin user:", createError);
+        throw new Error("Failed to create admin account");
+      }
+      
+      userData = newUserData;
     }
 
     // Create/update the profile
