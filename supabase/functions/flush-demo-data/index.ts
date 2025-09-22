@@ -45,26 +45,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Starting comprehensive demo data flush...");
 
-    // Demo emails to preserve (original small demo set)
-    const preservedDemoEmails = [
-      "admin@holein1.test",
-      "club1@holein1.test", 
-      "club2@holein1.test",
-      "player1@holein1.test"
-    ];
-
-    // Get ALL users to identify demo users (comprehensive dataset)
-    const { data: allUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const demoUsers = allUsers.users?.filter(u => 
-      u.email?.includes('@holein1demo.test') || 
-      u.email?.includes('@demo.test') ||
-      preservedDemoEmails.includes(u.email!)
-    ) || [];
-    
-    const demoUserIds = demoUsers.map(u => u.id);
-    console.log(`Found ${demoUsers.length} demo users to clean up`);
-
-    // Get all demo clubs (both old and new comprehensive dataset)
+    // Get all demo clubs first (they have the demo email pattern)
     const { data: allClubs } = await supabaseAdmin
       .from("clubs")
       .select("id, name, email");
@@ -75,6 +56,68 @@ const handler = async (req: Request): Promise<Response> => {
       club.name === "Fairway Park Golf Club" ||
       club.name === "Oakview Links"
     ) || [];
+
+    const demoClubIds = demoClubs.map(c => c.id);
+    console.log(`Found ${demoClubs.length} demo clubs to clean up`);
+
+    // Get ALL demo users - they use regular email domains but were created in batches
+    // We'll identify them by finding users created recently with the demo password pattern
+    const { data: allUsers } = await supabaseAdmin.auth.admin.listUsers();
+    
+    // Demo users include:
+    // 1. Users with demo email patterns (old small demo set)
+    // 2. Users who are players in demo competitions (the 2000 generated players)
+    const preservedDemoEmails = [
+      "admin@holein1.test",
+      "club1@holein1.test", 
+      "club2@holein1.test",
+      "player1@holein1.test"
+    ];
+
+    let demoUsers = allUsers.users?.filter(u => 
+      u.email?.includes('@holein1demo.test') || 
+      u.email?.includes('@demo.test') ||
+      preservedDemoEmails.includes(u.email!)
+    ) || [];
+
+    // Also find all players who have entries in demo competitions
+    if (demoClubIds.length > 0) {
+      // Get all competitions from demo clubs
+      const { data: demoCompetitions } = await supabaseAdmin
+        .from("competitions")
+        .select("id")
+        .in("club_id", demoClubIds);
+
+      if (demoCompetitions && demoCompetitions.length > 0) {
+        const demoCompetitionIds = demoCompetitions.map(c => c.id);
+        
+        // Get all players who have entries in these competitions
+        const { data: demoPlayerEntries } = await supabaseAdmin
+          .from("entries")
+          .select("player_id")
+          .in("competition_id", demoCompetitionIds);
+
+        if (demoPlayerEntries && demoPlayerEntries.length > 0) {
+          const demoPlayerIds = [...new Set(demoPlayerEntries.map(e => e.player_id))];
+          
+          // Add these users to our demo users list
+          const additionalDemoUsers = allUsers.users?.filter(u => 
+            demoPlayerIds.includes(u.id)
+          ) || [];
+          
+          // Combine and deduplicate
+          const allDemoUserIds = new Set([
+            ...demoUsers.map(u => u.id),
+            ...additionalDemoUsers.map(u => u.id)
+          ]);
+          
+          demoUsers = allUsers.users?.filter(u => allDemoUserIds.has(u.id)) || [];
+        }
+      }
+    }
+    
+    const demoUserIds = demoUsers.map(u => u.id);
+    console.log(`Found ${demoUsers.length} demo users to clean up`);
 
     const demoClubIds = demoClubs.map(c => c.id);
     console.log(`Found ${demoClubs.length} demo clubs to clean up`);
