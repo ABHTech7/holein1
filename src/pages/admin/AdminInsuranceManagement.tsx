@@ -54,10 +54,9 @@ interface InsurancePremium {
 const AdminInsuranceManagement = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [companies, setCompanies] = useState<InsuranceCompany[]>([]);
+  const [currentCompany, setCurrentCompany] = useState<InsuranceCompany | null>(null);
   const [premiums, setPremiums] = useState<InsurancePremium[]>([]);
-  const [isAddCompanyOpen, setIsAddCompanyOpen] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState<InsuranceCompany | null>(null);
+  const [isChangeCompanyOpen, setIsChangeCompanyOpen] = useState(false);
   const [newCompany, setNewCompany] = useState({
     name: '',
     contact_email: '',
@@ -70,14 +69,15 @@ const AdminInsuranceManagement = () => {
 
   const fetchInsuranceData = async () => {
     try {
-      // Fetch insurance companies
-      const { data: companiesData, error: companiesError } = await supabase
+      // Fetch current active insurance company
+      const { data: companyData, error: companyError } = await supabase
         .from('insurance_companies')
         .select('*')
-        .order('created_at', { ascending: false });
+        .eq('active', true)
+        .single();
 
-      if (companiesError) throw companiesError;
-      setCompanies(companiesData || []);
+      if (companyError && companyError.code !== 'PGRST116') throw companyError;
+      setCurrentCompany(companyData || null);
 
       // Fetch recent premiums
       const { data: premiumsData, error: premiumsError } = await supabase
@@ -104,7 +104,7 @@ const AdminInsuranceManagement = () => {
     }
   };
 
-  const handleCreateCompany = async () => {
+  const handleChangeCompany = async () => {
     if (!newCompany.name || !newCompany.contact_email) {
       toast({
         title: "Validation Error",
@@ -115,39 +115,60 @@ const AdminInsuranceManagement = () => {
     }
 
     try {
+      // Deactivate current company if exists
+      if (currentCompany) {
+        await supabase
+          .from('insurance_companies')
+          .update({ active: false })
+          .eq('id', currentCompany.id);
+      }
+
+      // Create and activate new company
       const { error } = await supabase
         .from('insurance_companies')
         .insert([{
           name: newCompany.name,
           contact_email: newCompany.contact_email,
-          premium_rate_per_entry: newCompany.premium_rate_per_entry
+          premium_rate_per_entry: newCompany.premium_rate_per_entry,
+          active: true
         }]);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Insurance company created successfully"
+        description: "Insurance partner updated successfully"
       });
 
       setNewCompany({ name: '', contact_email: '', premium_rate_per_entry: 1.00 });
-      setIsAddCompanyOpen(false);
+      setIsChangeCompanyOpen(false);
       fetchInsuranceData();
 
     } catch (error) {
-      console.error('Error creating company:', error);
+      console.error('Error updating insurance partner:', error);
       toast({
         title: "Error",
-        description: "Failed to create insurance company",
+        description: "Failed to update insurance partner",
         variant: "destructive"
       });
     }
   };
 
-  const handleGeneratePremiums = async (companyId: string) => {
+  const handleGeneratePremiums = async () => {
+    if (!currentCompany) {
+      toast({
+        title: "Error",
+        description: "No insurance partner configured",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       // Call the edge function to calculate premiums
-      const { data, error } = await supabase.functions.invoke('calculate-monthly-premiums');
+      const { data, error } = await supabase.functions.invoke('calculate-monthly-premiums', {
+        body: { company_id: currentCompany.id }
+      });
 
       if (error) throw error;
 
@@ -219,12 +240,11 @@ const AdminInsuranceManagement = () => {
     );
   }
 
-  const totalCompanies = companies.length;
-  const activeCompanies = companies.filter(c => c.active).length;
   const pendingPremiums = premiums.filter(p => p.status === 'pending').length;
   const totalPremiumsThisMonth = premiums
     .filter(p => new Date(p.period_start).getMonth() === new Date().getMonth() - 1)
     .reduce((sum, p) => sum + parseFloat(p.total_premium_amount.toString()), 0);
+  const hasInsurancePartner = currentCompany !== null;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -236,20 +256,27 @@ const AdminInsuranceManagement = () => {
             {/* Header */}
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-3xl font-bold">Insurance Management</h1>
-                <p className="text-muted-foreground">Manage insurance partners and premium calculations</p>
+                <h1 className="text-3xl font-bold">Insurance Partner Management</h1>
+                <p className="text-muted-foreground">
+                  {hasInsurancePartner 
+                    ? `Current partner: ${currentCompany.name}` 
+                    : 'No insurance partner configured'
+                  }
+                </p>
               </div>
 
-              <Dialog open={isAddCompanyOpen} onOpenChange={setIsAddCompanyOpen}>
+              <Dialog open={isChangeCompanyOpen} onOpenChange={setIsChangeCompanyOpen}>
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Insurance Company
+                    {hasInsurancePartner ? 'Change Partner' : 'Add Insurance Partner'}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Add New Insurance Company</DialogTitle>
+                    <DialogTitle>
+                      {hasInsurancePartner ? 'Change Insurance Partner' : 'Add Insurance Partner'}
+                    </DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
@@ -283,11 +310,11 @@ const AdminInsuranceManagement = () => {
                       />
                     </div>
                     <div className="flex justify-end gap-3">
-                      <Button variant="outline" onClick={() => setIsAddCompanyOpen(false)}>
+                      <Button variant="outline" onClick={() => setIsChangeCompanyOpen(false)}>
                         Cancel
                       </Button>
-                      <Button onClick={handleCreateCompany}>
-                        Create Company
+                      <Button onClick={handleChangeCompany}>
+                        {hasInsurancePartner ? 'Update Partner' : 'Add Partner'}
                       </Button>
                     </div>
                   </div>
@@ -296,16 +323,18 @@ const AdminInsuranceManagement = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Insurance Companies</CardTitle>
+                  <CardTitle className="text-sm font-medium">Insurance Partner Status</CardTitle>
                   <Building2 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{totalCompanies}</div>
+                  <div className="text-2xl font-bold">
+                    {hasInsurancePartner ? 'Active' : 'None'}
+                  </div>
                   <p className="text-xs text-muted-foreground">
-                    {activeCompanies} active
+                    {hasInsurancePartner ? currentCompany.name : 'No partner configured'}
                   </p>
                 </CardContent>
               </Card>
@@ -338,15 +367,12 @@ const AdminInsuranceManagement = () => {
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Average Rate</CardTitle>
+                  <CardTitle className="text-sm font-medium">Premium Rate</CardTitle>
                   <Calculator className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    £{activeCompanies > 0 
-                      ? (companies.filter(c => c.active).reduce((sum, c) => sum + c.premium_rate_per_entry, 0) / activeCompanies).toFixed(2)
-                      : '0.00'
-                    }
+                    £{hasInsurancePartner ? currentCompany.premium_rate_per_entry.toFixed(2) : '0.00'}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Per entry
@@ -355,60 +381,44 @@ const AdminInsuranceManagement = () => {
               </Card>
             </div>
 
-            {/* Insurance Companies Table */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Insurance Companies</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Company Name</TableHead>
-                      <TableHead>Contact Email</TableHead>
-                      <TableHead>Premium Rate</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {companies.map((company) => (
-                      <TableRow key={company.id}>
-                        <TableCell className="font-medium">{company.name}</TableCell>
-                        <TableCell>{company.contact_email}</TableCell>
-                        <TableCell>£{company.premium_rate_per_entry.toFixed(2)}</TableCell>
-                        <TableCell>
-                          <Badge variant={company.active ? 'default' : 'secondary'}>
-                            {company.active ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{formatDate(company.created_at)}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleGeneratePremiums(company.id)}
-                            >
-                              <Calculator className="w-4 h-4 mr-1" />
-                              Calculate
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                            >
-                              <UserPlus className="w-4 h-4 mr-1" />
-                              Users
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            {/* Current Insurance Partner */}
+            {hasInsurancePartner && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Current Insurance Partner</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium">Company Name</Label>
+                        <p className="text-lg">{currentCompany.name}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Contact Email</Label>
+                        <p className="text-lg">{currentCompany.contact_email}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Premium Rate</Label>
+                        <p className="text-lg">£{currentCompany.premium_rate_per_entry.toFixed(2)} per entry</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Partner Since</Label>
+                        <p className="text-lg">{formatDate(currentCompany.created_at)}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-4">
+                      <Button
+                        onClick={handleGeneratePremiums}
+                      >
+                        <Calculator className="w-4 h-4 mr-2" />
+                        Calculate Premiums
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Premium Calculations */}
             <Card>

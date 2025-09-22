@@ -12,40 +12,41 @@ export interface InsuranceCompany {
 }
 
 export const useInsuranceCompanies = () => {
-  const [companies, setCompanies] = useState<InsuranceCompany[]>([]);
+  const [company, setCompany] = useState<InsuranceCompany | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCompanies = async () => {
+  const fetchCompany = async () => {
     try {
       setLoading(true);
       setError(null);
 
+      // Get the single active insurance company
       const { data, error: fetchError } = await supabase
         .from('insurance_companies')
         .select('*')
         .eq('active', true)
-        .order('name');
+        .single();
 
-      if (fetchError) throw fetchError;
+      if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
       
-      setCompanies(data || []);
+      setCompany(data || null);
     } catch (err) {
-      console.error('Error fetching insurance companies:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch insurance companies');
+      console.error('Error fetching insurance company:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch insurance company');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchCompanies();
+    fetchCompany();
   }, []);
 
   return {
-    companies,
+    company,
     loading,
     error,
-    refetch: fetchCompanies
+    refetch: fetchCompany
   };
 };

@@ -1,16 +1,15 @@
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { toast } from "@/hooks/use-toast";
-import { CreditCard, Globe, Mail, Shield, Settings, Key, AlertTriangle } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { useInsuranceCompanies } from '@/hooks/useInsuranceCompanies';
 
 interface SiteSettingsModalProps {
   isOpen: boolean;
@@ -18,66 +17,111 @@ interface SiteSettingsModalProps {
 }
 
 interface SiteSettings {
-  siteName: string;
-  siteDescription: string;
-  maintenanceMode: boolean;
-  registrationOpen: boolean;
-  maxCompetitionsPerClub: number;
-  defaultEntryFee: number;
-  supportEmail: string;
+  id: string;
+  site_name: string;
+  site_description: string;
+  support_email: string;
+  maintenance_mode: boolean;
+  maintenance_message: string;
+  max_competitions_per_club: number;
+  max_entry_fee_pounds: number;
+  insurance_enabled: boolean;
+  current_insurance_company_id: string | null;
+  insurance_contact_name: string | null;
+  insurance_contact_phone: string | null;
 }
 
 const SiteSettingsModal = ({ isOpen, onClose }: SiteSettingsModalProps) => {
+  const { company: currentInsuranceCompany } = useInsuranceCompanies();
   const [loading, setLoading] = useState(false);
-  const [stripeConnected, setStripeConnected] = useState(false);
-  const [settings, setSettings] = useState<SiteSettings>({
-    siteName: "Golf Competition Platform",
-    siteDescription: "The premier platform for golf club competitions and member management",
-    maintenanceMode: false,
-    registrationOpen: true,
-    maxCompetitionsPerClub: 10,
-    defaultEntryFee: 25.00,
-    supportEmail: "support@golfplatform.com"
-  });
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      // Check if Stripe is configured
-      checkStripeConnection();
-      loadSettings();
+      fetchSettings();
     }
   }, [isOpen]);
 
-  const checkStripeConnection = async () => {
-    // This would check if STRIPE_SECRET_KEY exists in Supabase secrets
-    // For now, we'll simulate this check
-    setStripeConnected(false);
-  };
+  const fetchSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
-  const loadSettings = async () => {
-    // Load settings from secure storage or API
-    const { SecureStorage } = await import('@/lib/secureStorage');
-    const savedSettings = SecureStorage.getItem('siteSettings');
-    if (savedSettings) {
-      setSettings(savedSettings);
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      if (data) {
+        setSettings(data);
+      } else {
+        // Create default settings if none exist
+        const { data: newSettings, error: createError } = await supabase
+          .from('site_settings')
+          .insert([{
+            site_name: 'Official Hole in 1',
+            site_description: 'Professional golf hole-in-one competitions',
+            support_email: 'support@holein1.com',
+            maintenance_mode: false,
+            maintenance_message: 'We are currently performing scheduled maintenance. Please check back soon.',
+            max_competitions_per_club: 10,
+            max_entry_fee_pounds: 500,
+            insurance_enabled: false
+          }])
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        setSettings(newSettings);
+      }
+    } catch (error) {
+      console.error('Error fetching site settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load site settings",
+        variant: "destructive"
+      });
     }
   };
 
-  const handleSaveSettings = async () => {
-    setLoading(true);
+  const handleSave = async () => {
+    if (!settings) return;
+
     try {
-      // Save to secure storage - consider moving to Supabase table for production
-      const { SecureStorage } = await import('@/lib/secureStorage');
-      SecureStorage.setItem('siteSettings', settings, 60 * 24); // 24 hour expiration
-      
+      setLoading(true);
+
+      const { error } = await supabase
+        .from('site_settings')
+        .update({
+          site_name: settings.site_name,
+          site_description: settings.site_description,
+          support_email: settings.support_email,
+          maintenance_mode: settings.maintenance_mode,
+          maintenance_message: settings.maintenance_message,
+          max_competitions_per_club: settings.max_competitions_per_club,
+          max_entry_fee_pounds: settings.max_entry_fee_pounds,
+          insurance_enabled: settings.insurance_enabled,
+          current_insurance_company_id: settings.current_insurance_company_id,
+          insurance_contact_name: settings.insurance_contact_name,
+          insurance_contact_phone: settings.insurance_contact_phone,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', settings.id);
+
+      if (error) throw error;
+
       toast({
-        title: "Settings Saved",
-        description: "Site settings have been updated successfully.",
+        title: "Success",
+        description: "Site settings updated successfully"
       });
+
+      onClose();
     } catch (error) {
+      console.error('Error updating site settings:', error);
       toast({
         title: "Error",
-        description: "Failed to save settings. Please try again.",
+        description: "Failed to update site settings",
         variant: "destructive"
       });
     } finally {
@@ -85,356 +129,111 @@ const SiteSettingsModal = ({ isOpen, onClose }: SiteSettingsModalProps) => {
     }
   };
 
-  const handleConfigureStripe = () => {
-    toast({
-      title: "Configure Stripe",
-      description: "Stripe configuration will open in a new window. You'll need your Stripe Secret Key from your dashboard.",
-      duration: 4000
-    });
-    
-    // This would trigger the Supabase secrets modal for STRIPE_SECRET_KEY
-    // For now, show instructions
-    window.open('https://dashboard.stripe.com/apikeys', '_blank');
-  };
-
-  const handleTestStripeConnection = async () => {
-    setLoading(true);
-    try {
-      // This would test the Stripe connection using an edge function
-      toast({
-        title: "Testing Stripe Connection",
-        description: "Checking Stripe API connection...",
-      });
-      
-      // Simulate test
-      setTimeout(() => {
-        setStripeConnected(true);
-        toast({
-          title: "Stripe Connected",
-          description: "Stripe API connection is working properly.",
-        });
-        setLoading(false);
-      }, 2000);
-    } catch (error) {
-      toast({
-        title: "Stripe Connection Failed",
-        description: "Unable to connect to Stripe. Please check your API key.",
-        variant: "destructive"
-      });
-      setLoading(false);
-    }
-  };
+  if (!settings) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            Site Settings
-          </DialogTitle>
+          <DialogTitle>Site Settings</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="payments">Payments</TabsTrigger>
-            <TabsTrigger value="email">Email</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
-          </TabsList>
+        <div className="space-y-6">
+          {/* Basic Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Basic Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="site_name">Site Name</Label>
+                <Input
+                  id="site_name"
+                  value={settings.site_name}
+                  onChange={(e) => setSettings(prev => prev ? {...prev, site_name: e.target.value} : null)}
+                />
+              </div>
 
-          <TabsContent value="general" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="w-4 h-4" />
-                  Site Information
-                </CardTitle>
-                <CardDescription>
-                  Configure basic site information and display settings
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="siteName">Site Name</Label>
-                    <Input
-                      id="siteName"
-                      value={settings.siteName}
-                      onChange={(e) => setSettings(prev => ({ ...prev, siteName: e.target.value }))}
-                      placeholder="Your Platform Name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="supportEmail">Support Email</Label>
-                    <Input
-                      id="supportEmail"
-                      type="email"
-                      value={settings.supportEmail}
-                      onChange={(e) => setSettings(prev => ({ ...prev, supportEmail: e.target.value }))}
-                      placeholder="support@yoursite.com"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="siteDescription">Site Description</Label>
-                  <Textarea
-                    id="siteDescription"
-                    value={settings.siteDescription}
-                    onChange={(e) => setSettings(prev => ({ ...prev, siteDescription: e.target.value }))}
-                    placeholder="Describe your platform..."
-                    rows={3}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+              <div>
+                <Label htmlFor="site_description">Site Description</Label>
+                <Textarea
+                  id="site_description"
+                  value={settings.site_description || ''}
+                  onChange={(e) => setSettings(prev => prev ? {...prev, site_description: e.target.value} : null)}
+                />
+              </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Platform Settings</CardTitle>
-                <CardDescription>
-                  Configure platform behavior and limits
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Maintenance Mode</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Enable to show maintenance page to all users
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.maintenanceMode}
-                    onCheckedChange={(checked) => setSettings(prev => ({ ...prev, maintenanceMode: checked }))}
-                  />
-                </div>
+              <div>
+                <Label htmlFor="support_email">Support Email</Label>
+                <Input
+                  id="support_email"
+                  type="email"
+                  value={settings.support_email || ''}
+                  onChange={(e) => setSettings(prev => prev ? {...prev, support_email: e.target.value} : null)}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-                <Separator />
+          {/* Insurance Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Insurance Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="insurance_enabled"
+                  checked={settings.insurance_enabled}
+                  onCheckedChange={(checked) => setSettings(prev => prev ? {...prev, insurance_enabled: checked} : null)}
+                />
+                <Label htmlFor="insurance_enabled">Enable Insurance Integration</Label>
+              </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Registration Open</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Allow new users to register accounts
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.registrationOpen}
-                    onCheckedChange={(checked) => setSettings(prev => ({ ...prev, registrationOpen: checked }))}
-                  />
-                </div>
-
-                <Separator />
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="maxCompetitions">Max Competitions per Club</Label>
-                    <Input
-                      id="maxCompetitions"
-                      type="number"
-                      min="1"
-                      max="50"
-                      value={settings.maxCompetitionsPerClub}
-                      onChange={(e) => setSettings(prev => ({ ...prev, maxCompetitionsPerClub: parseInt(e.target.value) || 10 }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="defaultEntryFee">Default Entry Fee (£)</Label>
-                    <Input
-                      id="defaultEntryFee"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={settings.defaultEntryFee}
-                      onChange={(e) => setSettings(prev => ({ ...prev, defaultEntryFee: parseFloat(e.target.value) || 0 }))}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="payments" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="w-4 h-4" />
-                  Stripe Configuration
-                </CardTitle>
-                <CardDescription>
-                  Configure Stripe payment processing for entry fees and subscriptions
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-3 h-3 rounded-full ${stripeConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-                    <div>
-                      <p className="font-medium">Stripe Status</p>
-                      <p className="text-sm text-muted-foreground">
-                        {stripeConnected ? 'Connected and ready' : 'Not configured'}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge variant={stripeConnected ? "default" : "destructive"}>
-                    {stripeConnected ? 'Connected' : 'Disconnected'}
-                  </Badge>
-                </div>
-
-                {!stripeConnected && (
-                  <div className="p-4 border border-amber-200 bg-amber-50 rounded-lg">
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                      <div className="text-sm">
-                        <p className="font-medium text-amber-800">Stripe Not Configured</p>
-                        <p className="text-amber-700 mt-1">
-                          Payment processing is disabled. Configure your Stripe Secret Key to enable entry fee payments.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex gap-3">
-                  <Button 
-                    onClick={handleConfigureStripe}
-                    variant={stripeConnected ? "outline" : "default"}
-                    className="gap-2"
-                  >
-                    <Key className="w-4 h-4" />
-                    {stripeConnected ? 'Update' : 'Configure'} Stripe Key
-                  </Button>
+              {settings.insurance_enabled && (
+                <>
+                  <Separator />
                   
-                  {stripeConnected && (
-                    <Button 
-                      onClick={handleTestStripeConnection}
-                      variant="outline"
-                      disabled={loading}
-                      className="gap-2"
-                    >
-                      <Shield className="w-4 h-4" />
-                      Test Connection
-                    </Button>
-                  )}
-                </div>
-
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <p>• Get your Stripe Secret Key from your Stripe Dashboard</p>
-                  <p>• Keys starting with "sk_test_" are for testing</p>
-                  <p>• Keys starting with "sk_live_" are for production</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="email" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  Email Configuration
-                </CardTitle>
-                <CardDescription>
-                  Configure email settings for notifications and communications
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 border border-blue-200 bg-blue-50 rounded-lg">
-                  <div className="text-sm">
-                    <p className="font-medium text-blue-800">Email Provider Setup</p>
-                    <p className="text-blue-700 mt-1">
-                      Email functionality uses Supabase Auth email templates. Configure SMTP settings in your Supabase project dashboard.
+                  <div>
+                    <Label>Current Insurance Partner</Label>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {currentInsuranceCompany ? currentInsuranceCompany.name : 'No active insurance partner'}
                     </p>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label>Notification Settings</Label>
-                  <div className="space-y-3 pl-4">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">Send welcome emails to new users</Label>
-                      <Switch defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">Competition entry confirmations</Label>
-                      <Switch defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">Payment confirmations</Label>
-                      <Switch defaultChecked />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-normal">Competition results notifications</Label>
-                      <Switch defaultChecked />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="security" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="w-4 h-4" />
-                  Security Settings
-                </CardTitle>
-                <CardDescription>
-                  Configure security and access control settings
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Require email verification</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Users must verify email before accessing platform
-                      </p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Enable audit logging</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Log all administrative actions and data changes
-                      </p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2">
-                    <Label>Session timeout (minutes)</Label>
+                  <div>
+                    <Label htmlFor="insurance_contact_name">Insurance Contact Name</Label>
                     <Input
-                      type="number"
-                      min="15"
-                      max="1440"
-                      defaultValue="60"
-                      className="w-32"
+                      id="insurance_contact_name"
+                      value={settings.insurance_contact_name || ''}
+                      onChange={(e) => setSettings(prev => prev ? {...prev, insurance_contact_name: e.target.value} : null)}
+                      placeholder="Primary contact name"
                     />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
 
-        <div className="flex justify-end gap-3 pt-4 border-t">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleSaveSettings} disabled={loading}>
-            {loading ? "Saving..." : "Save Settings"}
-          </Button>
+                  <div>
+                    <Label htmlFor="insurance_contact_phone">Insurance Contact Phone</Label>
+                    <Input
+                      id="insurance_contact_phone"
+                      value={settings.insurance_contact_phone || ''}
+                      onChange={(e) => setSettings(prev => prev ? {...prev, insurance_contact_phone: e.target.value} : null)}
+                      placeholder="Contact phone number"
+                    />
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={loading}>
+              {loading ? 'Saving...' : 'Save Settings'}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

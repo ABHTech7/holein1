@@ -993,8 +993,11 @@ export type Database = {
       site_settings: {
         Row: {
           created_at: string
+          current_insurance_company_id: string | null
           email_notifications_enabled: boolean | null
           id: string
+          insurance_contact_name: string | null
+          insurance_contact_phone: string | null
           insurance_enabled: boolean | null
           insurance_premium_rate: number | null
           maintenance_message: string | null
@@ -1011,8 +1014,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_insurance_company_id?: string | null
           email_notifications_enabled?: boolean | null
           id?: string
+          insurance_contact_name?: string | null
+          insurance_contact_phone?: string | null
           insurance_enabled?: boolean | null
           insurance_premium_rate?: number | null
           maintenance_message?: string | null
@@ -1029,8 +1035,11 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_insurance_company_id?: string | null
           email_notifications_enabled?: boolean | null
           id?: string
+          insurance_contact_name?: string | null
+          insurance_contact_phone?: string | null
           insurance_enabled?: boolean | null
           insurance_premium_rate?: number | null
           maintenance_message?: string | null
@@ -1045,7 +1054,15 @@ export type Database = {
           two_factor_required?: boolean | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "site_settings_current_insurance_company_id_fkey"
+            columns: ["current_insurance_company_id"]
+            isOneToOne: false
+            referencedRelation: "insurance_companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       staff: {
         Row: {

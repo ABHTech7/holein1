@@ -65,39 +65,34 @@ const InsuranceDashboard = () => {
 
     const fetchInsuranceData = async () => {
       try {
-        // Get user's insurance company
-        const { data: insuranceUser, error: userError } = await supabase
-          .from('insurance_users')
-          .select(`
-            insurance_companies (
-              id,
-              name,
-              logo_url,
-              premium_rate_per_entry
-            )
-          `)
-          .eq('user_id', user.id)
+        // Get the single active insurance company (simplified approach)
+        const { data: companyData, error: companyError } = await supabase
+          .from('insurance_companies')
+          .select('*')
           .eq('active', true)
           .single();
 
-        if (userError) throw userError;
-
-        if (!insuranceUser?.insurance_companies) {
-          toast({
-            title: "Access Denied",
-            description: "You don't have access to any insurance company data.",
-            variant: "destructive"
-          });
+        if (companyError) {
+          if (companyError.code === 'PGRST116') {
+            // No active insurance company found
+            toast({
+              title: "No Insurance Partner",
+              description: "No active insurance partner is currently configured.",
+              variant: "destructive"
+            });
+          } else {
+            throw companyError;
+          }
           navigate('/');
           return;
         }
 
-        setCompany(insuranceUser.insurance_companies as InsuranceCompany);
+        setCompany(companyData);
 
         // Get entries data for the selected month
         const { data: entriesData, error: entriesError } = await supabase
           .rpc('get_insurance_entries_data', {
-            company_id: insuranceUser.insurance_companies.id,
+            company_id: companyData.id,
             month_start: monthStart.toISOString().split('T')[0],
             month_end: monthEnd.toISOString().split('T')[0]
           });
@@ -109,7 +104,7 @@ const InsuranceDashboard = () => {
         const { data: premiumsData, error: premiumsError } = await supabase
           .from('insurance_premiums')
           .select('*')
-          .eq('insurance_company_id', insuranceUser.insurance_companies.id)
+          .eq('insurance_company_id', companyData.id)
           .order('period_start', { ascending: false })
           .limit(12);
 
@@ -156,8 +151,8 @@ const InsuranceDashboard = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
-          <p className="text-muted-foreground">You don't have access to insurance data.</p>
+          <h1 className="text-2xl font-bold mb-2">No Insurance Partner</h1>
+          <p className="text-muted-foreground">No active insurance partner is configured.</p>
         </div>
       </div>
     );

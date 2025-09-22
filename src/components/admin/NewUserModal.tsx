@@ -22,7 +22,7 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
   const [loading, setLoading] = useState(false);
   const [userType, setUserType] = useState<'CLUB' | 'ADMIN' | 'SUPER_ADMIN' | 'INSURANCE_PARTNER'>('CLUB');
   const { profile } = useAuth();
-  const { companies: insuranceCompanies } = useInsuranceCompanies();
+  const { company: insuranceCompany } = useInsuranceCompanies();
   
   // Club form data
   const [clubData, setClubData] = useState({
@@ -243,12 +243,6 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
               <TabsTrigger value="SUPER_ADMIN" className="flex items-center gap-2">
                 <Shield className="w-4 h-4" />
                 Super Admin
-              </TabsTrigger>
-            )}
-            {canCreateAdmins && (
-              <TabsTrigger value="INSURANCE_PARTNER" className="flex items-center gap-2">
-                <Building className="w-4 h-4" />
-                Insurance Partner
               </TabsTrigger>
             )}
             {canCreateAdmins && (
@@ -516,11 +510,11 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
                         <SelectValue placeholder="Select insurance company" />
                       </SelectTrigger>
                       <SelectContent>
-                        {insuranceCompanies.map((company) => (
-                          <SelectItem key={company.id} value={company.id}>
-                            {company.name}
+                        {insuranceCompany && (
+                          <SelectItem value={insuranceCompany.id}>
+                            {insuranceCompany.name}
                           </SelectItem>
-                        ))}
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
