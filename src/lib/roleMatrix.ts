@@ -122,7 +122,7 @@ export const canAccessRoute = (route: string, userRole: UserRole | null): boolea
   
   if (!permission) {
     // If route not found in matrix, default to admin-only for safety
-    return userRole === 'ADMIN';
+    return userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
   }
   
   return permission.allowedRoles.includes(userRole);
