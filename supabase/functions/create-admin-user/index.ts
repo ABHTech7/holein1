@@ -11,7 +11,6 @@ interface CreateAdminRequest {
   firstName: string;
   lastName: string;
   password: string;
-  adminSecretKey: string;
   role?: 'ADMIN' | 'SUPER_ADMIN'; // Optional, defaults to ADMIN
 }
 
@@ -30,28 +29,70 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, firstName, lastName, password, adminSecretKey, role = 'ADMIN' }: CreateAdminRequest = await req.json();
+    const { email, firstName, lastName, password, role = 'ADMIN' }: CreateAdminRequest = await req.json();
     
     console.log("Processing admin creation for:", email);
 
-    // Verify the admin secret key
-    const expectedSecretKey = Deno.env.get("ADMIN_CREATION_SECRET");
-    if (!expectedSecretKey || adminSecretKey !== expectedSecretKey) {
-      console.error("Invalid admin secret key provided");
+    // Initialize Supabase clients
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      {
+        global: {
+          headers: {
+            Authorization: req.headers.get('Authorization') || '',
+          },
+        },
+      }
+    );
+
+    // Get the current user from the JWT token
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError || !user) {
+      console.error("Authentication failed:", userError);
       return new Response(JSON.stringify({ 
         success: false,
-        error: "Unauthorized admin creation attempt" 
+        error: "Authentication required" 
+      }), {
+        status: 401,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    // Get the current user's profile to check their role
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      console.error("Failed to get user profile:", profileError);
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: "Failed to verify user permissions" 
       }), {
         status: 403,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
 
-    // Initialize Supabase Admin Client
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    // Only SUPER_ADMIN can create ADMIN or SUPER_ADMIN users
+    if (profile.role !== 'SUPER_ADMIN') {
+      console.error("Insufficient permissions:", profile.role);
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: "Only Super Admins can create Admin accounts" 
+      }), {
+        status: 403,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
 
     // Create the admin user
     const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({

@@ -433,9 +433,9 @@ const UserManagement = () => {
       {/* Add User Modal */}
       <NewUserModal 
         isOpen={showAddUser}
-        onClose={() => {
-          setShowAddUser(false);
-          // Refresh users list when modal closes (after successful creation)
+        onClose={() => setShowAddUser(false)}
+        onSuccess={() => {
+          // Refresh users list
           const fetchData = async () => {
             try {
               const { data: usersData, error: usersError } = await supabase
