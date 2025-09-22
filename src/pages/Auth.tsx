@@ -47,6 +47,8 @@ const Auth = () => {
         return <Navigate to={ROUTES.CLUB.DASHBOARD} replace />;
       case 'PLAYER':
         return <Navigate to={ROUTES.PLAYER.ENTRIES} replace />;
+      case 'INSURANCE_PARTNER':
+        return <Navigate to={ROUTES.INSURANCE.DASHBOARD} replace />;
       default:
         return <Navigate to={ROUTES.HOME} replace />;
     }
