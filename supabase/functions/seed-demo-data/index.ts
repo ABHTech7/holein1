@@ -192,10 +192,10 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Generate 38 new clubs
-    console.log("Generating 38 clubs...");
+    // Generate 18 new clubs
+    console.log("Generating 18 clubs...");
     const clubsToCreate = [];
-    for (let i = 0; i < 38; i++) {
+    for (let i = 0; i < 18; i++) {
       clubsToCreate.push({
         name: generateClubName(),
         email: `club${i + 1}@holein1demo.test`,
@@ -231,13 +231,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Created ${createdClubs.length} clubs total`);
 
-    // Generate competitions (1-2 per club)
+    // Generate competitions (1 per club)
     console.log("Generating competitions...");
     const competitionsToCreate = [];
     const { months } = getDateRange();
     
     for (const club of createdClubs) {
-      const numCompetitions = getRandomInt(1, 2);
+      const numCompetitions = 1;
       
       for (let i = 0; i < numCompetitions; i++) {
         // Random start date in June-September 2025

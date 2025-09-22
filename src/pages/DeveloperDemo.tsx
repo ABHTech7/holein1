@@ -203,10 +203,10 @@ const DeveloperDemo = () => {
                       <div className="text-sm text-muted-foreground">
                         <p className="font-medium mb-2">This will create:</p>
                         <ul className="space-y-1 ml-4">
-                          <li>• 38 realistic UK golf clubs with locations</li>
-                          <li>• ~76 competitions (1-2 per club)</li>
+                          <li>• 18 realistic UK golf clubs with locations</li>
+                          <li>• 18 competitions (1 per club)</li>
                           <li>• 1000 diverse player profiles</li>
-                          <li>• ~16,720 entries across 4 months (June-Sept 2025)</li>
+                          <li>• ~3,960 entries across 4 months (June-Sept 2025)</li>
                           <li>• Winners, verifications, and claims data</li>
                           <li>• Comprehensive dashboard data for testing</li>
                         </ul>
