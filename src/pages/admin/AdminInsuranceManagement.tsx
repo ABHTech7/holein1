@@ -258,13 +258,13 @@ const AdminInsuranceManagement = () => {
 
             {/* Insurance Partner Logo */}
             {hasInsurancePartner && currentCompany.logo_url && (
-              <div className="flex items-center space-x-3 mb-2">
+              <div className="flex items-center space-x-4 mb-4">
                 <img 
                   src={currentCompany.logo_url} 
                   alt={`${currentCompany.name} logo`}
-                  className="w-12 h-12 rounded-lg object-contain bg-white p-2 border"
+                  className="w-20 h-20 rounded-lg object-contain bg-white p-3 border shadow-sm"
                 />
-                <span className="font-display text-xl font-semibold text-foreground">
+                <span className="font-display text-2xl font-semibold text-foreground">
                   {currentCompany.name}
                 </span>
               </div>
