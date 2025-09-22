@@ -25,6 +25,7 @@ const DeveloperDemo = () => {
   const [loading, setLoading] = useState(false);
   const [credentials, setCredentials] = useState<Credentials | null>(null);
   const [showPasswords, setShowPasswords] = useState(false);
+  const [flushMode, setFlushMode] = useState<'recent' | 'all'>('recent');
 
   // Check if we're in development mode (this is a heuristic since we can't access NODE_ENV directly)
   const isDevelopment = window.location.hostname === 'localhost' || 
@@ -82,7 +83,8 @@ const DeveloperDemo = () => {
   const handleFlushData = async () => {
     setLoading(true);
     try {
-      const payload = needsSecret ? { demoSecret } : {};
+      const recentOnly = flushMode === 'recent';
+      const payload = needsSecret ? { demoSecret, recentOnly } : { recentOnly };
       
       const { data, error } = await supabase.functions.invoke('flush-demo-data', {
         body: payload
@@ -230,25 +232,52 @@ const DeveloperDemo = () => {
                         Remove all demo users, clubs, and related data. Only touches demo accounts.
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="text-sm text-muted-foreground">
-                        <p className="font-medium mb-2">This will remove:</p>
-                        <ul className="space-y-1 ml-4">
-                          <li>• Demo user accounts</li>
-                          <li>• Demo clubs and competitions</li>
-                          <li>• Associated entries and claims</li>
-                          <li>• Demo leads and profiles</li>
-                        </ul>
-                      </div>
-                      <Button 
-                        onClick={handleFlushData} 
-                        disabled={loading}
-                        variant="destructive"
-                        className="w-full"
-                      >
-                        {loading ? "Flushing..." : "Flush Demo Data"}
-                      </Button>
-                    </CardContent>
+                     <CardContent className="space-y-4">
+                       <div className="text-sm text-muted-foreground">
+                         <p className="font-medium mb-3">Choose flush mode:</p>
+                         <div className="space-y-3 mb-4">
+                           <label className="flex items-start space-x-3 cursor-pointer">
+                             <input 
+                               type="radio" 
+                               name="flushMode" 
+                               value="recent" 
+                               checked={flushMode === 'recent'}
+                               onChange={(e) => setFlushMode(e.target.value as 'recent' | 'all')}
+                               className="mt-1"
+                             />
+                             <div>
+                               <div className="font-medium text-foreground">Recent Only (Last 3 hours)</div>
+                               <div className="text-xs">Safe option - only removes data created in the last 3 hours</div>
+                             </div>
+                           </label>
+                           <label className="flex items-start space-x-3 cursor-pointer">
+                             <input 
+                               type="radio" 
+                               name="flushMode" 
+                               value="all" 
+                               checked={flushMode === 'all'}
+                               onChange={(e) => setFlushMode(e.target.value as 'recent' | 'all')}
+                               className="mt-1"
+                             />
+                             <div>
+                               <div className="font-medium text-foreground">All Demo Data</div>
+                               <div className="text-xs">Removes ALL demo users, clubs, and competitions</div>
+                             </div>
+                           </label>
+                         </div>
+                         <div className="text-xs bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 p-2 rounded">
+                           💡 Use "Recent Only" after seeding to clean up just the new data
+                         </div>
+                       </div>
+                       <Button 
+                         onClick={handleFlushData} 
+                         disabled={loading}
+                         variant="destructive"
+                         className="w-full"
+                       >
+                         {loading ? "Flushing..." : `Flush ${flushMode === 'recent' ? 'Recent' : 'All'} Demo Data`}
+                       </Button>
+                     </CardContent>
                   </Card>
 
                 </div>

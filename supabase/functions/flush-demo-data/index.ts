@@ -8,6 +8,7 @@ const corsHeaders = {
 
 interface FlushRequest {
   demoSecret?: string;
+  recentOnly?: boolean; // Only flush data created in the last 3 hours
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -20,14 +21,26 @@ const handler = async (req: Request): Promise<Response> => {
     const isDevelopment = Deno.env.get("NODE_ENV") !== "production";
     const demoSecret = Deno.env.get("DEMO_SEED_SECRET");
     
+    let recentOnly = false;
+    
     if (!isDevelopment) {
       if (!demoSecret) {
         throw new Error("Demo flushing not available in production without secret");
       }
       
-      const { demoSecret: providedSecret }: FlushRequest = await req.json();
+      const { demoSecret: providedSecret, recentOnly: requestRecentOnly }: FlushRequest = await req.json();
       if (providedSecret !== demoSecret) {
         throw new Error("Invalid demo secret");
+      }
+      recentOnly = requestRecentOnly || false;
+    } else {
+      // In development, check for recentOnly parameter
+      try {
+        const body = await req.json();
+        recentOnly = body.recentOnly || false;
+      } catch {
+        // No body or invalid JSON, use default
+        recentOnly = false;
       }
     }
 
@@ -43,12 +56,23 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
 
-    console.log("Starting comprehensive demo data flush...");
+    console.log(`Starting ${recentOnly ? 'recent' : 'comprehensive'} demo data flush...`);
+
+    // Calculate timestamp threshold for recent-only flushes (last 3 hours)
+    const recentThreshold = new Date();
+    recentThreshold.setHours(recentThreshold.getHours() - 3);
+    const thresholdIso = recentThreshold.toISOString();
 
     // Get all demo clubs first (they have the demo email pattern)
-    const { data: allClubs } = await supabaseAdmin
+    let clubQuery = supabaseAdmin
       .from("clubs")
-      .select("id, name, email");
+      .select("id, name, email, created_at");
+
+    if (recentOnly) {
+      clubQuery = clubQuery.gte("created_at", thresholdIso);
+    }
+
+    const { data: allClubs } = await clubQuery;
 
     const demoClubs = allClubs?.filter(club => 
       club.email?.includes('@holein1demo.test') ||
@@ -74,11 +98,19 @@ const handler = async (req: Request): Promise<Response> => {
       "player1@holein1.test"
     ];
 
-    let demoUsers = allUsers.users?.filter(u => 
-      u.email?.includes('@holein1demo.test') || 
-      u.email?.includes('@demo.test') ||
-      preservedDemoEmails.includes(u.email!)
-    ) || [];
+    let demoUsers = allUsers.users?.filter(u => {
+      const matchesEmailPattern = u.email?.includes('@holein1demo.test') || 
+        u.email?.includes('@demo.test') ||
+        preservedDemoEmails.includes(u.email!);
+      
+      if (recentOnly) {
+        // Only include users created after the threshold
+        const userCreatedAt = new Date(u.created_at);
+        return matchesEmailPattern && userCreatedAt >= recentThreshold;
+      }
+      
+      return matchesEmailPattern;
+    }) || [];
 
     // Also find all players who have entries in demo competitions
     if (demoClubIds.length > 0) {
