@@ -51,18 +51,31 @@ export const SimpleAttemptFlow = ({
 
       // If it's a win, create verification record and navigate to win claim
       if (outcome === 'win') {
-        const { error: verificationError } = await supabase
-          .from('verifications')
-          .insert({
-            entry_id: entryId,
-            status: 'initiated',
-            witnesses: [],
-            evidence_captured_at: new Date().toISOString()
-          });
+        try {
+          const { error: verificationError } = await supabase
+            .from('verifications')
+            .insert({
+              entry_id: entryId,
+              status: 'initiated',
+              witnesses: [],
+              evidence_captured_at: new Date().toISOString()
+            });
 
-        if (verificationError) {
-          console.error('Error creating verification:', verificationError);
-          // Don't fail the whole operation, just log the error
+          if (verificationError && !verificationError.message?.includes('duplicate')) {
+            console.error('Error creating verification:', verificationError);
+            toast({
+              title: "Notice",
+              description: "Win recorded successfully. You can complete verification from your entry page.",
+              variant: "default"
+            });
+          }
+        } catch (error) {
+          console.error('Error creating verification record:', error);
+          toast({
+            title: "Notice", 
+            description: "Win recorded successfully. You can complete verification from your entry page.",
+            variant: "default"
+          });
         }
 
         // Call win callback for navigation

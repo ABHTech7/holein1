@@ -489,10 +489,46 @@ const EntryConfirmation = () => {
                       {entry.outcome_self === 'win' ? 'Win Reported!' : 
                        entry.outcome_self === 'auto_miss' ? 'Auto-Missed' : 'Miss Reported'}
                     </h3>
-                    <Badge variant={entry.outcome_self === 'win' ? 'default' : 'secondary'}>
+                    <Badge variant={entry.outcome_self === 'win' ? 'default' : 'secondary'} className="mb-4">
                       {entry.outcome_self === 'win' ? 'Pending Verification' :
                        entry.outcome_self === 'auto_miss' ? 'Time Expired' : 'Complete'}
                     </Badge>
+                    
+                    {/* Continue to Evidence Collection for wins */}
+                    {entry.outcome_self === 'win' && (
+                      <div className="mt-4">
+                        <Button 
+                          onClick={async () => {
+                            // Ensure verification record exists before navigating
+                            try {
+                              const { error: verificationError } = await supabase
+                                .from('verifications')
+                                .insert({
+                                  entry_id: entry.id,
+                                  status: 'initiated',
+                                  witnesses: [],
+                                  evidence_captured_at: new Date().toISOString()
+                                });
+                              
+                              if (verificationError && !verificationError.message?.includes('duplicate')) {
+                                console.error('Error creating verification:', verificationError);
+                              }
+                            } catch (error) {
+                              console.error('Error ensuring verification record:', error);
+                            }
+                            
+                            // Navigate to win claim page
+                            navigate(`/win-claim/${entry.id}`);
+                          }}
+                          className="w-full"
+                        >
+                          Continue to Evidence Collection
+                        </Button>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Complete your verification with photos, witness details, and more
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ) : !isTimeUp ? (
                   <SimpleAttemptFlow
