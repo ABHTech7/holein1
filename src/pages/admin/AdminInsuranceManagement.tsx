@@ -308,7 +308,7 @@ const AdminInsuranceManagement = () => {
               variant="outline"
               size="sm"
               onClick={() => window.location.href = '/dashboard/admin'}
-              className="flex items-center gap-2 w-fit"
+              className="flex items-center gap-2 w-fit bg-gradient-to-r from-primary/10 to-secondary/10 hover:from-primary/20 hover:to-secondary/20 border-primary/20"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Admin Dashboard

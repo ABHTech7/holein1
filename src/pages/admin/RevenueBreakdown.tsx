@@ -366,7 +366,7 @@ const RevenueBreakdown = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => navigate('/dashboard/admin')}
-                className="gap-2"
+                className="gap-2 bg-gradient-to-r from-primary/10 to-secondary/10 hover:from-primary/20 hover:to-secondary/20 border-primary/20"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back to Dashboard
