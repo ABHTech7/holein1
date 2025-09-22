@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { 
   FileText, 
   Calendar, 
@@ -66,6 +67,8 @@ const InsuranceDashboard = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [ytdPremiumPence, setYtdPremiumPence] = useState(0);
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const entriesPerPage = 15;
 
   // Get current month date range - fixed to use proper end date
   const monthStart = new Date(selectedMonth + '-01');
@@ -193,6 +196,11 @@ const InsuranceDashboard = () => {
     fetchInsuranceData();
   }, [user, selectedMonth, navigate]);
 
+  // Reset to page 1 when month changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedMonth]);
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -229,6 +237,16 @@ const InsuranceDashboard = () => {
   const currentMonthPremium = currentMonthEntries * (company?.premium_rate_per_entry || 0);
   
   // YTD premium computed from YTD entries fetched server-side
+
+  // Pagination calculations
+  const totalPages = Math.ceil(currentMonthEntries / entriesPerPage);
+  const startIndex = (currentPage - 1) * entriesPerPage;
+  const endIndex = startIndex + entriesPerPage;
+  const currentEntries = entries.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
 
   return (
@@ -369,8 +387,8 @@ const InsuranceDashboard = () => {
                       </TableRow>
                     </TableHeader>
                   <TableBody>
-                    {entries.slice(0, 50).map((entry, index) => (
-                      <TableRow key={index}>
+                    {currentEntries.map((entry, index) => (
+                      <TableRow key={startIndex + index}>
                         <TableCell>
                           {new Date(entry.entry_date).toLocaleString('en-GB', { 
                             timeZone: 'UTC',
@@ -391,12 +409,71 @@ const InsuranceDashboard = () => {
                     ))}
                   </TableBody>
                 </Table>
-                {entries.length > 50 && (
-                  <div className="mt-4 text-center">
-                    <Button variant="outline" onClick={() => navigate('/dashboard/insurance/entries')}>
-                      <Eye className="w-4 h-4 mr-2" />
-                      View All {entries.length.toLocaleString()} Entries
-                    </Button>
+                
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      Showing {startIndex + 1} to {Math.min(endIndex, currentMonthEntries)} of {currentMonthEntries.toLocaleString()} entries
+                    </div>
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious 
+                            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                            className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                        
+                        {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+                          
+                          return (
+                            <PaginationItem key={pageNum}>
+                              <PaginationLink 
+                                onClick={() => handlePageChange(pageNum)}
+                                isActive={pageNum === currentPage}
+                                className="cursor-pointer"
+                              >
+                                {pageNum}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        })}
+                        
+                        {totalPages > 5 && currentPage < totalPages - 2 && (
+                          <>
+                            <PaginationItem>
+                              <PaginationEllipsis />
+                            </PaginationItem>
+                            <PaginationItem>
+                              <PaginationLink 
+                                onClick={() => handlePageChange(totalPages)}
+                                className="cursor-pointer"
+                              >
+                                {totalPages}
+                              </PaginationLink>
+                            </PaginationItem>
+                          </>
+                        )}
+                        
+                        <PaginationItem>
+                          <PaginationNext 
+                            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                            className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
                   </div>
                 )}
               </CardContent>
