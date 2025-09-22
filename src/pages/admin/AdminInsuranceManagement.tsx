@@ -281,27 +281,27 @@ const AdminInsuranceManagement = () => {
       <main className="flex-1 bg-muted/30">
         <Section spacing="lg">
           <div className="max-w-7xl mx-auto space-y-8">
+            {/* Back Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.location.href = '/dashboard/admin'}
+              className="flex items-center gap-2 w-fit"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Admin Dashboard
+            </Button>
+
             {/* Header */}
             <div className="flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.location.href = '/dashboard/admin'}
-                  className="flex items-center gap-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to Admin Dashboard
-                </Button>
-                <div>
-                  <h1 className="text-3xl font-bold">Insurance Partner Management</h1>
-                  <p className="text-muted-foreground">
-                    {hasInsurancePartner 
-                      ? `Current partner: ${currentCompany.name}` 
-                      : 'No insurance partner configured'
-                    }
-                  </p>
-                </div>
+              <div>
+                <h1 className="text-3xl font-bold">Insurance Partner Management</h1>
+                <p className="text-muted-foreground">
+                  {hasInsurancePartner 
+                    ? `Current partner: ${currentCompany.name}` 
+                    : 'No insurance partner configured'
+                  }
+                </p>
               </div>
 
               <Dialog open={isChangeCompanyOpen} onOpenChange={setIsChangeCompanyOpen}>
