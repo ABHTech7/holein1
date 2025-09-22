@@ -7,7 +7,7 @@ export async function ensureVerificationRecord(entryId: string) {
     .upsert({
       entry_id: entryId,
       status: 'initiated',
-      witnesses: [],
+      witnesses: '[]',
       evidence_captured_at: new Date().toISOString(),
       social_consent: false
     }, {
@@ -74,8 +74,9 @@ export async function ensureAllWinVerifications() {
     const verifications = missingWins.map(entry => ({
       entry_id: entry.id,
       status: 'pending',
-      witnesses: [],
-      evidence_captured_at: entry.outcome_reported_at || new Date().toISOString()
+      witnesses: '[]',
+      evidence_captured_at: entry.outcome_reported_at || new Date().toISOString(),
+      social_consent: false
     }));
 
     const { data, error } = await supabase
@@ -102,7 +103,7 @@ export async function ensureWinVerificationForEntry(entryId: string) {
       .from('verifications')
       .select('id')
       .eq('entry_id', entryId)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       return existing;
@@ -114,8 +115,9 @@ export async function ensureWinVerificationForEntry(entryId: string) {
       .insert({
         entry_id: entryId,
         status: 'pending',
-        witnesses: [],
-        evidence_captured_at: new Date().toISOString()
+        witnesses: '[]',
+        evidence_captured_at: new Date().toISOString(),
+        social_consent: false
       })
       .select()
       .single();

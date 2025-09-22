@@ -259,28 +259,35 @@ const EntriesPage = () => {
 
     setBulkUpdating(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('entries')
         .update({ 
           paid: true, 
           payment_date: new Date().toISOString() 
         })
-        .eq('paid', false);
+        .eq('paid', false)
+        .select('id');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
 
+      const updatedCount = data?.length || 0;
+      
       toast({
         title: "Success",
-        description: `${unpaidEntries.length} entries marked as paid`,
+        description: `${updatedCount} entries marked as paid`,
         variant: "default"
       });
 
+      // Force refresh the entries data
       await fetchEntries();
     } catch (error) {
       console.error('Error updating payments:', error);
       toast({
         title: "Error",
-        description: "Failed to update entry payments",
+        description: `Failed to update entry payments: ${(error as any)?.message || 'Unknown error'}`,
         variant: "destructive"
       });
     } finally {
@@ -303,7 +310,7 @@ const EntriesPage = () => {
       console.error('Error syncing win verifications:', error);
       toast({
         title: "Error", 
-        description: "Failed to sync win claims",
+        description: `Failed to sync win claims: ${(error as any)?.message || 'Unknown error'}`,
         variant: "destructive"
       });
     } finally {
