@@ -54,6 +54,7 @@ const AdminDashboard = () => {
   const [showSiteSettings, setShowSiteSettings] = useState(false);
   const [showNewUser, setShowNewUser] = useState(false);
   const [isEditingActions, setIsEditingActions] = useState(false);
+  // Dashboard state - Updated to use monthToDateEntries (v2.1)
   const [stats, setStats] = useState<DashboardStats>({
     totalPlayers: 0,
     newPlayersThisMonth: 0,
@@ -108,6 +109,7 @@ const AdminDashboard = () => {
         const yearStart = new Date(now.getFullYear(), 0, 1).toISOString();
 
         // Fetch basic stats with proper error handling
+        console.log('Fetching admin dashboard stats...');
         const [playersRes, newPlayersRes, clubsRes, activeCompsRes, monthToDateEntriesRes] = await Promise.all([supabase.from('profiles').select('id', {
           count: 'exact',
           head: true
@@ -223,6 +225,7 @@ const AdminDashboard = () => {
           const fee = (entry as any).competitions?.entry_fee || 0;
           return sum + fee;
         }, 0);
+        console.log('Month to date entries count:', monthToDateEntriesRes.count);
         setStats({
           totalPlayers: playersRes.count || 0,
           newPlayersThisMonth: newPlayersRes.count || 0,
