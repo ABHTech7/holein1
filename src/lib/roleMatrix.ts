@@ -5,8 +5,8 @@
 
 import { ROUTES } from '@/routes';
 
-export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'PLAYER';
-export type RouteCategory = 'public' | 'auth' | 'admin' | 'club' | 'player' | 'entry';
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'PLAYER' | 'INSURANCE_PARTNER';
+export type RouteCategory = 'public' | 'auth' | 'admin' | 'club' | 'player' | 'entry' | 'insurance';
 
 export interface RoutePermission {
   path: string;
@@ -80,6 +80,15 @@ export const ROUTE_PERMISSIONS: RoutePermission[] = [
   { path: '/dashboard/admin/competitions/:id', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Competition detail (admin)' },
   { path: '/dashboard/admin/competitions/:id/edit', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Competition edit (admin)' },
   { path: '/dashboard/club/competitions/:id', allowedRoles: ['CLUB', 'ADMIN'], category: 'club', requiresAuth: true, description: 'Competition detail (club)' },
+
+  // Insurance routes
+  { path: '/dashboard/insurance', allowedRoles: ['INSURANCE_PARTNER'], category: 'insurance', requiresAuth: true, description: 'Insurance dashboard' },
+  { path: '/dashboard/insurance/entries', allowedRoles: ['INSURANCE_PARTNER'], category: 'insurance', requiresAuth: true, description: 'Insurance entries view' },
+  { path: '/dashboard/insurance/premiums', allowedRoles: ['INSURANCE_PARTNER'], category: 'insurance', requiresAuth: true, description: 'Insurance premiums' },
+  { path: '/dashboard/insurance/reports', allowedRoles: ['INSURANCE_PARTNER'], category: 'insurance', requiresAuth: true, description: 'Insurance reports' },
+  
+  // Admin insurance management
+  { path: '/dashboard/admin/insurance', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin insurance management' },
 
   // Development routes
   { path: '/dev/demo', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Developer demo' },
@@ -171,6 +180,8 @@ export const getUnauthorizedRedirect = (route: string, userRole: UserRole | null
       return ROUTES.CLUB.DASHBOARD;
     case 'PLAYER':
       return ROUTES.PLAYER.ENTRIES;
+    case 'INSURANCE_PARTNER':
+      return '/dashboard/insurance';
     default:
       return ROUTES.HOME;
   }

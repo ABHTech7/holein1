@@ -48,6 +48,8 @@ import CompetitionWizardPage from "./pages/CompetitionWizardPage";
 import Styleguide from "./pages/Styleguide";
 import ErrorPage from "./pages/ErrorPage";
 import PartnershipApplication from "./pages/PartnershipApplication";
+import InsuranceDashboard from "./pages/InsuranceDashboard";
+import AdminInsuranceManagement from "./pages/admin/AdminInsuranceManagement";
 
 // Auth components
 import RoleGuard from "./components/auth/RoleGuard";
@@ -319,6 +321,48 @@ const App = () => {
             element={
                <EnhancedRoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                 <AdminEnquiries />
+              </EnhancedRoleGuard>
+            } 
+          />
+          
+          {/* Insurance Routes */}
+          <Route 
+            path="/dashboard/admin/insurance" 
+            element={
+               <EnhancedRoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
+                <AdminInsuranceManagement />
+              </EnhancedRoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/insurance" 
+            element={
+               <EnhancedRoleGuard allowedRoles={['INSURANCE_PARTNER']}>
+                <InsuranceDashboard />
+              </EnhancedRoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/insurance/entries" 
+            element={
+               <EnhancedRoleGuard allowedRoles={['INSURANCE_PARTNER']}>
+                <InsuranceDashboard />
+              </EnhancedRoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/insurance/premiums" 
+            element={
+               <EnhancedRoleGuard allowedRoles={['INSURANCE_PARTNER']}>
+                <InsuranceDashboard />
+              </EnhancedRoleGuard>
+            } 
+          />
+          <Route 
+            path="/dashboard/insurance/reports" 
+            element={
+               <EnhancedRoleGuard allowedRoles={['INSURANCE_PARTNER']}>
+                <InsuranceDashboard />
               </EnhancedRoleGuard>
             } 
           />

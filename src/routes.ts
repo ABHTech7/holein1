@@ -43,6 +43,15 @@ export const ROUTES = {
     CLAIMS: '/dashboard/admin/claims',
     USERS: '/dashboard/admin/users',
     ENQUIRIES: '/dashboard/admin/enquiries',
+    INSURANCE: '/dashboard/admin/insurance',
+  },
+  
+  // Insurance Routes
+  INSURANCE: {
+    DASHBOARD: '/dashboard/insurance',
+    ENTRIES: '/dashboard/insurance/entries',
+    PREMIUMS: '/dashboard/insurance/premiums',
+    REPORTS: '/dashboard/insurance/reports',
   },
   
   // Competition & Entry Routes
@@ -103,12 +112,13 @@ export const ROLE_DASHBOARDS = {
   ADMIN: ROUTES.ADMIN.DASHBOARD,
   CLUB: ROUTES.CLUB.DASHBOARD,
   PLAYER: ROUTES.PLAYER.ENTRIES,
+  INSURANCE_PARTNER: ROUTES.INSURANCE.DASHBOARD,
 } as const;
 
 /**
  * Get dashboard route for user role
  */
-export const getDashboardRoute = (role: 'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'PLAYER' | null): string => {
+export const getDashboardRoute = (role: 'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'PLAYER' | 'INSURANCE_PARTNER' | null): string => {
   if (!role) return ROUTES.HOME;
   return ROLE_DASHBOARDS[role] || ROUTES.HOME;
 };

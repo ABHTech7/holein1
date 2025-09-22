@@ -14,7 +14,7 @@ import { ChevronLeft } from 'lucide-react';
 
 interface Profile {
   id: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'PLAYER';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'PLAYER' | 'INSURANCE_PARTNER';
   club_id?: string;
 }
 

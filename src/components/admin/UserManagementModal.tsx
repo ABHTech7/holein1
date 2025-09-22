@@ -18,7 +18,7 @@ interface User {
   email: string;
   first_name: string;
   last_name: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'PLAYER';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'PLAYER' | 'INSURANCE_PARTNER';
   club_id?: string;
   created_at: string;
   club_name?: string;

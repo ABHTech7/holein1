@@ -41,7 +41,7 @@ const AdminQuickActions = ({ stats, onAddUser, isEditing = false }: QuickActions
     // Load saved order from localStorage, fallback to default order
     const saved = localStorage.getItem('admin-quick-actions-order');
     return saved ? JSON.parse(saved) : [
-      'players', 'revenue', 'competitions', 'clubs', 'entries', 'claims', 'users', 'enquiries'
+      'players', 'revenue', 'competitions', 'clubs', 'entries', 'claims', 'users', 'insurance', 'enquiries'
     ];
   });
 
@@ -125,6 +125,15 @@ const AdminQuickActions = ({ stats, onAddUser, isEditing = false }: QuickActions
       hasSubAction: true,
       subActionText: "Add User",
       subActionPath: "/dashboard/admin/users/new"
+    },
+    {
+      id: "insurance",
+      title: "Insurance Premiums", 
+      description: "Manage insurance partners and premiums",
+      icon: FileText,
+      path: "/dashboard/admin/insurance",
+      color: "bg-slate-50 border-slate-200 hover:bg-slate-100",
+      iconColor: "text-slate-600"
     },
     {
       id: "enquiries", 

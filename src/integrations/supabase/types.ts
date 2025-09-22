@@ -596,6 +596,141 @@ export type Database = {
           },
         ]
       }
+      insurance_companies: {
+        Row: {
+          active: boolean | null
+          contact_email: string
+          contract_url: string | null
+          created_at: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          premium_rate_per_entry: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          contact_email: string
+          contract_url?: string | null
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          premium_rate_per_entry?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          contact_email?: string
+          contract_url?: string | null
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          premium_rate_per_entry?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      insurance_premiums: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          generated_at: string | null
+          id: string
+          insurance_company_id: string | null
+          period_end: string
+          period_start: string
+          premium_rate: number
+          status: string | null
+          total_entries: number | null
+          total_premium_amount: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          generated_at?: string | null
+          id?: string
+          insurance_company_id?: string | null
+          period_end: string
+          period_start: string
+          premium_rate: number
+          status?: string | null
+          total_entries?: number | null
+          total_premium_amount: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          generated_at?: string | null
+          id?: string
+          insurance_company_id?: string | null
+          period_end?: string
+          period_start?: string
+          premium_rate?: number
+          status?: string | null
+          total_entries?: number | null
+          total_premium_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_premiums_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_premiums_insurance_company_id_fkey"
+            columns: ["insurance_company_id"]
+            isOneToOne: false
+            referencedRelation: "insurance_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      insurance_users: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          id: string
+          insurance_company_id: string | null
+          role: string | null
+          user_id: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          insurance_company_id?: string | null
+          role?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          insurance_company_id?: string | null
+          role?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insurance_users_insurance_company_id_fkey"
+            columns: ["insurance_company_id"]
+            isOneToOne: false
+            referencedRelation: "insurance_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "insurance_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           club_id: string | null
@@ -860,6 +995,8 @@ export type Database = {
           created_at: string
           email_notifications_enabled: boolean | null
           id: string
+          insurance_enabled: boolean | null
+          insurance_premium_rate: number | null
           maintenance_message: string | null
           maintenance_mode: boolean
           max_competitions_per_club: number | null
@@ -876,6 +1013,8 @@ export type Database = {
           created_at?: string
           email_notifications_enabled?: boolean | null
           id?: string
+          insurance_enabled?: boolean | null
+          insurance_premium_rate?: number | null
           maintenance_message?: string | null
           maintenance_mode?: boolean
           max_competitions_per_club?: number | null
@@ -892,6 +1031,8 @@ export type Database = {
           created_at?: string
           email_notifications_enabled?: boolean | null
           id?: string
+          insurance_enabled?: boolean | null
+          insurance_premium_rate?: number | null
           maintenance_message?: string | null
           maintenance_mode?: boolean
           max_competitions_per_club?: number | null
@@ -1225,6 +1366,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_monthly_premiums: {
+        Args: { company_id: string; period_end: string; period_start: string }
+        Returns: {
+          entry_count: number
+          premium_rate: number
+          total_premium: number
+        }[]
+      }
       convert_partnership_lead_to_club: {
         Args: {
           p_admin_email?: string
@@ -1280,6 +1429,15 @@ export type Database = {
           id: string
           last_name: string
           onboarding_complete: boolean
+        }[]
+      }
+      get_insurance_entries_data: {
+        Args: { company_id?: string; month_end?: string; month_start?: string }
+        Returns: {
+          competition_id: string
+          entry_date: string
+          player_first_name: string
+          player_last_name: string
         }[]
       }
       get_safe_club_info: {
@@ -1439,7 +1597,12 @@ export type Database = {
         | "LOST"
         | "IN_REVIEW"
         | "REJECTED"
-      user_role: "ADMIN" | "CLUB" | "PLAYER" | "SUPER_ADMIN"
+      user_role:
+        | "ADMIN"
+        | "CLUB"
+        | "PLAYER"
+        | "SUPER_ADMIN"
+        | "INSURANCE_PARTNER"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1577,7 +1740,13 @@ export const Constants = {
         "IN_REVIEW",
         "REJECTED",
       ],
-      user_role: ["ADMIN", "CLUB", "PLAYER", "SUPER_ADMIN"],
+      user_role: [
+        "ADMIN",
+        "CLUB",
+        "PLAYER",
+        "SUPER_ADMIN",
+        "INSURANCE_PARTNER",
+      ],
     },
   },
 } as const

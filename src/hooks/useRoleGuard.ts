@@ -5,7 +5,7 @@ import { canAccessRoute, canSeeElement, getUnauthorizedRedirect } from '@/lib/ro
 import { toast } from '@/hooks/use-toast';
 import { showSupabaseError } from '@/lib/showSupabaseError';
 
-export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'PLAYER';
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'PLAYER' | 'INSURANCE_PARTNER';
 
 interface UseRoleGuardOptions {
   requiredRoles?: UserRole[];

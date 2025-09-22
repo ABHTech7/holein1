@@ -7,7 +7,7 @@ import { showSupabaseError } from '@/lib/showSupabaseError';
 
 interface EnhancedRoleGuardProps {
   children: ReactNode;
-  allowedRoles: Array<'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'PLAYER'>;
+  allowedRoles: Array<'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'PLAYER' | 'INSURANCE_PARTNER'>;
   fallbackPath?: string;
   redirectToDashboard?: boolean;
   showUnauthorizedToast?: boolean;
