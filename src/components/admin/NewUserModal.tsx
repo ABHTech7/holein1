@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Building, Shield } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useInsuranceCompanies } from "@/hooks/useInsuranceCompanies";
 
 interface NewUserModalProps {
   isOpen: boolean;
@@ -18,8 +20,9 @@ interface NewUserModalProps {
 
 const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
   const [loading, setLoading] = useState(false);
-  const [userType, setUserType] = useState<'CLUB' | 'ADMIN' | 'SUPER_ADMIN'>('CLUB');
+  const [userType, setUserType] = useState<'CLUB' | 'ADMIN' | 'SUPER_ADMIN' | 'INSURANCE_PARTNER'>('CLUB');
   const { profile } = useAuth();
+  const { companies: insuranceCompanies } = useInsuranceCompanies();
   
   // Club form data
   const [clubData, setClubData] = useState({
@@ -40,6 +43,16 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
     lastName: '',
     password: '',
     role: 'ADMIN' as 'ADMIN' | 'SUPER_ADMIN'
+  });
+
+  // Insurance partner form data
+  const [insuranceData, setInsuranceData] = useState({
+    email: '',
+    firstName: '',
+    lastName: '',
+    password: '',
+    companyId: '',
+    role: 'viewer' as 'viewer' | 'admin'
   });
 
   const handleCreateUser = async () => {
@@ -77,6 +90,19 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
             }
           }
         };
+      } else if (userType === 'INSURANCE_PARTNER') {
+        // Create insurance partner user
+        userData = {
+          email: insuranceData.email,
+          password: insuranceData.password,
+          options: {
+            data: {
+              first_name: insuranceData.firstName,
+              last_name: insuranceData.lastName,
+              role: 'INSURANCE_PARTNER'
+            }
+          }
+        };
       } else if (userType === 'ADMIN' || userType === 'SUPER_ADMIN') {
         // Use secure edge function for admin creation
         const { data: adminRes, error: adminError } = await supabase.functions.invoke('create-admin-user', {
@@ -101,6 +127,7 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
 
         // Reset forms
         setAdminData({ email: '', firstName: '', lastName: '', password: '', role: 'ADMIN' });
+        setInsuranceData({ email: '', firstName: '', lastName: '', password: '', companyId: '', role: 'viewer' });
         onSuccess?.();
         onClose();
         return;
@@ -122,6 +149,21 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
         }
       }
 
+      // Create insurance user link if insurance partner
+      if (userType === 'INSURANCE_PARTNER' && insuranceData.companyId && data.user) {
+        const { error: insuranceError } = await supabase
+          .from('insurance_users')
+          .insert({
+            user_id: data.user.id,
+            insurance_company_id: insuranceData.companyId,
+            role: insuranceData.role
+          });
+        
+        if (insuranceError) {
+          console.error('Error creating insurance user link:', insuranceError);
+        }
+      }
+
       toast({
         title: "Success",
         description: `${userType.toLowerCase()} created successfully.`,
@@ -129,6 +171,7 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
 
       // Reset forms
       setClubData({ email: '', firstName: '', lastName: '', password: '', clubName: '', clubAddress: '', clubPhone: '', clubEmail: '' });
+      setInsuranceData({ email: '', firstName: '', lastName: '', password: '', companyId: '', role: 'viewer' });
       
       onSuccess?.();
       onClose();
@@ -147,6 +190,8 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
   const isFormValid = () => {
     if (userType === 'CLUB') {
       return clubData.email && clubData.firstName && clubData.password && clubData.clubName;
+    } else if (userType === 'INSURANCE_PARTNER') {
+      return insuranceData.email && insuranceData.firstName && insuranceData.password && insuranceData.companyId;
     } else {
       return (
         adminData.email &&
@@ -164,7 +209,7 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
   const getAvailableTabs = () => {
     const tabs = ['CLUB'];
     if (canCreateAdmins) {
-      tabs.push('ADMIN', 'SUPER_ADMIN');
+      tabs.push('ADMIN', 'SUPER_ADMIN', 'INSURANCE_PARTNER');
     }
     return tabs;
   };
@@ -182,8 +227,8 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
           <DialogTitle>Add New User</DialogTitle>
         </DialogHeader>
 
-        <Tabs value={userType} onValueChange={(value) => setUserType(value as 'CLUB' | 'ADMIN' | 'SUPER_ADMIN')}>
-          <TabsList className={`grid w-full ${canCreateAdmins ? 'grid-cols-3' : 'grid-cols-1'}`}>
+        <Tabs value={userType} onValueChange={(value) => setUserType(value as 'CLUB' | 'ADMIN' | 'SUPER_ADMIN' | 'INSURANCE_PARTNER')}>
+          <TabsList className={`grid w-full ${canCreateAdmins ? 'grid-cols-4' : 'grid-cols-1'}`}>
             <TabsTrigger value="CLUB" className="flex items-center gap-2">
               <Building className="w-4 h-4" />
               Club Manager
@@ -198,6 +243,18 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
               <TabsTrigger value="SUPER_ADMIN" className="flex items-center gap-2">
                 <Shield className="w-4 h-4" />
                 Super Admin
+              </TabsTrigger>
+            )}
+            {canCreateAdmins && (
+              <TabsTrigger value="INSURANCE_PARTNER" className="flex items-center gap-2">
+                <Building className="w-4 h-4" />
+                Insurance Partner
+              </TabsTrigger>
+            )}
+            {canCreateAdmins && (
+              <TabsTrigger value="INSURANCE_PARTNER" className="flex items-center gap-2">
+                <Building className="w-4 h-4" />
+                Insurance Partner
               </TabsTrigger>
             )}
           </TabsList>
@@ -402,6 +459,91 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
             </TabsContent>
           )}
 
+          {canCreateAdmins && (
+            <TabsContent value="INSURANCE_PARTNER">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Create Insurance Partner Account</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="insuranceFirstName">First Name</Label>
+                      <Input
+                        id="insuranceFirstName"
+                        value={insuranceData.firstName}
+                        onChange={(e) => setInsuranceData(prev => ({ ...prev, firstName: e.target.value }))}
+                        placeholder="Enter first name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="insuranceLastName">Last Name</Label>
+                      <Input
+                        id="insuranceLastName"
+                        value={insuranceData.lastName}
+                        onChange={(e) => setInsuranceData(prev => ({ ...prev, lastName: e.target.value }))}
+                        placeholder="Enter last name"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="insuranceEmail">Email</Label>
+                    <Input
+                      id="insuranceEmail"
+                      type="email"
+                      value={insuranceData.email}
+                      onChange={(e) => setInsuranceData(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="Enter email address"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="insurancePassword">Password</Label>
+                    <Input
+                      id="insurancePassword"
+                      type="password"
+                      value={insuranceData.password}
+                      onChange={(e) => setInsuranceData(prev => ({ ...prev, password: e.target.value }))}
+                      placeholder="Enter secure password"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="insuranceCompany">Insurance Company</Label>
+                    <Select
+                      value={insuranceData.companyId}
+                      onValueChange={(value) => setInsuranceData(prev => ({ ...prev, companyId: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select insurance company" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {insuranceCompanies.map((company) => (
+                          <SelectItem key={company.id} value={company.id}>
+                            {company.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="insuranceRole">Access Level</Label>
+                    <Select
+                      value={insuranceData.role}
+                      onValueChange={(value: 'viewer' | 'admin') => setInsuranceData(prev => ({ ...prev, role: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="viewer">Viewer - Read-only access</SelectItem>
+                        <SelectItem value="admin">Admin - Full company access</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
         </Tabs>
         <div className="flex justify-end gap-3 pt-4 border-t">
           <Button variant="outline" onClick={onClose}>
@@ -411,7 +553,11 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
             onClick={handleCreateUser} 
             disabled={loading || !isFormValid()}
           >
-            {loading ? "Creating..." : `Create ${userType === 'SUPER_ADMIN' ? 'Super Admin' : userType.toLowerCase()}`}
+            {loading ? "Creating..." : `Create ${
+              userType === 'SUPER_ADMIN' ? 'Super Admin' :
+              userType === 'INSURANCE_PARTNER' ? 'Insurance Partner' :
+              userType.toLowerCase()
+            }`}
           </Button>
         </div>
       </DialogContent>

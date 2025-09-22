@@ -146,51 +146,23 @@ const AdminInsuranceManagement = () => {
 
   const handleGeneratePremiums = async (companyId: string) => {
     try {
-      // Get current month start/end
-      const now = new Date();
-      const periodStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const periodEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-
-      const { data, error } = await supabase
-        .rpc('calculate_monthly_premiums', {
-          company_id: companyId,
-          period_start: periodStart.toISOString().split('T')[0],
-          period_end: periodEnd.toISOString().split('T')[0]
-        });
+      // Call the edge function to calculate premiums
+      const { data, error } = await supabase.functions.invoke('calculate-monthly-premiums');
 
       if (error) throw error;
 
-      if (data && data.length > 0) {
-        const result = data[0];
-        
-        // Insert the premium record
-        const { error: insertError } = await supabase
-          .from('insurance_premiums')
-          .insert([{
-            insurance_company_id: companyId,
-            period_start: periodStart.toISOString().split('T')[0],
-            period_end: periodEnd.toISOString().split('T')[0],
-            total_entries: result.entry_count,
-            premium_rate: result.premium_rate,
-            total_premium_amount: result.total_premium,
-            status: 'pending'
-          }]);
+      toast({
+        title: "Success",
+        description: "Monthly premiums calculated successfully"
+      });
 
-        if (insertError) throw insertError;
-
-        toast({
-          title: "Success",
-          description: `Premium calculated: ${result.entry_count} entries × £${result.premium_rate} = £${result.total_premium}`
-        });
-
-        fetchInsuranceData();
-      }
+      fetchInsuranceData();
 
     } catch (error) {
       console.error('Error generating premiums:', error);
       toast({
-        title: "Error",
-        description: "Failed to generate premium calculation",
+        title: "Error", 
+        description: "Failed to generate premium calculations",
         variant: "destructive"
       });
     }

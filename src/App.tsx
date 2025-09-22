@@ -49,6 +49,8 @@ import Styleguide from "./pages/Styleguide";
 import ErrorPage from "./pages/ErrorPage";
 import PartnershipApplication from "./pages/PartnershipApplication";
 import InsuranceDashboard from "./pages/InsuranceDashboard";
+import InsuranceEntries from "./pages/InsuranceEntries";
+import InsuranceReports from "./pages/InsuranceReports";
 import AdminInsuranceManagement from "./pages/admin/AdminInsuranceManagement";
 
 // Auth components
@@ -346,7 +348,7 @@ const App = () => {
             path="/dashboard/insurance/entries" 
             element={
                <EnhancedRoleGuard allowedRoles={['INSURANCE_PARTNER']}>
-                <InsuranceDashboard />
+                <InsuranceEntries />
               </EnhancedRoleGuard>
             } 
           />
@@ -362,7 +364,7 @@ const App = () => {
             path="/dashboard/insurance/reports" 
             element={
                <EnhancedRoleGuard allowedRoles={['INSURANCE_PARTNER']}>
-                <InsuranceDashboard />
+                <InsuranceReports />
               </EnhancedRoleGuard>
             } 
           />
