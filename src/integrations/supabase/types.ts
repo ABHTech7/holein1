@@ -1242,6 +1242,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_current_user_is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       get_current_user_permissions: {
         Args: Record<PropertyKey, never>
         Returns: {
