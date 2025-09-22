@@ -315,25 +315,42 @@ const InsuranceDashboard = () => {
               </Card>
             </div>
 
-            {/* Monthly Growth Chart */}
-            <ChartWrapper
-              title="Monthly Premium Growth"
-              description="Premium totals by month for the current year"
-            >
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={monthlyData}>
+             {/* Monthly Growth Chart */}
+             <Card>
+               <CardHeader>
+                 <CardTitle>Monthly Premium Growth</CardTitle>
+                 <p className="text-sm text-muted-foreground">Premium totals by month for the current year</p>
+               </CardHeader>
+               <CardContent>
+                 <div className="h-64 w-full">
+                   <ResponsiveContainer width="100%" height="100%">
+                     <LineChart data={monthlyData} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis 
-                      tickFormatter={(value) => formatCurrency(Math.round((value as number) * 100))}
-                    />
-                    <Tooltip 
-                      formatter={(value: number, name: string) => [
-                        name === 'premiums' ? formatCurrency(Math.round((value as number) * 100)) : (value as number).toLocaleString(),
-                        name === 'premiums' ? 'Premiums' : 'Entries'
-                      ]}
-                    />
+                     <XAxis 
+                       dataKey="month" 
+                       fontSize={12}
+                       tickLine={false}
+                       axisLine={false}
+                     />
+                     <YAxis 
+                       tickFormatter={(value) => `£${(value as number).toFixed(0)}`}
+                       fontSize={12}
+                       tickLine={false}
+                       axisLine={false}
+                       width={60}
+                     />
+                     <Tooltip 
+                       formatter={(value: number, name: string) => [
+                         name === 'premiums' ? `£${(value as number).toFixed(2)}` : (value as number).toLocaleString(),
+                         name === 'premiums' ? 'Premiums' : 'Entries'
+                       ]}
+                       labelStyle={{ color: 'hsl(var(--foreground))' }}
+                       contentStyle={{ 
+                         backgroundColor: 'hsl(var(--background))', 
+                         border: '1px solid hsl(var(--border))',
+                         borderRadius: '6px'
+                       }}
+                     />
                     <Line 
                       type="monotone" 
                       dataKey="premiums" 
@@ -341,10 +358,11 @@ const InsuranceDashboard = () => {
                       strokeWidth={2}
                       dot={{ fill: "hsl(var(--primary))" }}
                     />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </ChartWrapper>
+                   </LineChart>
+                 </ResponsiveContainer>
+               </div>
+             </CardContent>
+           </Card>
 
             {/* Entries Table */}
             <Card>
@@ -377,45 +395,47 @@ const InsuranceDashboard = () => {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Entry Date (GMT)</TableHead>
-                        <TableHead>Player Name</TableHead>
-                        <TableHead>Competition</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                  <TableBody>
-                    {currentEntries.map((entry, index) => (
-                      <TableRow key={startIndex + index}>
-                        <TableCell>
-                          {new Date(entry.entry_date).toLocaleString('en-GB', { 
-                            timeZone: 'UTC',
-                            year: 'numeric',
-                            month: '2-digit', 
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </TableCell>
-                        <TableCell>
-                          {entry.player_first_name} {entry.player_last_name}
-                        </TableCell>
-                        <TableCell>
-                          {entry.competition_name}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="mt-4 flex items-center justify-between">
-                    <div className="text-sm text-muted-foreground">
-                      Showing {startIndex + 1} to {Math.min(endIndex, currentMonthEntries)} of {currentMonthEntries.toLocaleString()} entries
-                    </div>
+               <CardContent className="p-0">
+                 <div className="overflow-x-auto">
+                   <Table>
+                     <TableHeader>
+                       <TableRow>
+                         <TableHead className="min-w-[140px]">Entry Date (GMT)</TableHead>
+                         <TableHead className="min-w-[120px]">Player Name</TableHead>
+                         <TableHead className="min-w-[150px]">Competition</TableHead>
+                       </TableRow>
+                     </TableHeader>
+                   <TableBody>
+                     {currentEntries.map((entry, index) => (
+                       <TableRow key={startIndex + index}>
+                         <TableCell className="font-mono text-sm">
+                           {new Date(entry.entry_date).toLocaleString('en-GB', { 
+                             timeZone: 'UTC',
+                             year: 'numeric',
+                             month: '2-digit', 
+                             day: '2-digit',
+                             hour: '2-digit',
+                             minute: '2-digit'
+                           })}
+                         </TableCell>
+                         <TableCell className="font-medium">
+                           {entry.player_first_name} {entry.player_last_name}
+                         </TableCell>
+                         <TableCell>
+                           {entry.competition_name}
+                         </TableCell>
+                       </TableRow>
+                     ))}
+                   </TableBody>
+                 </Table>
+                 </div>
+                 
+                 {/* Pagination */}
+                 {totalPages > 1 && (
+                   <div className="mt-4 px-6 pb-4 flex items-center justify-between">
+                     <div className="text-sm text-muted-foreground">
+                       Showing {startIndex + 1} to {Math.min(endIndex, currentMonthEntries)} of {currentMonthEntries.toLocaleString()} entries
+                     </div>
                     <Pagination>
                       <PaginationContent>
                         <PaginationItem>
