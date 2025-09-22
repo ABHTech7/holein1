@@ -5,6 +5,15 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationEllipsis, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious 
+} from "@/components/ui/pagination";
 import { Search, Mail, Calendar, Trophy, ArrowLeft, Phone, Plus, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,8 +46,11 @@ const PlayersPage = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredPlayers, setFilteredPlayers] = useState<Player[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [showNewUser, setShowNewUser] = useState(false);
   const [showIncompleteModal, setShowIncompleteModal] = useState(false);
+
+  const ITEMS_PER_PAGE = 25;
 
   useEffect(() => {
     fetchPlayers();
@@ -51,6 +63,8 @@ const PlayersPage = () => {
       return fullName.includes(search) || player.email.toLowerCase().includes(search);
     });
     setFilteredPlayers(filtered);
+    // Reset to first page when search changes
+    setCurrentPage(1);
   }, [players, searchTerm]);
 
   const fetchPlayers = async () => {
@@ -164,6 +178,16 @@ const PlayersPage = () => {
     return 'No name provided';
   };
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredPlayers.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentPlayers = filteredPlayers.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
@@ -201,7 +225,7 @@ const PlayersPage = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="w-5 h-5" />
-                All Players ({players.length})
+                All Players ({filteredPlayers.length} total, showing {currentPlayers.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -240,14 +264,14 @@ const PlayersPage = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredPlayers.length === 0 ? (
+                    {currentPlayers.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                           {searchTerm ? 'No players found matching your search.' : 'No players found.'}
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredPlayers.map((player) => (
+                      currentPlayers.map((player) => (
                         <TableRow key={player.id}>
                           <TableCell className="font-medium">
                             <button
@@ -300,6 +324,73 @@ const PlayersPage = () => {
                     )}
                   </TableBody>
                 </Table>
+              )}
+
+              {/* Pagination */}
+              {filteredPlayers.length > ITEMS_PER_PAGE && (
+                <div className="flex justify-between items-center mt-6">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {startIndex + 1} to {Math.min(endIndex, filteredPlayers.length)} of {filteredPlayers.length} players
+                  </div>
+                  
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+                          className={currentPage <= 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                      
+                      {/* First page */}
+                      {currentPage > 3 && (
+                        <>
+                          <PaginationItem>
+                            <PaginationLink onClick={() => handlePageChange(1)} className="cursor-pointer">
+                              1
+                            </PaginationLink>
+                          </PaginationItem>
+                          {currentPage > 4 && <PaginationEllipsis />}
+                        </>
+                      )}
+                      
+                      {/* Pages around current page */}
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(page => page >= currentPage - 2 && page <= currentPage + 2)
+                        .map(page => (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              onClick={() => handlePageChange(page)}
+                              isActive={currentPage === page}
+                              className="cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))
+                      }
+                      
+                      {/* Last page */}
+                      {currentPage < totalPages - 2 && (
+                        <>
+                          {currentPage < totalPages - 3 && <PaginationEllipsis />}
+                          <PaginationItem>
+                            <PaginationLink onClick={() => handlePageChange(totalPages)} className="cursor-pointer">
+                              {totalPages}
+                            </PaginationLink>
+                          </PaginationItem>
+                        </>
+                      )}
+                      
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)}
+                          className={currentPage >= totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
               )}
             </CardContent>
           </Card>
