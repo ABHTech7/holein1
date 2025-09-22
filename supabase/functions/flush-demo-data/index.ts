@@ -64,14 +64,18 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get all demo clubs first (they have the demo email pattern)
     let clubQuery = supabaseAdmin
-      .from("clubs")
-      .select("id, name, email, created_at");
+      .from("clubs");
 
     if (recentOnly) {
       clubQuery = clubQuery.gte("created_at", thresholdIso);
     }
 
-    const { data: allClubs } = await clubQuery;
+    const { data: allClubs, error: clubsFetchError } = await clubQuery
+      .select("id, name, email, created_at");
+
+    if (clubsFetchError) {
+      console.error("Error fetching clubs:", clubsFetchError);
+    }
 
     const demoClubs = allClubs?.filter(club => 
       club.email?.includes('@holein1demo.test') ||
@@ -150,8 +154,7 @@ const handler = async (req: Request): Promise<Response> => {
     const demoUserIds = demoUsers.map(u => u.id);
     console.log(`Found ${demoUsers.length} demo users to clean up`);
 
-    const demoClubIds = demoClubs.map(c => c.id);
-    console.log(`Found ${demoClubs.length} demo clubs to clean up`);
+    // demoClubIds already computed above; avoiding redeclaration to prevent runtime errors
 
     // Delete in proper order due to foreign key constraints
     
@@ -337,6 +340,8 @@ const handler = async (req: Request): Promise<Response> => {
       JSON.stringify({ 
         success: true, 
         message: "Comprehensive demo data flushed successfully",
+        deletedUsers: deletedUsersCount,
+        deletedClubs: demoClubs.length,
         summary: {
           deletedUsers: deletedUsersCount,
           deletedClubs: demoClubs.length,
