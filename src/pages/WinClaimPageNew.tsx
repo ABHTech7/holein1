@@ -74,30 +74,12 @@ const WinClaimPageNew: React.FC = () => {
       }
 
       try {
-        // Get entry with related data
+        // 1) Load entry
         const { data: entryRecord, error: entryError } = await supabase
           .from('entries')
-          .select(`
-            id,
-            player_id,
-            outcome_self,
-            status,
-            competition:competitions!inner(
-              id,
-              name,
-              prize_pool,
-              hole_number,
-              club:clubs!inner(
-                name
-              )
-            ),
-            player:profiles!inner(
-              first_name,
-              gender
-            )
-          `)
+          .select('id, player_id, outcome_self, status, competition_id')
           .eq('id', entryId)
-          .single();
+          .maybeSingle();
 
         if (entryError || !entryRecord) {
           console.error('Failed to fetch entry:', entryError);
@@ -105,31 +87,67 @@ const WinClaimPageNew: React.FC = () => {
           return;
         }
 
-        // Check authorization
+        // 2) Authorization: allow owner, ADMIN, or CLUB
         if (user && entryRecord.player_id !== user.id) {
-          setError('You are not authorized to access this entry');
-          return;
+          const role = (user.user_metadata as any)?.role;
+          const isPrivileged = role === 'ADMIN' || role === 'CLUB';
+          if (!isPrivileged) {
+            setError('You are not authorized to access this entry');
+            return;
+          }
         }
 
-        // Check if entry is eligible for verification
+        // 3) Validate eligibility
         if (entryRecord.outcome_self !== 'win' && entryRecord.status !== 'pending_verification') {
           setError('This entry is not eligible for win verification');
           return;
+        }
+
+        // 4) Load competition
+        const { data: competitionRecord } = await supabase
+          .from('competitions')
+          .select('id, name, prize_pool, hole_number, club_id')
+          .eq('id', entryRecord.competition_id)
+          .maybeSingle();
+
+        // 5) Load club (security definer function)
+        let clubName = 'Unknown Club';
+        if (competitionRecord?.club_id) {
+          const { data: clubData } = await supabase.rpc('get_safe_club_info', { club_uuid: competitionRecord.club_id });
+          if (clubData && Array.isArray(clubData) && clubData.length > 0) {
+            clubName = clubData[0].name;
+          }
+        }
+
+        // 6) Load player profile (own profile or safe function)
+        let playerFirstName = 'Player';
+        if (user && entryRecord.player_id === user.id) {
+          const { data: playerRecord } = await supabase
+            .from('profiles')
+            .select('first_name, gender')
+            .eq('id', entryRecord.player_id)
+            .maybeSingle();
+          if (playerRecord?.first_name) playerFirstName = playerRecord.first_name;
+        } else {
+          const { data: profileSafe } = await supabase.rpc('get_current_user_profile_safe');
+          if (profileSafe && Array.isArray(profileSafe) && profileSafe.length > 0) {
+            playerFirstName = profileSafe[0].first_name || 'Player';
+          }
         }
 
         setEntryData({
           id: entryRecord.id,
           player_id: entryRecord.player_id,
           competition: {
-            id: entryRecord.competition.id,
-            name: entryRecord.competition.name,
-            prize_pool: entryRecord.competition.prize_pool,
-            hole_number: entryRecord.competition.hole_number,
-            club_name: entryRecord.competition.club.name,
+            id: competitionRecord?.id || '',
+            name: competitionRecord?.name || 'Competition',
+            prize_pool: competitionRecord?.prize_pool || 0,
+            hole_number: competitionRecord?.hole_number || 1,
+            club_name: clubName,
           },
           player: {
-            first_name: entryRecord.player.first_name || 'Player',
-            gender: entryRecord.player.gender as Gender,
+            first_name: playerFirstName,
+            gender: undefined,
           },
           outcome_self: entryRecord.outcome_self,
           status: entryRecord.status,

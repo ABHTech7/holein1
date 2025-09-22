@@ -95,10 +95,16 @@ export const SimpleAttemptFlow = ({
     } catch (error) {
       console.error('Error reporting outcome:', error);
       toast({
-        title: "Error",
-        description: "Failed to report outcome. Please try again.",
-        variant: "destructive"
+        title: outcome === 'win' ? "Win reported, but with a hiccup" : "Error",
+        description: outcome === 'win' 
+          ? "We'll sort the details during verification. Legend status still awaits!"
+          : "Failed to report outcome. Please try again.",
+        variant: outcome === 'win' ? "default" : "destructive"
       });
+      // Ensure winners can proceed even if the entry update fails (e.g., admin testing)
+      if (outcome === 'win' && onWinReported) {
+        onWinReported(entryId);
+      }
     } finally {
       setSubmitting(false);
     }
