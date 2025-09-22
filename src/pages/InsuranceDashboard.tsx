@@ -227,7 +227,7 @@ const InsuranceDashboard = () => {
                   <PoundSterling className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(currentMonthPremium)}</div>
+                  <div className="text-2xl font-bold">{formatCurrency(currentMonthPremium * 100)}</div>
                   <p className="text-xs text-muted-foreground">
                     @ £{company.premium_rate_per_entry.toFixed(2)} per entry
                   </p>
@@ -240,7 +240,7 @@ const InsuranceDashboard = () => {
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(totalPremiumsYTD)}</div>
+                  <div className="text-2xl font-bold">{formatCurrency(totalPremiumsYTD * 100)}</div>
                   <p className="text-xs text-muted-foreground">
                     Year to date total
                   </p>
@@ -323,48 +323,7 @@ const InsuranceDashboard = () => {
             </Card>
 
             {/* Recent Premiums */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Premium Calculations</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Period</TableHead>
-                      <TableHead>Entries</TableHead>
-                      <TableHead>Rate</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {premiums.slice(0, 6).map((premium) => (
-                      <TableRow key={premium.id}>
-                        <TableCell>
-                          {formatDate(premium.period_start)} - {formatDate(premium.period_end)}
-                        </TableCell>
-                        <TableCell>{premium.total_entries.toLocaleString()}</TableCell>
-                        <TableCell>£{premium.premium_rate.toFixed(2)}</TableCell>
-                        <TableCell className="font-semibold">
-                          {formatCurrency(premium.total_premium_amount)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={
-                              premium.status === 'paid' ? 'default' :
-                              premium.status === 'approved' ? 'secondary' : 'outline'
-                            }
-                          >
-                            {premium.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            {/* Recent Premium Calculations removed per request */}
           </div>
         </Section>
       </main>
