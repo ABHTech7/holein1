@@ -256,15 +256,19 @@ const AdminInsuranceManagement = () => {
               Back to Admin Dashboard
             </Button>
 
-            {/* Logo */}
-            <div className="flex items-center space-x-2 mb-2">
-              <div className="flex items-center justify-center w-8 h-8 bg-gradient-primary rounded-lg">
-                <Trophy className="w-5 h-5 text-primary-foreground" />
+            {/* Insurance Partner Logo */}
+            {hasInsurancePartner && currentCompany.logo_url && (
+              <div className="flex items-center space-x-3 mb-2">
+                <img 
+                  src={currentCompany.logo_url} 
+                  alt={`${currentCompany.name} logo`}
+                  className="w-12 h-12 rounded-lg object-contain bg-white p-2 border"
+                />
+                <span className="font-display text-xl font-semibold text-foreground">
+                  {currentCompany.name}
+                </span>
               </div>
-              <span className="font-display text-xl font-semibold text-foreground">
-                Official Hole in 1
-              </span>
-            </div>
+            )}
 
             {/* Header */}
             <div className="flex justify-between items-center">
