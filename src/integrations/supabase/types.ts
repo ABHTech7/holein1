@@ -1441,7 +1441,7 @@ export type Database = {
       get_insurance_entries_data: {
         Args: { company_id?: string; month_end?: string; month_start?: string }
         Returns: {
-          competition_id: string
+          competition_name: string
           entry_date: string
           player_first_name: string
           player_last_name: string

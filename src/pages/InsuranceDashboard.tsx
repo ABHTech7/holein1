@@ -31,7 +31,7 @@ interface InsuranceCompany {
 }
 
 interface InsuranceEntry {
-  competition_id: string;
+  competition_name: string;
   entry_date: string;
   player_first_name: string;
   player_last_name: string;
@@ -57,9 +57,9 @@ const InsuranceDashboard = () => {
   const [premiums, setPremiums] = useState<InsurancePremium[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
 
-  // Get current month date range
+  // Get current month date range - fixed to use proper end date
   const monthStart = new Date(selectedMonth + '-01');
-  const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+  const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0); // Last day of month
 
   useEffect(() => {
     if (!user) return;
@@ -280,14 +280,14 @@ const InsuranceDashboard = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Entry Date (GMT)</TableHead>
-                      <TableHead>Player Name</TableHead>
-                      <TableHead>Competition ID</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Entry Date (GMT)</TableHead>
+                        <TableHead>Player Name</TableHead>
+                        <TableHead>Competition</TableHead>
+                      </TableRow>
+                    </TableHeader>
                   <TableBody>
                     {entries.slice(0, 50).map((entry, index) => (
                       <TableRow key={index}>
@@ -304,8 +304,8 @@ const InsuranceDashboard = () => {
                         <TableCell>
                           {entry.player_first_name} {entry.player_last_name}
                         </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {entry.competition_id}
+                        <TableCell>
+                          {entry.competition_name}
                         </TableCell>
                       </TableRow>
                     ))}

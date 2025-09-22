@@ -21,7 +21,7 @@ import Section from '@/components/layout/Section';
 import { useNavigate } from 'react-router-dom';
 
 interface InsuranceEntry {
-  competition_id: string;
+  competition_name: string;
   entry_date: string;
   player_first_name: string;
   player_last_name: string;
@@ -52,7 +52,7 @@ const InsuranceEntries = () => {
       const filtered = entries.filter(entry =>
         entry.player_first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         entry.player_last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        entry.competition_id.toLowerCase().includes(searchTerm.toLowerCase())
+        entry.competition_name.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredEntries(filtered);
     } else {
@@ -119,7 +119,7 @@ const InsuranceEntries = () => {
     }
 
     // Create CSV content
-    const headers = ['Entry Date (GMT)', 'Player First Name', 'Player Last Name', 'Competition ID'];
+    const headers = ['Entry Date (GMT)', 'Player First Name', 'Player Last Name', 'Competition'];
     const csvContent = [
       headers.join(','),
       ...filteredEntries.map(entry =>
@@ -127,7 +127,7 @@ const InsuranceEntries = () => {
           new Date(entry.entry_date).toISOString(),
           entry.player_first_name,
           entry.player_last_name,
-          entry.competition_id
+          entry.competition_name
         ].join(',')
       )
     ].join('\n');
@@ -276,12 +276,12 @@ const InsuranceEntries = () => {
                     <TableRow>
                       <TableHead>Entry Date (GMT)</TableHead>
                       <TableHead>Player Name</TableHead>
-                      <TableHead>Competition ID</TableHead>
+                      <TableHead>Competition</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {currentEntries.map((entry, index) => (
-                      <TableRow key={`${entry.competition_id}-${entry.entry_date}-${index}`}>
+                      <TableRow key={`${entry.competition_name}-${entry.entry_date}-${index}`}>
                         <TableCell>
                           {new Date(entry.entry_date).toLocaleString('en-GB', { 
                             timeZone: 'UTC',
@@ -295,8 +295,8 @@ const InsuranceEntries = () => {
                         <TableCell>
                           {entry.player_first_name} {entry.player_last_name}
                         </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {entry.competition_id}
+                        <TableCell>
+                          {entry.competition_name}
                         </TableCell>
                       </TableRow>
                     ))}
