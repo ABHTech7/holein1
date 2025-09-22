@@ -36,6 +36,7 @@ interface QuickActionsProps {
 const AdminQuickActions = ({ stats, onAddUser, isEditing = false }: QuickActionsProps) => {
   const navigate = useNavigate();
   const { newLeads, pendingClaims } = useNotificationCounts();
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   
   const [actionOrder, setActionOrder] = useState<string[]>(() => {
     // Load saved order from localStorage, fallback to default order
@@ -163,12 +164,24 @@ const AdminQuickActions = ({ stats, onAddUser, isEditing = false }: QuickActions
   const newActions = actions.filter(action => !actionOrder.includes(action.id));
   const allOrderedActions = [...orderedActions, ...newActions];
 
+  // Update actionOrder to include any new actions
+  useEffect(() => {
+    const newActionIds = newActions.map(action => action.id);
+    if (newActionIds.length > 0) {
+      setActionOrder(prev => [...prev, ...newActionIds]);
+    }
+  }, [newActions.length]);
+
   const moveAction = (fromIndex: number, toIndex: number) => {
     if (!isEditing) return;
     
-    const newOrder = [...actionOrder];
-    const [movedItem] = newOrder.splice(fromIndex, 1);
-    newOrder.splice(toIndex, 0, movedItem);
+    // Work with the complete actions array to get proper IDs
+    const reorderedActions = [...allOrderedActions];
+    const [movedAction] = reorderedActions.splice(fromIndex, 1);
+    reorderedActions.splice(toIndex, 0, movedAction);
+    
+    // Update the actionOrder state with the new order of IDs
+    const newOrder = reorderedActions.map(action => action.id);
     setActionOrder(newOrder);
   };
 
@@ -187,7 +200,9 @@ const AdminQuickActions = ({ stats, onAddUser, isEditing = false }: QuickActions
         return (
           <Card 
             key={action.id}
-            className={`${action.color} ${isEditing ? 'cursor-move' : 'cursor-pointer'} transition-all duration-200 hover:shadow-md border ${isEditing ? 'ring-2 ring-primary/20' : ''} relative`}
+            className={`${action.color} ${isEditing ? 'cursor-move' : 'cursor-pointer'} transition-all duration-200 hover:shadow-md border ${isEditing ? 'ring-2 ring-primary/20' : ''} relative ${
+              draggedIndex === index ? 'opacity-50 scale-95' : ''
+            } ${isEditing && draggedIndex !== null && draggedIndex !== index ? 'border-dashed border-2 border-primary/40' : ''}`}
             onClick={() => {
               if (!isEditing) {
                 console.log('Quick action clicked:', action.title, action.path);
@@ -197,19 +212,28 @@ const AdminQuickActions = ({ stats, onAddUser, isEditing = false }: QuickActions
             draggable={isEditing}
             onDragStart={(e) => {
               if (isEditing) {
+                setDraggedIndex(index);
                 e.dataTransfer.setData('text/plain', index.toString());
+                e.dataTransfer.effectAllowed = 'move';
               }
+            }}
+            onDragEnd={() => {
+              setDraggedIndex(null);
             }}
             onDragOver={(e) => {
               if (isEditing) {
                 e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
               }
             }}
             onDrop={(e) => {
               if (isEditing) {
                 e.preventDefault();
                 const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
-                moveAction(fromIndex, index);
+                if (fromIndex !== index) {
+                  moveAction(fromIndex, index);
+                }
+                setDraggedIndex(null);
               }
             }}
           >
