@@ -634,11 +634,10 @@ export type Database = {
       }
       insurance_premiums: {
         Row: {
-          approved_at: string | null
-          approved_by: string | null
           generated_at: string | null
           id: string
           insurance_company_id: string | null
+          payment_required_at: string | null
           period_end: string
           period_start: string
           premium_rate: number
@@ -647,11 +646,10 @@ export type Database = {
           total_premium_amount: number
         }
         Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
           generated_at?: string | null
           id?: string
           insurance_company_id?: string | null
+          payment_required_at?: string | null
           period_end: string
           period_start: string
           premium_rate: number
@@ -660,11 +658,10 @@ export type Database = {
           total_premium_amount: number
         }
         Update: {
-          approved_at?: string | null
-          approved_by?: string | null
           generated_at?: string | null
           id?: string
           insurance_company_id?: string | null
+          payment_required_at?: string | null
           period_end?: string
           period_start?: string
           premium_rate?: number
@@ -673,13 +670,6 @@ export type Database = {
           total_premium_amount?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "insurance_premiums_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "insurance_premiums_insurance_company_id_fkey"
             columns: ["insurance_company_id"]

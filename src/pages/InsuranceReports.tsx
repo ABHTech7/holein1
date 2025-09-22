@@ -31,7 +31,7 @@ interface InsurancePremium {
   total_premium_amount: number;
   status: string;
   generated_at: string;
-  approved_at: string | null;
+  payment_required_at?: string | null;
 }
 
 interface MonthlyStats {

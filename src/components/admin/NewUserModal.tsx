@@ -51,7 +51,7 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
     firstName: '',
     lastName: '',
     password: '',
-    companyId: '',
+    companyId: insuranceCompany?.id || '',
     role: 'viewer' as 'viewer' | 'admin'
   });
 
@@ -127,7 +127,7 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
 
         // Reset forms
         setAdminData({ email: '', firstName: '', lastName: '', password: '', role: 'ADMIN' });
-        setInsuranceData({ email: '', firstName: '', lastName: '', password: '', companyId: '', role: 'viewer' });
+        setInsuranceData({ email: '', firstName: '', lastName: '', password: '', companyId: insuranceCompany?.id || '', role: 'viewer' });
         onSuccess?.();
         onClose();
         return;
@@ -150,12 +150,12 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
       }
 
       // Create insurance user link if insurance partner
-      if (userType === 'INSURANCE_PARTNER' && insuranceData.companyId && data.user) {
+      if (userType === 'INSURANCE_PARTNER' && insuranceCompany && data.user) {
         const { error: insuranceError } = await supabase
           .from('insurance_users')
           .insert({
             user_id: data.user.id,
-            insurance_company_id: insuranceData.companyId,
+            insurance_company_id: insuranceCompany.id,
             role: insuranceData.role
           });
         
@@ -171,7 +171,7 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
 
       // Reset forms
       setClubData({ email: '', firstName: '', lastName: '', password: '', clubName: '', clubAddress: '', clubPhone: '', clubEmail: '' });
-      setInsuranceData({ email: '', firstName: '', lastName: '', password: '', companyId: '', role: 'viewer' });
+      setInsuranceData({ email: '', firstName: '', lastName: '', password: '', companyId: insuranceCompany?.id || '', role: 'viewer' });
       
       onSuccess?.();
       onClose();
@@ -191,7 +191,7 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
     if (userType === 'CLUB') {
       return clubData.email && clubData.firstName && clubData.password && clubData.clubName;
     } else if (userType === 'INSURANCE_PARTNER') {
-      return insuranceData.email && insuranceData.firstName && insuranceData.password && insuranceData.companyId;
+      return insuranceData.email && insuranceData.firstName && insuranceData.password && insuranceCompany;
     } else {
       return (
         adminData.email &&
@@ -500,24 +500,28 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
                       placeholder="Enter secure password"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="insuranceCompany">Insurance Company</Label>
-                    <Select
-                      value={insuranceData.companyId}
-                      onValueChange={(value) => setInsuranceData(prev => ({ ...prev, companyId: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select insurance company" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {insuranceCompany && (
-                          <SelectItem value={insuranceCompany.id}>
-                            {insuranceCompany.name}
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                   <div className="space-y-2">
+                     <Label htmlFor="insuranceCompany">Insurance Company</Label>
+                     {insuranceCompany ? (
+                       <div className="flex items-center gap-3 p-3 border rounded-md bg-muted/50">
+                         {insuranceCompany.logo_url && (
+                           <img 
+                             src={insuranceCompany.logo_url} 
+                             alt={`${insuranceCompany.name} logo`}
+                             className="h-8 w-8 object-contain rounded"
+                           />
+                         )}
+                         <div>
+                           <p className="font-medium">{insuranceCompany.name}</p>
+                           <p className="text-sm text-muted-foreground">{insuranceCompany.contact_email}</p>
+                         </div>
+                       </div>
+                     ) : (
+                       <div className="p-3 border rounded-md bg-muted/20">
+                         <p className="text-sm text-muted-foreground">No insurance company configured. Please add an insurance partner first.</p>
+                       </div>
+                     )}
+                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="insuranceRole">Access Level</Label>
                     <Select

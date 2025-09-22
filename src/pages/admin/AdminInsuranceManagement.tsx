@@ -19,7 +19,10 @@ import {
   FileText,
   Check,
   X,
-  Calculator
+  Calculator,
+  ArrowLeft,
+  CreditCard,
+  Upload
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -48,6 +51,7 @@ interface InsurancePremium {
   total_premium_amount: number;
   status: string;
   generated_at: string;
+  payment_required_at?: string;
   insurance_companies: { name: string };
 }
 
@@ -60,7 +64,8 @@ const AdminInsuranceManagement = () => {
   const [newCompany, setNewCompany] = useState({
     name: '',
     contact_email: '',
-    premium_rate_per_entry: 1.00
+    premium_rate_per_entry: 1.00,
+    logo_url: ''
   });
 
   useEffect(() => {
@@ -130,6 +135,7 @@ const AdminInsuranceManagement = () => {
           name: newCompany.name,
           contact_email: newCompany.contact_email,
           premium_rate_per_entry: newCompany.premium_rate_per_entry,
+          logo_url: newCompany.logo_url || null,
           active: true
         }]);
 
@@ -140,7 +146,7 @@ const AdminInsuranceManagement = () => {
         description: "Insurance partner updated successfully"
       });
 
-      setNewCompany({ name: '', contact_email: '', premium_rate_per_entry: 1.00 });
+      setNewCompany({ name: '', contact_email: '', premium_rate_per_entry: 1.00, logo_url: '' });
       setIsChangeCompanyOpen(false);
       fetchInsuranceData();
 
@@ -189,31 +195,53 @@ const AdminInsuranceManagement = () => {
     }
   };
 
-  const handleApprovePremium = async (premiumId: string) => {
+  const handleMarkPaymentRequired = async (premiumId: string) => {
     try {
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('insurance_premiums')
         .update({ 
-          status: 'approved',
-          approved_by: user?.id,
-          approved_at: new Date().toISOString()
+          status: 'payment_required',
+          payment_required_at: new Date().toISOString()
         })
         .eq('id', premiumId);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
-      toast({
-        title: "Success", 
-        description: "Premium approved successfully"
-      });
+      // Send email notification
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-premium-notification', {
+          body: { premiumId }
+        });
+        
+        if (emailError) {
+          console.error('Email notification error:', emailError);
+          toast({
+            title: "Partial Success",
+            description: "Premium marked as payment required, but email notification failed",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Success", 
+            description: "Premium marked as payment required and notification email sent"
+          });
+        }
+      } catch (emailError) {
+        console.error('Email error:', emailError);
+        toast({
+          title: "Partial Success",
+          description: "Premium marked as payment required, but email notification failed",
+          variant: "destructive"
+        });
+      }
 
       fetchInsuranceData();
 
     } catch (error) {
-      console.error('Error approving premium:', error);
+      console.error('Error marking premium as payment required:', error);
       toast({
         title: "Error",
-        description: "Failed to approve premium",
+        description: "Failed to mark premium as payment required",
         variant: "destructive"
       });
     }
@@ -240,7 +268,7 @@ const AdminInsuranceManagement = () => {
     );
   }
 
-  const pendingPremiums = premiums.filter(p => p.status === 'pending').length;
+  const pendingPayments = premiums.filter(p => p.status === 'invoiced').length;
   const totalPremiumsThisMonth = premiums
     .filter(p => new Date(p.period_start).getMonth() === new Date().getMonth() - 1)
     .reduce((sum, p) => sum + parseFloat(p.total_premium_amount.toString()), 0);
@@ -255,14 +283,25 @@ const AdminInsuranceManagement = () => {
           <div className="max-w-7xl mx-auto space-y-8">
             {/* Header */}
             <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold">Insurance Partner Management</h1>
-                <p className="text-muted-foreground">
-                  {hasInsurancePartner 
-                    ? `Current partner: ${currentCompany.name}` 
-                    : 'No insurance partner configured'
-                  }
-                </p>
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.location.href = '/dashboard/admin'}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Admin Dashboard
+                </Button>
+                <div>
+                  <h1 className="text-3xl font-bold">Insurance Partner Management</h1>
+                  <p className="text-muted-foreground">
+                    {hasInsurancePartner 
+                      ? `Current partner: ${currentCompany.name}` 
+                      : 'No insurance partner configured'
+                    }
+                  </p>
+                </div>
               </div>
 
               <Dialog open={isChangeCompanyOpen} onOpenChange={setIsChangeCompanyOpen}>
@@ -309,6 +348,16 @@ const AdminInsuranceManagement = () => {
                         onChange={(e) => setNewCompany(prev => ({ ...prev, premium_rate_per_entry: parseFloat(e.target.value) || 0 }))}
                       />
                     </div>
+                    <div>
+                      <Label htmlFor="logoUrl">Logo URL (Optional)</Label>
+                      <Input
+                        id="logoUrl"
+                        type="url"
+                        value={newCompany.logo_url}
+                        onChange={(e) => setNewCompany(prev => ({ ...prev, logo_url: e.target.value }))}
+                        placeholder="https://example.com/logo.png"
+                      />
+                    </div>
                     <div className="flex justify-end gap-3">
                       <Button variant="outline" onClick={() => setIsChangeCompanyOpen(false)}>
                         Cancel
@@ -341,13 +390,13 @@ const AdminInsuranceManagement = () => {
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Awaiting Payment</CardTitle>
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{pendingPremiums}</div>
+                  <div className="text-2xl font-bold">{pendingPayments}</div>
                   <p className="text-xs text-muted-foreground">
-                    Awaiting approval
+                    Invoiced premiums
                   </p>
                 </CardContent>
               </Card>
@@ -388,23 +437,34 @@ const AdminInsuranceManagement = () => {
                   <CardTitle>Current Insurance Partner</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm font-medium">Company Name</Label>
-                        <p className="text-lg">{currentCompany.name}</p>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium">Contact Email</Label>
-                        <p className="text-lg">{currentCompany.contact_email}</p>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium">Premium Rate</Label>
-                        <p className="text-lg">£{currentCompany.premium_rate_per_entry.toFixed(2)} per entry</p>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium">Partner Since</Label>
-                        <p className="text-lg">{formatDate(currentCompany.created_at)}</p>
+                    <div className="space-y-4">
+                    <div className="flex items-start gap-6">
+                      {currentCompany.logo_url && (
+                        <div className="flex-shrink-0">
+                          <img 
+                            src={currentCompany.logo_url} 
+                            alt={`${currentCompany.name} logo`}
+                            className="h-16 w-16 object-contain rounded border"
+                          />
+                        </div>
+                      )}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+                        <div>
+                          <Label className="text-sm font-medium">Company Name</Label>
+                          <p className="text-lg">{currentCompany.name}</p>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium">Contact Email</Label>
+                          <p className="text-lg">{currentCompany.contact_email}</p>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium">Premium Rate</Label>
+                          <p className="text-lg">£{currentCompany.premium_rate_per_entry.toFixed(2)} per entry</p>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium">Partner Since</Label>
+                          <p className="text-lg">{formatDate(currentCompany.created_at)}</p>
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2 pt-4">
@@ -453,28 +513,28 @@ const AdminInsuranceManagement = () => {
                         <TableCell className="font-semibold">
                           {formatCurrency(premium.total_premium_amount)}
                         </TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={
-                              premium.status === 'paid' ? 'default' :
-                              premium.status === 'approved' ? 'secondary' : 'outline'
-                            }
-                          >
-                            {premium.status}
-                          </Badge>
-                        </TableCell>
+                         <TableCell>
+                           <Badge 
+                             variant={
+                               premium.status === 'paid' ? 'default' :
+                               premium.status === 'payment_required' ? 'secondary' : 'outline'
+                             }
+                           >
+                             {premium.status === 'payment_required' ? 'Payment Required' : premium.status}
+                           </Badge>
+                         </TableCell>
                         <TableCell>{formatDate(premium.generated_at)}</TableCell>
-                        <TableCell>
-                          {premium.status === 'pending' && (
-                            <div className="flex gap-1">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleApprovePremium(premium.id)}
-                              >
-                                <Check className="w-4 h-4" />
-                              </Button>
-                            </div>
+                         <TableCell>
+                           {premium.status === 'invoiced' && (
+                             <Button
+                               size="sm"
+                               variant="outline"
+                               onClick={() => handleMarkPaymentRequired(premium.id)}
+                               className="flex items-center gap-1"
+                             >
+                               <CreditCard className="w-4 h-4" />
+                               Mark Payment Required
+                             </Button>
                           )}
                         </TableCell>
                       </TableRow>
