@@ -14,6 +14,7 @@ import { ArrowLeft, Plus, Search, Edit, MoreHorizontal, Shield, Building } from 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/formatters";
+import SecureAdminCreation from "@/components/admin/SecureAdminCreation";
 
 interface UserProfile {
   id: string;
@@ -41,6 +42,7 @@ const UserManagement = () => {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddUser, setShowAddUser] = useState(false);
+  const [showSecureAdminCreate, setShowSecureAdminCreate] = useState(false);
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [newUser, setNewUser] = useState({
     email: "",
@@ -526,14 +528,21 @@ const UserManagement = () => {
                 <Label htmlFor="role">Role</Label>
                 <Select
                   value={newUser.role}
-                  onValueChange={(value: "ADMIN" | "CLUB") => setNewUser({...newUser, role: value})}
+                  onValueChange={(value: "ADMIN" | "CLUB") => {
+                    if (value === "ADMIN") {
+                      setShowAddUser(false);
+                      setShowSecureAdminCreate(true);
+                    } else {
+                      setNewUser({...newUser, role: value});
+                    }
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="CLUB">Club Manager</SelectItem>
-                    <SelectItem value="ADMIN">Administrator</SelectItem>
+                    <SelectItem value="ADMIN">Administrator (Secure Creation)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -690,6 +699,16 @@ const UserManagement = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Secure Admin Creation Modal */}
+      <SecureAdminCreation 
+        isOpen={showSecureAdminCreate}
+        onClose={() => setShowSecureAdminCreate(false)}
+        onSuccess={() => {
+          // Refresh the page to show the new admin
+          window.location.reload();
+        }}
+      />
     </div>
   );
 };
