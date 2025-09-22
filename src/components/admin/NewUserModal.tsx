@@ -17,17 +17,8 @@ interface NewUserModalProps {
 
 const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
   const [loading, setLoading] = useState(false);
-  const [userType, setUserType] = useState<'PLAYER' | 'CLUB' | 'ADMIN'>('PLAYER');
+  const [userType, setUserType] = useState<'CLUB' | 'ADMIN' | 'SUPER_ADMIN'>('CLUB');
   
-  // Player form data
-  const [playerData, setPlayerData] = useState({
-    email: '',
-    firstName: '',
-    lastName: '',
-    phone: '',
-    password: ''
-  });
-
   // Club form data
   const [clubData, setClubData] = useState({
     email: '',
@@ -46,7 +37,8 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
     firstName: '',
     lastName: '',
     password: '',
-    adminSecretKey: ''
+    adminSecretKey: '',
+    role: 'ADMIN' as 'ADMIN' | 'SUPER_ADMIN'
   });
 
   const handleCreateUser = async () => {
@@ -56,20 +48,7 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
       let userData: any;
       let clubId = null;
       
-      if (userType === 'PLAYER') {
-        userData = {
-          email: playerData.email,
-          password: playerData.password,
-          options: {
-            data: {
-              first_name: playerData.firstName,
-              last_name: playerData.lastName,
-              phone: playerData.phone,
-              role: 'PLAYER'
-            }
-          }
-        };
-      } else if (userType === 'CLUB') {
+      if (userType === 'CLUB') {
         // First create the club
         const { data: club, error: clubError } = await supabase
           .from('clubs')
@@ -97,7 +76,7 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
             }
           }
         };
-      } else if (userType === 'ADMIN') {
+      } else if (userType === 'ADMIN' || userType === 'SUPER_ADMIN') {
         // Use secure edge function for admin creation
         const { data: adminRes, error: adminError } = await supabase.functions.invoke('create-admin-user', {
           body: {
@@ -105,7 +84,8 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
             firstName: adminData.firstName,
             lastName: adminData.lastName,
             password: adminData.password,
-            adminSecretKey: adminData.adminSecretKey
+            adminSecretKey: adminData.adminSecretKey,
+            role: adminData.role
           }
         });
 
@@ -116,11 +96,11 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
 
         toast({
           title: "Success",
-          description: `Administrator account created successfully.`,
+          description: `${adminData.role === 'SUPER_ADMIN' ? 'Super Administrator' : 'Administrator'} account created successfully.`,
         });
 
         // Reset forms
-        setAdminData({ email: '', firstName: '', lastName: '', password: '', adminSecretKey: '' });
+        setAdminData({ email: '', firstName: '', lastName: '', password: '', adminSecretKey: '', role: 'ADMIN' });
         onClose();
         return;
       }
@@ -147,7 +127,6 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
       });
 
       // Reset forms
-      setPlayerData({ email: '', firstName: '', lastName: '', phone: '', password: '' });
       setClubData({ email: '', firstName: '', lastName: '', password: '', clubName: '', clubAddress: '', clubPhone: '', clubEmail: '' });
       
       onClose();
@@ -164,9 +143,7 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
   };
 
   const isFormValid = () => {
-    if (userType === 'PLAYER') {
-      return playerData.email && playerData.firstName && playerData.password;
-    } else if (userType === 'CLUB') {
+    if (userType === 'CLUB') {
       return clubData.email && clubData.firstName && clubData.password && clubData.clubName;
     } else {
       return (
@@ -186,12 +163,8 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
           <DialogTitle>Add New User</DialogTitle>
         </DialogHeader>
 
-        <Tabs value={userType} onValueChange={(value) => setUserType(value as 'PLAYER' | 'CLUB' | 'ADMIN')}>
+        <Tabs value={userType} onValueChange={(value) => setUserType(value as 'CLUB' | 'ADMIN' | 'SUPER_ADMIN')}>
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="PLAYER" className="flex items-center gap-2">
-              <User className="w-4 h-4" />
-              Player
-            </TabsTrigger>
             <TabsTrigger value="CLUB" className="flex items-center gap-2">
               <Building className="w-4 h-4" />
               Club Manager
@@ -200,67 +173,11 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
               <Shield className="w-4 h-4" />
               Admin
             </TabsTrigger>
+            <TabsTrigger value="SUPER_ADMIN" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Super Admin
+            </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="PLAYER">
-            <Card>
-              <CardHeader>
-                <CardTitle>Create Player Account</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="playerFirstName">First Name</Label>
-                    <Input
-                      id="playerFirstName"
-                      value={playerData.firstName}
-                      onChange={(e) => setPlayerData(prev => ({ ...prev, firstName: e.target.value }))}
-                      placeholder="Enter first name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="playerLastName">Last Name</Label>
-                    <Input
-                      id="playerLastName"
-                      value={playerData.lastName}
-                      onChange={(e) => setPlayerData(prev => ({ ...prev, lastName: e.target.value }))}
-                      placeholder="Enter last name"
-                    />
-                  </div>
-                </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="playerEmail">Email</Label>
-                    <Input
-                      id="playerEmail"
-                      type="email"
-                      value={playerData.email}
-                      onChange={(e) => setPlayerData(prev => ({ ...prev, email: e.target.value }))}
-                      placeholder="Enter email address"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="playerPhone">Mobile Number</Label>
-                    <Input
-                      id="playerPhone"
-                      type="tel"
-                      value={playerData.phone}
-                      onChange={(e) => setPlayerData(prev => ({ ...prev, phone: e.target.value }))}
-                      placeholder="Enter mobile number"
-                    />
-                  </div>
-                <div className="space-y-2">
-                  <Label htmlFor="playerPassword">Password</Label>
-                  <Input
-                    id="playerPassword"
-                    type="password"
-                    value={playerData.password}
-                    onChange={(e) => setPlayerData(prev => ({ ...prev, password: e.target.value }))}
-                    placeholder="Enter password"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           <TabsContent value="CLUB">
             <Card>
@@ -418,6 +335,66 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="SUPER_ADMIN">
+            <Card>
+              <CardHeader>
+                <CardTitle>Create Super Administrator Account</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="superAdminFirstName">First Name</Label>
+                    <Input
+                      id="superAdminFirstName"
+                      value={adminData.firstName}
+                      onChange={(e) => setAdminData(prev => ({ ...prev, firstName: e.target.value, role: 'SUPER_ADMIN' }))}
+                      placeholder="Enter first name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="superAdminLastName">Last Name</Label>
+                    <Input
+                      id="superAdminLastName"
+                      value={adminData.lastName}
+                      onChange={(e) => setAdminData(prev => ({ ...prev, lastName: e.target.value, role: 'SUPER_ADMIN' }))}
+                      placeholder="Enter last name"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="superAdminEmail">Email</Label>
+                  <Input
+                    id="superAdminEmail"
+                    type="email"
+                    value={adminData.email}
+                    onChange={(e) => setAdminData(prev => ({ ...prev, email: e.target.value, role: 'SUPER_ADMIN' }))}
+                    placeholder="Enter email address"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="superAdminPassword">Password</Label>
+                  <Input
+                    id="superAdminPassword"
+                    type="password"
+                    value={adminData.password}
+                    onChange={(e) => setAdminData(prev => ({ ...prev, password: e.target.value, role: 'SUPER_ADMIN' }))}
+                    placeholder="Enter secure password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="superAdminSecret">Admin Secret Key</Label>
+                  <Input
+                    id="superAdminSecret"
+                    type="password"
+                    value={adminData.adminSecretKey}
+                    onChange={(e) => setAdminData(prev => ({ ...prev, adminSecretKey: e.target.value, role: 'SUPER_ADMIN' }))}
+                    placeholder="Enter admin creation secret"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
         </Tabs>
         <div className="flex justify-end gap-3 pt-4 border-t">
           <Button variant="outline" onClick={onClose}>
@@ -427,7 +404,7 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
             onClick={handleCreateUser} 
             disabled={loading || !isFormValid()}
           >
-            {loading ? "Creating..." : `Create ${userType.toLowerCase()}`}
+            {loading ? "Creating..." : `Create ${userType === 'SUPER_ADMIN' ? 'Super Admin' : userType.toLowerCase()}`}
           </Button>
         </div>
       </DialogContent>

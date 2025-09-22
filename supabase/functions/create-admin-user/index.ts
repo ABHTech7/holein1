@@ -12,6 +12,7 @@ interface CreateAdminRequest {
   lastName: string;
   password: string;
   adminSecretKey: string;
+  role?: 'ADMIN' | 'SUPER_ADMIN'; // Optional, defaults to ADMIN
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -29,7 +30,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, firstName, lastName, password, adminSecretKey }: CreateAdminRequest = await req.json();
+    const { email, firstName, lastName, password, adminSecretKey, role = 'ADMIN' }: CreateAdminRequest = await req.json();
     
     console.log("Processing admin creation for:", email);
 
@@ -60,7 +61,7 @@ const handler = async (req: Request): Promise<Response> => {
       user_metadata: {
         first_name: firstName,
         last_name: lastName,
-        role: 'ADMIN'
+        role: role
       }
     });
 
@@ -77,7 +78,7 @@ const handler = async (req: Request): Promise<Response> => {
         email: email,
         first_name: firstName,
         last_name: lastName,
-        role: 'ADMIN'
+        role: role
       });
 
     if (profileError) {
@@ -96,7 +97,7 @@ const handler = async (req: Request): Promise<Response> => {
           email: email,
           first_name: firstName,
           last_name: lastName,
-          role: 'ADMIN',
+          role: role,
           created_via: 'secure_endpoint'
         },
         user_id: null, // System action
@@ -116,7 +117,7 @@ const handler = async (req: Request): Promise<Response> => {
         email: userData.user.email,
         first_name: firstName,
         last_name: lastName,
-        role: 'ADMIN'
+        role: role
       }
     }), {
       status: 200,

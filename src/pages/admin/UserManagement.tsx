@@ -14,7 +14,7 @@ import { ArrowLeft, Plus, Search, Edit, MoreHorizontal, Shield, Building } from 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/formatters";
-import SecureAdminCreation from "@/components/admin/SecureAdminCreation";
+import NewUserModal from "@/components/admin/NewUserModal";
 import { PermissionManagement } from "@/components/admin/PermissionManagement";
 
 interface UserProfile {
@@ -43,20 +43,10 @@ const UserManagement = () => {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddUser, setShowAddUser] = useState(false);
-  const [showSecureAdminCreate, setShowSecureAdminCreate] = useState(false);
   const [showPermissionManagement, setShowPermissionManagement] = useState(false);
   const [permissionUserId, setPermissionUserId] = useState<string>("");
   const [permissionUserEmail, setPermissionUserEmail] = useState<string>("");
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
-  const [newUser, setNewUser] = useState({
-    email: "",
-    firstName: "",
-    lastName: "",
-    phone: "",
-    role: "CLUB" as "SUPER_ADMIN" | "ADMIN" | "CLUB",
-    clubId: "",
-    password: ""
-  });
   const [editUser, setEditUser] = useState({
     firstName: "",
     lastName: "",
@@ -115,65 +105,6 @@ const UserManagement = () => {
 
     fetchData();
   }, []);
-
-  const handleAddUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      // Send OTP invitation to user
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: newUser.email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?continue=/dashboard`,
-          data: {
-            first_name: newUser.firstName,
-            last_name: newUser.lastName,
-            phone: newUser.phone,
-            role: newUser.role,
-            club_id: newUser.role === 'CLUB' ? newUser.clubId : null
-          }
-        }
-      });
-
-      if (otpError) {
-        console.error('Error sending invitation:', otpError);
-        toast({
-          title: "Error", 
-          description: `Failed to send invitation: ${otpError.message}`,
-          variant: "destructive"
-        });
-        return;
-      }
-
-              toast({
-        title: "Success",
-        description: `${newUser.role === 'SUPER_ADMIN' ? 'Super Administrator' : newUser.role === 'ADMIN' ? 'Administrator' : 'Club manager'} account created successfully`
-      });
-
-      // Reset form and close modal
-      setNewUser({
-        email: "",
-        firstName: "",
-        lastName: "",
-        phone: "",
-        role: "CLUB",
-        clubId: "",
-        password: ""
-      });
-      setShowAddUser(false);
-
-      // Refresh users list
-      window.location.reload();
-
-    } catch (error) {
-      console.error('Error creating user:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
-    }
-  };
 
   const handleEditUser = (user: UserProfile) => {
     setEditingUser(user);
@@ -500,133 +431,32 @@ const UserManagement = () => {
       </main>
 
       {/* Add User Modal */}
-      {showAddUser && (
-        <Dialog open={showAddUser} onOpenChange={setShowAddUser}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Add New User</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleAddUser} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    id="firstName"
-                    value={newUser.firstName}
-                    onChange={(e) => setNewUser({...newUser, firstName: e.target.value})}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input
-                    id="lastName"
-                    value={newUser.lastName}
-                    onChange={(e) => setNewUser({...newUser, lastName: e.target.value})}
-                    required
-                  />
-                </div>
-              </div>
+      <NewUserModal 
+        isOpen={showAddUser}
+        onClose={() => {
+          setShowAddUser(false);
+          // Refresh users list when modal closes (after successful creation)
+          const fetchData = async () => {
+            try {
+              const { data: usersData, error: usersError } = await supabase
+                .from('profiles')
+                .select(`
+                  id, email, first_name, last_name, phone, role, club_id, created_at,
+                  clubs(name)
+                `)
+                .in('role', ['SUPER_ADMIN', 'ADMIN', 'CLUB'])
+                .order('created_at', { ascending: false });
 
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={newUser.phone}
-                  onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="password">Temporary Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                  required
-                  placeholder="User will need to change this"
-                  autoComplete="new-password"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="role">Role</Label>
-                <Select
-                  value={newUser.role}
-                  onValueChange={(value: "SUPER_ADMIN" | "ADMIN" | "CLUB") => {
-                    if (value === "ADMIN" || value === "SUPER_ADMIN") {
-                      setShowAddUser(false);
-                      setShowSecureAdminCreate(true);
-                    } else {
-                      setNewUser({...newUser, role: value});
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="CLUB">Club Manager</SelectItem>
-                    <SelectItem value="ADMIN">Administrator (Secure Creation)</SelectItem>
-                    <SelectItem value="SUPER_ADMIN">Super Administrator (Secure Creation)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {newUser.role === 'CLUB' && (
-                <div>
-                  <Label htmlFor="club">Assign to Club</Label>
-                  <Select
-                    value={newUser.clubId}
-                    onValueChange={(value) => setNewUser({...newUser, clubId: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a club" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clubs.map((club) => (
-                        <SelectItem key={club.id} value={club.id}>
-                          {club.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div className="flex gap-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => setShowAddUser(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="flex-1 bg-gradient-primary hover:opacity-90 text-primary-foreground"
-                >
-                  Create User
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      )}
+              if (!usersError && usersData) {
+                setUsers(usersData as UserProfile[]);
+              }
+            } catch (error) {
+              console.error('Error refreshing users:', error);
+            }
+          };
+          fetchData();
+        }}
+      />
 
       {/* Edit User Modal */}
       {editingUser && (
@@ -739,16 +569,6 @@ const UserManagement = () => {
           </DialogContent>
         </Dialog>
       )}
-
-      {/* Secure Admin Creation Modal */}
-      <SecureAdminCreation 
-        isOpen={showSecureAdminCreate}
-        onClose={() => setShowSecureAdminCreate(false)}
-        onSuccess={() => {
-          // Refresh the page to show the new admin
-          window.location.reload();
-        }}
-      />
 
       {/* Permission Management Modal */}
       {showPermissionManagement && (
