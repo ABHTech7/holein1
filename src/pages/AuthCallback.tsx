@@ -256,26 +256,47 @@ export default function AuthCallback() {
       // Clean URL (remove hash/params) then redirect
       history.replaceState(null, "", window.location.pathname);
 
-      // Check for pending entry context and redirect appropriately
+      // Enhanced entry context handling with better validation
       const entryContext = getEntryContext();
       
-      if (entryContext && isEntryContextValid(entryContext)) {
-        console.info('[AuthCallback] Found valid entry context, redirecting to continuation URL');
-        const continuationUrl = getEntryContinuationUrl(entryContext);
-        
-        toast({
-          title: "Welcome back!",
-          description: "Continuing with your competition entry...",
-        });
-        
-        navigate(continuationUrl, { replace: true });
-        return;
+      if (entryContext) {
+        if (isEntryContextValid(entryContext)) {
+          console.info('[AuthCallback] Found valid entry context, redirecting to continuation URL');
+          const continuationUrl = getEntryContinuationUrl(entryContext);
+          
+          // Check if user has existing session to avoid auth loops
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            toast({
+              title: "Welcome back!",
+              description: "Continuing with your competition entry...",
+            });
+            
+            navigate(continuationUrl, { replace: true });
+            return;
+          } else {
+            console.warn('[AuthCallback] No valid session found despite entry context');
+          }
+        } else {
+          console.info('[AuthCallback] Entry context expired, clearing');
+          clearEntryContext();
+        }
       }
 
-      // Clear any expired entry context
-      if (entryContext && !isEntryContextValid(entryContext)) {
-        console.info('[AuthCallback] Clearing expired entry context');
-        clearEntryContext();
+      // Additional check for legacy entry data
+      try {
+        const legacyEntry = localStorage.getItem('pending_entry_form');
+        if (legacyEntry) {
+          const parsed = JSON.parse(legacyEntry);
+          if (parsed.competitionId && email) {
+            console.info('[AuthCallback] Found legacy entry data, redirecting to player entries');
+            localStorage.removeItem('pending_entry_form');
+            navigate('/players/entries', { replace: true });
+            return;
+          }
+        }
+      } catch (error) {
+        console.warn('[AuthCallback] Error processing legacy entry data:', error);
       }
 
       // Default navigation after successful auth - redirect to player entries

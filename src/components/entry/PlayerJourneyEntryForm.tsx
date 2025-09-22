@@ -246,24 +246,57 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
         return;
       }
 
-      // Create entry record
-      const { data: entry, error: entryError } = await supabase
+      // Check for existing entry first (prevent duplicates)
+      const { data: existingEntry } = await supabase
         .from('entries')
-        .insert({
-          player_id: userId,
-          competition_id: competition.id,
-          amount_minor: competition.entry_fee * 100,
-          terms_accepted_at: new Date().toISOString(),
-          terms_version: '2.0',
-          status: 'pending',
-        })
-        .select()
+        .select('id, status')
+        .eq('player_id', userId)
+        .eq('competition_id', competition.id)
         .single();
 
-      if (entryError || !entry) {
-        console.error('Entry creation failed:', entryError);
-        toast({ title: "Entry creation failed", variant: "destructive" });
-        return;
+      let entry;
+      
+      if (existingEntry) {
+        console.info('[Entry] Using existing entry:', existingEntry.id);
+        entry = existingEntry;
+        
+        // Update the existing entry with latest form data
+        await supabase
+          .from('entries')
+          .update({
+            amount_minor: competition.entry_fee * 100,
+            terms_accepted_at: new Date().toISOString(),
+            terms_version: '2.0',
+            status: existingEntry.status === 'expired' ? 'pending' : existingEntry.status,
+          })
+          .eq('id', existingEntry.id);
+      } else {
+        // Create new entry record
+        const { data: newEntry, error: entryError } = await supabase
+          .from('entries')
+          .insert({
+            player_id: userId,
+            competition_id: competition.id,
+            amount_minor: competition.entry_fee * 100,
+            terms_accepted_at: new Date().toISOString(),
+            terms_version: '2.0',
+            status: 'pending',
+          })
+          .select()
+          .single();
+
+        if (entryError || !newEntry) {
+          console.error('Entry creation failed:', entryError);
+          toast({ 
+            title: "Entry creation failed", 
+            description: entryError?.message || "Please try again",
+            variant: "destructive" 
+          });
+          return;
+        }
+        
+        entry = newEntry;
+        console.info('[Entry] Created new entry:', entry.id);
       }
 
       setEntryId(entry.id);
@@ -276,17 +309,28 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
         console.warn('[Entry] Failed to update context with entry ID:', error);
       }
       
-      // Update user profile
-      await supabase.from('profiles').upsert({
-        id: userId,
-        email: formData.email,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        phone: formData.phone,
-        age_years: formData.age,
-        gender: formData.gender,
-        handicap: formData.handicap,
-      });
+      // Update user profile only if values have changed
+      try {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: userId,
+            email: formData.email,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            phone: formData.phone,
+            age_years: formData.age,
+            gender: formData.gender,
+            handicap: formData.handicap,
+          });
+
+        if (profileError) {
+          console.warn('[Entry] Profile update failed:', profileError);
+          // Don't fail the entire flow for profile update issues
+        }
+      } catch (error) {
+        console.warn('[Entry] Profile update error:', error);
+      }
 
       // Check if payment providers are available
       const availableProviders = getAvailablePaymentProviders();
