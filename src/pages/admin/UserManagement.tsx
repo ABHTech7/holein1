@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
-import { ArrowLeft, Plus, Search, Edit, MoreHorizontal, Shield, Building } from "lucide-react";
+import { ArrowLeft, Plus, Search, Edit, MoreHorizontal, Shield, Building, FileBarChart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/formatters";
@@ -23,7 +23,7 @@ interface UserProfile {
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'CLUB';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'INSURANCE_PARTNER';
   club_id: string | null;
   created_at: string;
   clubs?: {
@@ -51,7 +51,7 @@ const UserManagement = () => {
     firstName: "",
     lastName: "",
     phone: "",
-    role: "CLUB" as "SUPER_ADMIN" | "ADMIN" | "CLUB",
+    role: "CLUB" as "SUPER_ADMIN" | "ADMIN" | "CLUB" | "INSURANCE_PARTNER",
     clubId: ""
   });
 
@@ -68,7 +68,7 @@ const UserManagement = () => {
             id, email, first_name, last_name, phone, role, club_id, created_at,
             clubs(name)
           `)
-          .in('role', ['SUPER_ADMIN', 'ADMIN', 'CLUB'])
+          .in('role', ['SUPER_ADMIN', 'ADMIN', 'CLUB', 'INSURANCE_PARTNER'])
           .order('created_at', { ascending: false });
 
         if (usersError) {
@@ -193,6 +193,8 @@ const UserManagement = () => {
         return 'bg-red-100 text-red-800 border-red-200';
       case 'CLUB':
         return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'INSURANCE_PARTNER':
+        return 'bg-green-100 text-green-800 border-green-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -225,7 +227,7 @@ const UserManagement = () => {
                 </Button>
                 <div>
                   <h1 className="font-display text-3xl font-bold text-foreground">User Management</h1>
-                  <p className="text-muted-foreground mt-1">Manage administrators and club managers</p>
+                  <p className="text-muted-foreground mt-1">Manage administrators, club managers, and insurance partners</p>
                 </div>
               </div>
               <Button 
@@ -426,6 +428,81 @@ const UserManagement = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Insurance Partners Section */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <FileBarChart className="w-5 h-5 text-green-600" />
+                    Insurance Partners ({filteredUsers.filter(u => u.role === 'INSURANCE_PARTNER').length})
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="space-y-4">
+                    {[...Array(2)].map((_, i) => (
+                      <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="flex-1">
+                          <Skeleton className="h-4 w-48 mb-2" />
+                          <Skeleton className="h-3 w-32" />
+                        </div>
+                        <Skeleton className="h-6 w-20" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredUsers.filter(user => user.role === 'INSURANCE_PARTNER').length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">No insurance partners found</p>
+                      </div>
+                    ) : (
+                      filteredUsers.filter(user => user.role === 'INSURANCE_PARTNER').map((user) => (
+                        <div key={user.id} className="flex items-center gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-medium text-green-600">
+                              {(user.first_name?.[0] || user.email[0]).toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-medium">
+                                {user.first_name && user.last_name 
+                                  ? `${user.first_name} ${user.last_name}`
+                                  : user.email
+                                }
+                              </h3>
+                              <Badge className={getRoleColor(user.role)}>
+                                INSURANCE_PARTNER
+                              </Badge>
+                            </div>
+                            <div className="text-sm text-muted-foreground space-y-1">
+                              <p>{user.email}</p>
+                              {user.phone && <p>📱 {user.phone}</p>}
+                              <p>Created {formatDate(user.created_at)}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleEditUser(user)}
+                              className="gap-2"
+                            >
+                              <Edit className="w-4 h-4" />
+                              Edit
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </Section>
       </main>
@@ -444,7 +521,7 @@ const UserManagement = () => {
                   id, email, first_name, last_name, phone, role, club_id, created_at,
                   clubs(name)
                 `)
-                .in('role', ['SUPER_ADMIN', 'ADMIN', 'CLUB'])
+                .in('role', ['SUPER_ADMIN', 'ADMIN', 'CLUB', 'INSURANCE_PARTNER'])
                 .order('created_at', { ascending: false });
 
               if (!usersError && usersData) {
