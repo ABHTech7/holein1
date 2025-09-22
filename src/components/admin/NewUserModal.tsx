@@ -91,18 +91,34 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
           }
         };
       } else if (userType === 'INSURANCE_PARTNER') {
-        // Create insurance partner user
-        userData = {
-          email: insuranceData.email,
-          password: insuranceData.password,
-          options: {
-            data: {
-              first_name: insuranceData.firstName,
-              last_name: insuranceData.lastName,
-              role: 'INSURANCE_PARTNER'
-            }
+        // Create insurance partner user using edge function for proper admin privileges
+        const { data: insuranceRes, error: insuranceError } = await supabase.functions.invoke('create-admin-user', {
+          body: {
+            email: insuranceData.email,
+            firstName: insuranceData.firstName,
+            lastName: insuranceData.lastName,
+            password: insuranceData.password,
+            role: 'INSURANCE_PARTNER',
+            insuranceCompanyId: insuranceCompany?.id,
+            insuranceRole: insuranceData.role
           }
-        };
+        });
+
+        if (insuranceError) throw insuranceError;
+        if (!(insuranceRes as any)?.success) {
+          throw new Error((insuranceRes as any)?.error || 'Failed to create insurance partner account');
+        }
+
+        toast({
+          title: "Success",
+          description: "Insurance Partner account created successfully.",
+        });
+
+        // Reset forms
+        setInsuranceData({ email: '', firstName: '', lastName: '', password: '', companyId: insuranceCompany?.id || '', role: 'viewer' });
+        onSuccess?.();
+        onClose();
+        return;
       } else if (userType === 'ADMIN' || userType === 'SUPER_ADMIN') {
         // Use secure edge function for admin creation
         const { data: adminRes, error: adminError } = await supabase.functions.invoke('create-admin-user', {
@@ -146,21 +162,6 @@ const NewUserModal = ({ isOpen, onClose, onSuccess }: NewUserModalProps) => {
         
         if (profileError) {
           console.error('Error updating profile with club_id:', profileError);
-        }
-      }
-
-      // Create insurance user link if insurance partner
-      if (userType === 'INSURANCE_PARTNER' && insuranceCompany && data.user) {
-        const { error: insuranceError } = await supabase
-          .from('insurance_users')
-          .insert({
-            user_id: data.user.id,
-            insurance_company_id: insuranceCompany.id,
-            role: insuranceData.role
-          });
-        
-        if (insuranceError) {
-          console.error('Error creating insurance user link:', insuranceError);
         }
       }
 

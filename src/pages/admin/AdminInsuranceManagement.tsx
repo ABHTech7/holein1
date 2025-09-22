@@ -268,10 +268,50 @@ const AdminInsuranceManagement = () => {
     );
   }
 
+  const getCurrentMonthPremiums = () => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    
+    return premiums
+      .filter(p => {
+        const periodStart = new Date(p.period_start);
+        const periodEnd = new Date(p.period_end);
+        return periodStart >= monthStart && periodEnd <= monthEnd;
+      })
+      .reduce((sum, p) => sum + parseFloat(p.total_premium_amount.toString()), 0);
+  };
+
+  const getCurrentMonthEntries = () => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    
+    return premiums
+      .filter(p => {
+        const periodStart = new Date(p.period_start);
+        const periodEnd = new Date(p.period_end);
+        return periodStart >= monthStart && periodEnd <= monthEnd;
+      })
+      .reduce((sum, p) => sum + p.total_entries, 0);
+  };
+
+  const getYearToDatePremiums = () => {
+    const now = new Date();
+    const yearStart = new Date(now.getFullYear(), 0, 1);
+    
+    return premiums
+      .filter(p => {
+        const periodStart = new Date(p.period_start);
+        return periodStart >= yearStart;
+      })
+      .reduce((sum, p) => sum + parseFloat(p.total_premium_amount.toString()), 0);
+  };
+
   const pendingPayments = premiums.filter(p => p.status === 'invoiced').length;
-  const totalPremiumsThisMonth = premiums
-    .filter(p => new Date(p.period_start).getMonth() === new Date().getMonth() - 1)
-    .reduce((sum, p) => sum + parseFloat(p.total_premium_amount.toString()), 0);
+  const currentMonthEntries = getCurrentMonthEntries();
+  const currentMonthPremiums = getCurrentMonthPremiums();
+  const yearToDatePremiums = getYearToDatePremiums();
   const hasInsurancePartner = currentCompany !== null;
 
   return (
@@ -372,7 +412,7 @@ const AdminInsuranceManagement = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Insurance Partner Status</CardTitle>
@@ -403,13 +443,42 @@ const AdminInsuranceManagement = () => {
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">This Month Premiums</CardTitle>
+                  <CardTitle className="text-sm font-medium">Current Month Entries</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{currentMonthEntries.toLocaleString()}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Month to date entries
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Current Month Premiums</CardTitle>
                   <PoundSterling className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(totalPremiumsThisMonth)}</div>
+                  <div className="text-2xl font-bold">{formatCurrency(currentMonthPremiums)}</div>
                   <p className="text-xs text-muted-foreground">
-                    Generated premiums
+                    {new Date().toLocaleDateString('en-GB', { month: 'long' })} total
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Additional Stats Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Year to Date Premiums</CardTitle>
+                  <PoundSterling className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(yearToDatePremiums)}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Jan - {new Date().toLocaleDateString('en-GB', { month: 'short' })} total
                   </p>
                 </CardContent>
               </Card>

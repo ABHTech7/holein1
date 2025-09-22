@@ -11,7 +11,9 @@ interface CreateAdminRequest {
   firstName: string;
   lastName: string;
   password: string;
-  role?: 'ADMIN' | 'SUPER_ADMIN'; // Optional, defaults to ADMIN
+  role?: 'ADMIN' | 'SUPER_ADMIN' | 'INSURANCE_PARTNER'; // Optional, defaults to ADMIN
+  insuranceCompanyId?: string;
+  insuranceRole?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -29,7 +31,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, firstName, lastName, password, role = 'ADMIN' }: CreateAdminRequest = await req.json();
+    const { email, firstName, lastName, password, role = 'ADMIN', insuranceCompanyId, insuranceRole }: CreateAdminRequest = await req.json();
     
     console.log("Processing admin creation for:", email);
 
@@ -82,12 +84,12 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Only SUPER_ADMIN can create ADMIN or SUPER_ADMIN users
+    // Only SUPER_ADMIN can create ADMIN, SUPER_ADMIN, or INSURANCE_PARTNER users
     if (profile.role !== 'SUPER_ADMIN') {
       console.error("Insufficient permissions:", profile.role);
       return new Response(JSON.stringify({ 
         success: false,
-        error: "Only Super Admins can create Admin accounts" 
+        error: "Only Super Admins can create Admin or Insurance Partner accounts" 
       }), {
         status: 403,
         headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -125,6 +127,22 @@ const handler = async (req: Request): Promise<Response> => {
     if (profileError) {
       console.error("Error creating admin profile:", profileError);
       // Don't fail the request, just log the error
+    }
+
+    // If it's an insurance partner, create the insurance user link
+    if (role === 'INSURANCE_PARTNER' && insuranceCompanyId) {
+      const { error: insuranceError } = await supabaseAdmin
+        .from('insurance_users')
+        .insert({
+          user_id: userData.user.id,
+          insurance_company_id: insuranceCompanyId,
+          role: insuranceRole || 'viewer'
+        });
+      
+      if (insuranceError) {
+        console.error('Error creating insurance user link:', insuranceError);
+        // Don't fail the request, just log the error
+      }
     }
 
     // Log the admin creation in audit events
