@@ -103,7 +103,7 @@ const AdminQuickActions = ({ stats, insurancePremiums, onAddUser, isEditing = fa
       icon: Clock,
       path: "/dashboard/admin/entries",
       count: stats.pendingEntries,
-      countLabel: "Pending",
+      countLabel: "Month to Date",
       color: "bg-orange-50 border-orange-200 hover:bg-orange-100",
       iconColor: "text-orange-600"
     },
@@ -316,7 +316,7 @@ const AdminQuickActions = ({ stats, insurancePremiums, onAddUser, isEditing = fa
               {!isEditing && action.path.includes('entries') && (action.count ?? 0) > 0 && (
                 <div className="mt-3">
                   <Badge variant="secondary" className="text-xs">
-                    {action.count} Awaiting Payment
+                    {action.count} Month to Date
                   </Badge>
                 </div>
               )}

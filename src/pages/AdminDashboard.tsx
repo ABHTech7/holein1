@@ -30,7 +30,7 @@ interface DashboardStats {
   todayRevenue: number;
   monthlyRevenue: number;
   yearlyRevenue: number;
-  unpaidEntries: number;
+  monthToDateEntries: number;
 }
 interface Competition {
   id: string;
@@ -62,7 +62,7 @@ const AdminDashboard = () => {
     todayRevenue: 0,
     monthlyRevenue: 0,
     yearlyRevenue: 0,
-    unpaidEntries: 0
+    monthToDateEntries: 0
   });
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [membershipData, setMembershipData] = useState<Array<{
@@ -108,7 +108,7 @@ const AdminDashboard = () => {
         const yearStart = new Date(now.getFullYear(), 0, 1).toISOString();
 
         // Fetch basic stats with proper error handling
-        const [playersRes, newPlayersRes, clubsRes, activeCompsRes, unpaidEntriesRes] = await Promise.all([supabase.from('profiles').select('id', {
+        const [playersRes, newPlayersRes, clubsRes, activeCompsRes, monthToDateEntriesRes] = await Promise.all([supabase.from('profiles').select('id', {
           count: 'exact',
           head: true
         }).eq('role', 'PLAYER').neq('status', 'deleted').is('deleted_at', null), supabase.from('profiles').select('id', {
@@ -120,7 +120,7 @@ const AdminDashboard = () => {
         }), supabase.from('competitions').select('id, name, status').eq('status', 'ACTIVE'), supabase.from('entries').select('id', {
           count: 'exact',
           head: true
-        }).eq('paid', false)]);
+        }).gte('entry_date', monthStart)]);
 
         // Fetch revenue data for different periods
         const [todayEntriesRes, monthlyEntriesRes, yearlyEntriesRes] = await Promise.all([
@@ -231,7 +231,7 @@ const AdminDashboard = () => {
           todayRevenue: todayRevenue,
           monthlyRevenue: monthlyRevenue,
           yearlyRevenue: yearlyRevenue,
-          unpaidEntries: unpaidEntriesRes.count || 0
+          monthToDateEntries: monthToDateEntriesRes.count || 0
         });
 
         // Fetch recent competitions with entry counts and club info
@@ -529,8 +529,8 @@ const AdminDashboard = () => {
               </div>
               <AdminQuickActions stats={{
               totalPlayers: stats.totalPlayers,
-              pendingEntries: stats.unpaidEntries,
-              // Real count of unpaid entries
+              pendingEntries: stats.monthToDateEntries,
+              // Real count of month-to-date entries
               pendingClaims: pendingClaims,
               // Real count of pending claims
               monthlyRevenue: stats.monthlyRevenue,
