@@ -52,7 +52,7 @@ const WinClaimPage: React.FC = () => {
           .from('entries')
           .select('id, player_id, outcome_self, status, competition_id')
           .eq('id', entryId)
-          .single();
+          .maybeSingle();
 
         if (entryError || !entryRecord) {
           console.error('Failed to fetch entry:', entryError);
@@ -82,7 +82,7 @@ const WinClaimPage: React.FC = () => {
           .from('competitions')
           .select('id, name, prize_pool, hole_number, club_id')
           .eq('id', entryRecord.competition_id)
-          .single();
+          .maybeSingle();
 
         if (competitionError || !competitionRecord) {
           console.error('Failed to fetch competition:', competitionError);
@@ -95,14 +95,14 @@ const WinClaimPage: React.FC = () => {
           .from('clubs')
           .select('name')
           .eq('id', competitionRecord.club_id)
-          .single();
+          .maybeSingle();
 
         // Step 4: Get player data
         const { data: playerRecord, error: playerError } = await supabase
           .from('profiles')
           .select('first_name, gender')
           .eq('id', entryRecord.player_id)
-          .single();
+          .maybeSingle();
 
         // Transform data to match interface
         setEntryData({

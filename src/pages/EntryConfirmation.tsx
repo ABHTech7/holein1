@@ -511,7 +511,7 @@ const EntryConfirmation = () => {
                           Continue to Evidence Collection
                         </Button>
                         <p className="text-sm text-muted-foreground mt-2">
-                          Complete your verification with photos, witness details, and more
+                          Lock in your legend status with photos, witness details, and more
                         </p>
                       </div>
                     )}

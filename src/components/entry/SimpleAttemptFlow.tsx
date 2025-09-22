@@ -89,8 +89,8 @@ export const SimpleAttemptFlow = ({
       toast({
         title: outcome === 'win' ? "🏆 Hole-in-One!" : "Thanks for playing!",
         description: outcome === 'win' ? 
-          "Amazing shot! Now let's verify it with evidence." : 
-          "Better luck next time - try again later!"
+          "Amazing shot! Legend status awaits — let's lock it in with your evidence." : 
+          "Better luck next time — take another swing soon!"
       });
     } catch (error) {
       console.error('Error reporting outcome:', error);
