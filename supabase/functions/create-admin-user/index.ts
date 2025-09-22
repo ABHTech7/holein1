@@ -84,16 +84,30 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // Only SUPER_ADMIN can create ADMIN, SUPER_ADMIN, or INSURANCE_PARTNER users
-    if (profile.role !== 'SUPER_ADMIN') {
-      console.error("Insufficient permissions:", profile.role);
-      return new Response(JSON.stringify({ 
-        success: false,
-        error: "Only Super Admins can create Admin or Insurance Partner accounts" 
-      }), {
-        status: 403,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
+    // Only SUPER_ADMIN can create ADMIN or SUPER_ADMIN users
+    // ADMIN can create INSURANCE_PARTNER users
+    if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
+      if (profile.role !== 'SUPER_ADMIN') {
+        console.error("Insufficient permissions for ADMIN/SUPER_ADMIN creation:", profile.role);
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: "Only Super Admins can create Admin accounts" 
+        }), {
+          status: 403,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+    } else if (role === 'INSURANCE_PARTNER') {
+      if (profile.role !== 'ADMIN' && profile.role !== 'SUPER_ADMIN') {
+        console.error("Insufficient permissions for INSURANCE_PARTNER creation:", profile.role);
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: "Only Admins can create Insurance Partner accounts" 
+        }), {
+          status: 403,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
     }
 
     // Create the admin user

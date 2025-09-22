@@ -29,24 +29,43 @@ Deno.serve(async (req) => {
 
     console.log('Starting monthly premium calculation...');
 
-    // Get the previous month's date range
-    const now = new Date();
-    const year = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-    const month = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
-    
-    const periodStart = new Date(year, month, 1);
-    const periodEnd = new Date(year, month + 1, 0);
+    // Get request body to determine date range
+    const body = await req.json();
+    const { company_id, month, year } = body;
+
+    let periodStart: Date;
+    let periodEnd: Date;
+
+    if (month && year) {
+      // Calculate for specific month/year
+      periodStart = new Date(year, month - 1, 1);
+      periodEnd = new Date(year, month, 0);
+    } else {
+      // Default to previous month
+      const now = new Date();
+      const targetYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+      const targetMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+      
+      periodStart = new Date(targetYear, targetMonth, 1);
+      periodEnd = new Date(targetYear, targetMonth + 1, 0);
+    }
     
     const periodStartStr = periodStart.toISOString().split('T')[0];
     const periodEndStr = periodEnd.toISOString().split('T')[0];
 
     console.log(`Calculating premiums for period: ${periodStartStr} to ${periodEndStr}`);
 
-    // Get all active insurance companies
-    const { data: companies, error: companiesError } = await supabase
+    // Get all active insurance companies or specific company
+    let companiesQuery = supabase
       .from('insurance_companies')
       .select('id, name, premium_rate_per_entry')
       .eq('active', true);
+
+    if (company_id) {
+      companiesQuery = companiesQuery.eq('id', company_id);
+    }
+
+    const { data: companies, error: companiesError } = await companiesQuery;
 
     if (companiesError) {
       console.error('Error fetching insurance companies:', companiesError);

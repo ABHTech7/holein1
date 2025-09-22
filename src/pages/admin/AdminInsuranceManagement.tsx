@@ -67,6 +67,53 @@ const AdminInsuranceManagement = () => {
     premium_rate_per_entry: 1.00,
     logo_url: ''
   });
+  const [currentMonthEntries, setCurrentMonthEntries] = useState(0);
+  const [currentMonthPremiums, setCurrentMonthPremiums] = useState(0);
+  const [yearToDateEntries, setYearToDateEntries] = useState(0);
+  const [yearToDatePremiums, setYearToDatePremiums] = useState(0);
+
+  const fetchRealTimeStats = async () => {
+    if (!currentCompany) return;
+
+    try {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const yearStart = new Date(now.getFullYear(), 0, 1);
+
+      // Get current month entries
+      const { count: monthEntries, error: monthError } = await supabase
+        .from('entries')
+        .select('id', { count: 'exact', head: true })
+        .gte('entry_date', monthStart.toISOString());
+
+      if (monthError) throw monthError;
+
+      // Get year to date entries
+      const { count: ytdEntries, error: ytdError } = await supabase
+        .from('entries')
+        .select('id', { count: 'exact', head: true })
+        .gte('entry_date', yearStart.toISOString());
+
+      if (ytdError) throw ytdError;
+
+      const monthTotal = (monthEntries || 0) * currentCompany.premium_rate_per_entry;
+      const ytdTotal = (ytdEntries || 0) * currentCompany.premium_rate_per_entry;
+
+      setCurrentMonthEntries(monthEntries || 0);
+      setCurrentMonthPremiums(monthTotal);
+      setYearToDateEntries(ytdEntries || 0);
+      setYearToDatePremiums(ytdTotal);
+
+    } catch (error) {
+      console.error('Error fetching real-time stats:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (currentCompany) {
+      fetchRealTimeStats();
+    }
+  }, [currentCompany]);
 
   useEffect(() => {
     fetchInsuranceData();
@@ -96,6 +143,11 @@ const AdminInsuranceManagement = () => {
 
       if (premiumsError) throw premiumsError;
       setPremiums(premiumsData || []);
+
+      // Refresh real-time stats if company exists
+      if (companyData) {
+        fetchRealTimeStats();
+      }
 
     } catch (error) {
       console.error('Error fetching insurance data:', error);
@@ -309,9 +361,6 @@ const AdminInsuranceManagement = () => {
   };
 
   const pendingPayments = premiums.filter(p => p.status === 'invoiced').length;
-  const currentMonthEntries = getCurrentMonthEntries();
-  const currentMonthPremiums = getCurrentMonthPremiums();
-  const yearToDatePremiums = getYearToDatePremiums();
   const hasInsurancePartner = currentCompany !== null;
 
   return (
@@ -475,12 +524,12 @@ const AdminInsuranceManagement = () => {
                   <CardTitle className="text-sm font-medium">Year to Date Premiums</CardTitle>
                   <PoundSterling className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(yearToDatePremiums)}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Jan - {new Date().toLocaleDateString('en-GB', { month: 'short' })} total
-                  </p>
-                </CardContent>
+                 <CardContent>
+                   <div className="text-2xl font-bold">{formatCurrency(yearToDatePremiums)}</div>
+                   <p className="text-xs text-muted-foreground">
+                     {yearToDateEntries.toLocaleString()} entries × £{hasInsurancePartner ? currentCompany.premium_rate_per_entry.toFixed(2) : '0.00'}
+                   </p>
+                 </CardContent>
               </Card>
 
               <Card>
