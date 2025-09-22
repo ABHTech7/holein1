@@ -1,35 +1,25 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import ChartWrapper from '@/components/ui/chart-wrapper';
 import { 
   Building2, 
   Users, 
   PoundSterling, 
-  Plus, 
-  Edit, 
-  UserPlus,
-  FileText,
-  Check,
-  X,
-  Calculator,
-  ArrowLeft,
-  CreditCard,
-  Upload
+  Plus,
+  ArrowLeft
 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import useAuth from '@/hooks/useAuth';
 import SiteHeader from '@/components/layout/SiteHeader';
 import Section from '@/components/layout/Section';
-import { formatCurrency, formatDate } from '@/lib/formatters';
+import { formatCurrency } from '@/lib/formatters';
 
 interface InsuranceCompany {
   id: string;
@@ -41,38 +31,30 @@ interface InsuranceCompany {
   created_at: string;
 }
 
-interface InsurancePremium {
-  id: string;
-  insurance_company_id: string;
-  period_start: string;
-  period_end: string;
-  total_entries: number;
-  premium_rate: number;
-  total_premium_amount: number;
-  status: string;
-  generated_at: string;
-  payment_required_at?: string;
-  insurance_companies: { name: string };
+interface MonthlyData {
+  month: string;
+  entries: number;
+  premiums: number;
 }
 
 const AdminInsuranceManagement = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [currentCompany, setCurrentCompany] = useState<InsuranceCompany | null>(null);
-  const [premiums, setPremiums] = useState<InsurancePremium[]>([]);
   const [isChangeCompanyOpen, setIsChangeCompanyOpen] = useState(false);
   const [newCompany, setNewCompany] = useState({
     name: '',
     contact_email: '',
-    premium_rate_per_entry: 1.00,
+    premium_rate_per_entry: 1.15,
     logo_url: ''
   });
-  const [currentMonthEntries, setCurrentMonthEntries] = useState(0);
-  const [currentMonthPremiums, setCurrentMonthPremiums] = useState(0);
+  const [monthToDateEntries, setMonthToDateEntries] = useState(0);
+  const [monthToDatePremiums, setMonthToDatePremiums] = useState(0);
   const [yearToDateEntries, setYearToDateEntries] = useState(0);
   const [yearToDatePremiums, setYearToDatePremiums] = useState(0);
+  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
 
-  const fetchRealTimeStats = async () => {
+  const fetchStats = async () => {
     if (!currentCompany) return;
 
     try {
@@ -80,7 +62,7 @@ const AdminInsuranceManagement = () => {
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const yearStart = new Date(now.getFullYear(), 0, 1);
 
-      // Get current month entries
+      // Get month-to-date entries
       const { count: monthEntries, error: monthError } = await supabase
         .from('entries')
         .select('id', { count: 'exact', head: true })
@@ -88,7 +70,7 @@ const AdminInsuranceManagement = () => {
 
       if (monthError) throw monthError;
 
-      // Get year to date entries
+      // Get year-to-date entries
       const { count: ytdEntries, error: ytdError } = await supabase
         .from('entries')
         .select('id', { count: 'exact', head: true })
@@ -96,22 +78,60 @@ const AdminInsuranceManagement = () => {
 
       if (ytdError) throw ytdError;
 
-      const monthTotal = (monthEntries || 0) * currentCompany.premium_rate_per_entry;
-      const ytdTotal = (ytdEntries || 0) * currentCompany.premium_rate_per_entry;
+      // Calculate premiums: entries × rate
+      const monthPremiums = (monthEntries || 0) * currentCompany.premium_rate_per_entry;
+      const ytdPremiums = (ytdEntries || 0) * currentCompany.premium_rate_per_entry;
 
-      setCurrentMonthEntries(monthEntries || 0);
-      setCurrentMonthPremiums(monthTotal);
+      setMonthToDateEntries(monthEntries || 0);
+      setMonthToDatePremiums(monthPremiums);
       setYearToDateEntries(ytdEntries || 0);
-      setYearToDatePremiums(ytdTotal);
+      setYearToDatePremiums(ytdPremiums);
 
     } catch (error) {
-      console.error('Error fetching real-time stats:', error);
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  const fetchMonthlyData = async () => {
+    if (!currentCompany) return;
+
+    try {
+      const currentYear = new Date().getFullYear();
+      const months = [];
+      
+      // Get data for each month of the current year
+      for (let month = 0; month < 12; month++) {
+        const monthStart = new Date(currentYear, month, 1);
+        const monthEnd = new Date(currentYear, month + 1, 0, 23, 59, 59, 999);
+        
+        const { count: entries, error } = await supabase
+          .from('entries')
+          .select('id', { count: 'exact', head: true })
+          .gte('entry_date', monthStart.toISOString())
+          .lte('entry_date', monthEnd.toISOString());
+
+        if (error) throw error;
+
+        const monthName = monthStart.toLocaleDateString('en-US', { month: 'short' });
+        const premiums = (entries || 0) * currentCompany.premium_rate_per_entry;
+
+        months.push({
+          month: monthName,
+          entries: entries || 0,
+          premiums: premiums
+        });
+      }
+
+      setMonthlyData(months);
+    } catch (error) {
+      console.error('Error fetching monthly data:', error);
     }
   };
 
   useEffect(() => {
     if (currentCompany) {
-      fetchRealTimeStats();
+      fetchStats();
+      fetchMonthlyData();
     }
   }, [currentCompany]);
 
@@ -126,28 +146,10 @@ const AdminInsuranceManagement = () => {
         .from('insurance_companies')
         .select('*')
         .eq('active', true)
-        .single();
+        .maybeSingle();
 
-      if (companyError && companyError.code !== 'PGRST116') throw companyError;
-      setCurrentCompany(companyData || null);
-
-      // Fetch recent premiums
-      const { data: premiumsData, error: premiumsError } = await supabase
-        .from('insurance_premiums')
-        .select(`
-          *,
-          insurance_companies (name)
-        `)
-        .order('generated_at', { ascending: false })
-        .limit(20);
-
-      if (premiumsError) throw premiumsError;
-      setPremiums(premiumsData || []);
-
-      // Refresh real-time stats if company exists
-      if (companyData) {
-        fetchRealTimeStats();
-      }
+      if (companyError) throw companyError;
+      setCurrentCompany(companyData);
 
     } catch (error) {
       console.error('Error fetching insurance data:', error);
@@ -198,7 +200,7 @@ const AdminInsuranceManagement = () => {
         description: "Insurance partner updated successfully"
       });
 
-      setNewCompany({ name: '', contact_email: '', premium_rate_per_entry: 1.00, logo_url: '' });
+      setNewCompany({ name: '', contact_email: '', premium_rate_per_entry: 1.15, logo_url: '' });
       setIsChangeCompanyOpen(false);
       fetchInsuranceData();
 
@@ -212,93 +214,6 @@ const AdminInsuranceManagement = () => {
     }
   };
 
-  const handleGeneratePremiums = async () => {
-    if (!currentCompany) {
-      toast({
-        title: "Error",
-        description: "No insurance partner configured",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      // Call the edge function to calculate premiums
-      const { data, error } = await supabase.functions.invoke('calculate-monthly-premiums', {
-        body: { company_id: currentCompany.id }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Monthly premiums calculated successfully"
-      });
-
-      fetchInsuranceData();
-
-    } catch (error) {
-      console.error('Error generating premiums:', error);
-      toast({
-        title: "Error", 
-        description: "Failed to generate premium calculations",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleMarkPaymentRequired = async (premiumId: string) => {
-    try {
-      const { error: updateError } = await supabase
-        .from('insurance_premiums')
-        .update({ 
-          status: 'payment_required',
-          payment_required_at: new Date().toISOString()
-        })
-        .eq('id', premiumId);
-
-      if (updateError) throw updateError;
-
-      // Send email notification
-      try {
-        const { error: emailError } = await supabase.functions.invoke('send-premium-notification', {
-          body: { premiumId }
-        });
-        
-        if (emailError) {
-          console.error('Email notification error:', emailError);
-          toast({
-            title: "Partial Success",
-            description: "Premium marked as payment required, but email notification failed",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Success", 
-            description: "Premium marked as payment required and notification email sent"
-          });
-        }
-      } catch (emailError) {
-        console.error('Email error:', emailError);
-        toast({
-          title: "Partial Success",
-          description: "Premium marked as payment required, but email notification failed",
-          variant: "destructive"
-        });
-      }
-
-      fetchInsuranceData();
-
-    } catch (error) {
-      console.error('Error marking premium as payment required:', error);
-      toast({
-        title: "Error",
-        description: "Failed to mark premium as payment required",
-        variant: "destructive"
-      });
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -307,8 +222,8 @@ const AdminInsuranceManagement = () => {
           <Section spacing="lg">
             <div className="max-w-7xl mx-auto space-y-6">
               <Skeleton className="h-8 w-64" />
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[...Array(3)].map((_, i) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {[...Array(2)].map((_, i) => (
                   <Skeleton key={i} className="h-32" />
                 ))}
               </div>
@@ -320,47 +235,6 @@ const AdminInsuranceManagement = () => {
     );
   }
 
-  const getCurrentMonthPremiums = () => {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-    
-    return premiums
-      .filter(p => {
-        const periodStart = new Date(p.period_start);
-        const periodEnd = new Date(p.period_end);
-        return periodStart >= monthStart && periodEnd <= monthEnd;
-      })
-      .reduce((sum, p) => sum + parseFloat(p.total_premium_amount.toString()), 0);
-  };
-
-  const getCurrentMonthEntries = () => {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-    
-    return premiums
-      .filter(p => {
-        const periodStart = new Date(p.period_start);
-        const periodEnd = new Date(p.period_end);
-        return periodStart >= monthStart && periodEnd <= monthEnd;
-      })
-      .reduce((sum, p) => sum + p.total_entries, 0);
-  };
-
-  const getYearToDatePremiums = () => {
-    const now = new Date();
-    const yearStart = new Date(now.getFullYear(), 0, 1);
-    
-    return premiums
-      .filter(p => {
-        const periodStart = new Date(p.period_start);
-        return periodStart >= yearStart;
-      })
-      .reduce((sum, p) => sum + parseFloat(p.total_premium_amount.toString()), 0);
-  };
-
-  const pendingPayments = premiums.filter(p => p.status === 'invoiced').length;
   const hasInsurancePartner = currentCompany !== null;
 
   return (
@@ -387,7 +261,7 @@ const AdminInsuranceManagement = () => {
                 <h1 className="text-3xl font-bold">Insurance Partner Management</h1>
                 <p className="text-muted-foreground">
                   {hasInsurancePartner 
-                    ? `Current partner: ${currentCompany.name}` 
+                    ? `Current partner: ${currentCompany.name} • Rate: ${formatCurrency(currentCompany.premium_rate_per_entry)} per entry` 
                     : 'No insurance partner configured'
                   }
                 </p>
@@ -460,207 +334,116 @@ const AdminInsuranceManagement = () => {
               </Dialog>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {!hasInsurancePartner ? (
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Insurance Partner Status</CardTitle>
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {hasInsurancePartner ? 'Active' : 'None'}
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Building2 className="w-16 h-16 text-muted-foreground mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">No Insurance Partner</h3>
+                  <p className="text-muted-foreground text-center mb-6">
+                    Add an insurance partner to start tracking premiums and entries.
+                  </p>
+                  <Button onClick={() => setIsChangeCompanyOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Insurance Partner
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {/* Main Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Month to Date</CardTitle>
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{formatCurrency(monthToDatePremiums)}</div>
+                      <p className="text-xs text-muted-foreground">
+                        {monthToDateEntries.toLocaleString()} entries × {formatCurrency(currentCompany.premium_rate_per_entry)}
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Year to Date</CardTitle>
+                      <PoundSterling className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{formatCurrency(yearToDatePremiums)}</div>
+                      <p className="text-xs text-muted-foreground">
+                        {yearToDateEntries.toLocaleString()} entries × {formatCurrency(currentCompany.premium_rate_per_entry)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Monthly Growth Chart */}
+                <ChartWrapper
+                  title="Monthly Premium Growth"
+                  description="Premium totals by month for the current year"
+                >
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={monthlyData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis 
+                          tickFormatter={(value) => formatCurrency(value)}
+                        />
+                        <Tooltip 
+                          formatter={(value: number, name: string) => [
+                            name === 'premiums' ? formatCurrency(value) : value.toLocaleString(),
+                            name === 'premiums' ? 'Premiums' : 'Entries'
+                          ]}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="premiums" 
+                          stroke="hsl(var(--primary))" 
+                          strokeWidth={2}
+                          dot={{ fill: "hsl(var(--primary))" }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {hasInsurancePartner ? currentCompany.name : 'No partner configured'}
-                  </p>
-                </CardContent>
-              </Card>
+                </ChartWrapper>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Awaiting Payment</CardTitle>
-                  <CreditCard className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{pendingPayments}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Invoiced premiums
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Current Month Entries</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{currentMonthEntries.toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Month to date entries
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Current Month Premiums</CardTitle>
-                  <PoundSterling className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(currentMonthPremiums)}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date().toLocaleDateString('en-GB', { month: 'long' })} total
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Additional Stats Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Year to Date Premiums</CardTitle>
-                  <PoundSterling className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                 <CardContent>
-                   <div className="text-2xl font-bold">{formatCurrency(yearToDatePremiums)}</div>
-                   <p className="text-xs text-muted-foreground">
-                     {yearToDateEntries.toLocaleString()} entries × £{hasInsurancePartner ? currentCompany.premium_rate_per_entry.toFixed(2) : '0.00'}
-                   </p>
-                 </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Premium Rate</CardTitle>
-                  <Calculator className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    £{hasInsurancePartner ? currentCompany.premium_rate_per_entry.toFixed(2) : '0.00'}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Per entry
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Current Insurance Partner */}
-            {hasInsurancePartner && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Current Insurance Partner</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                    <div className="flex items-start gap-6">
+                {/* Insurance Partner Details */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Building2 className="w-5 h-5" />
+                      Insurance Partner Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-start gap-4">
                       {currentCompany.logo_url && (
-                        <div className="flex-shrink-0">
+                        <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
                           <img 
                             src={currentCompany.logo_url} 
                             alt={`${currentCompany.name} logo`}
-                            className="h-16 w-16 object-contain rounded border"
+                            className="w-full h-full object-contain"
                           />
                         </div>
                       )}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
-                        <div>
-                          <Label className="text-sm font-medium">Company Name</Label>
-                          <p className="text-lg">{currentCompany.name}</p>
-                        </div>
-                        <div>
-                          <Label className="text-sm font-medium">Contact Email</Label>
-                          <p className="text-lg">{currentCompany.contact_email}</p>
-                        </div>
-                        <div>
-                          <Label className="text-sm font-medium">Premium Rate</Label>
-                          <p className="text-lg">£{currentCompany.premium_rate_per_entry.toFixed(2)} per entry</p>
-                        </div>
-                        <div>
-                          <Label className="text-sm font-medium">Partner Since</Label>
-                          <p className="text-lg">{formatDate(currentCompany.created_at)}</p>
-                        </div>
+                      <div className="flex-1 space-y-2">
+                        <h3 className="font-semibold text-lg">{currentCompany.name}</h3>
+                        <p className="text-sm text-muted-foreground">{currentCompany.contact_email}</p>
+                        <p className="text-sm">
+                          <strong>Premium Rate:</strong> {formatCurrency(currentCompany.premium_rate_per_entry)} per entry
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Partner since {new Date(currentCompany.created_at).toLocaleDateString()}
+                        </p>
                       </div>
                     </div>
-                    <div className="flex gap-2 pt-4">
-                      <Button
-                        onClick={handleGeneratePremiums}
-                      >
-                        <Calculator className="w-4 h-4 mr-2" />
-                        Calculate Premiums
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </>
             )}
-
-            {/* Premium Calculations */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Premium Calculations</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Company</TableHead>
-                      <TableHead>Period</TableHead>
-                      <TableHead>Entries</TableHead>
-                      <TableHead>Rate</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Generated</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {premiums.map((premium) => (
-                      <TableRow key={premium.id}>
-                        <TableCell className="font-medium">
-                          {premium.insurance_companies?.name}
-                        </TableCell>
-                        <TableCell>
-                          {formatDate(premium.period_start)} - {formatDate(premium.period_end)}
-                        </TableCell>
-                        <TableCell>{premium.total_entries.toLocaleString()}</TableCell>
-                        <TableCell>£{premium.premium_rate.toFixed(2)}</TableCell>
-                        <TableCell className="font-semibold">
-                          {formatCurrency(premium.total_premium_amount)}
-                        </TableCell>
-                         <TableCell>
-                           <Badge 
-                             variant={
-                               premium.status === 'paid' ? 'default' :
-                               premium.status === 'payment_required' ? 'secondary' : 'outline'
-                             }
-                           >
-                             {premium.status === 'payment_required' ? 'Payment Required' : premium.status}
-                           </Badge>
-                         </TableCell>
-                        <TableCell>{formatDate(premium.generated_at)}</TableCell>
-                         <TableCell>
-                           {premium.status === 'invoiced' && (
-                             <Button
-                               size="sm"
-                               variant="outline"
-                               onClick={() => handleMarkPaymentRequired(premium.id)}
-                               className="flex items-center gap-1"
-                             >
-                               <CreditCard className="w-4 h-4" />
-                               Mark Payment Required
-                             </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
           </div>
         </Section>
       </main>
