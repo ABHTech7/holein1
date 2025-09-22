@@ -129,7 +129,7 @@ const InsuranceDashboard = () => {
     return <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">No Insurance Partner</h1>
-          <p className="text-muted-foreground">No active insurance partner is configured.</p>
+          
         </div>
       </div>;
   }
