@@ -190,20 +190,6 @@ const InsuranceDashboard = () => {
       <main className="flex-1 bg-muted/30">
         <Section spacing="lg">
           <div className="max-w-7xl mx-auto space-y-8">
-            {/* Insurance Company Logo */}
-            {company.logo_url && (
-              <div className="flex items-center space-x-4 mb-4">
-                <img 
-                  src={company.logo_url} 
-                  alt={`${company.name} logo`}
-                  className="w-20 h-20 rounded-lg object-contain bg-white p-3 border shadow-sm"
-                />
-                <span className="font-display text-2xl font-semibold text-foreground">
-                  {company.name}
-                </span>
-              </div>
-            )}
-
             {/* Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
