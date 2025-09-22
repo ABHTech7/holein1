@@ -43,7 +43,14 @@ const AdminInsuranceManagement = () => {
   const [loading, setLoading] = useState(true);
   const [currentCompany, setCurrentCompany] = useState<InsuranceCompany | null>(null);
   const [isChangeCompanyOpen, setIsChangeCompanyOpen] = useState(false);
+  const [isUpdateCompanyOpen, setIsUpdateCompanyOpen] = useState(false);
   const [newCompany, setNewCompany] = useState({
+    name: '',
+    contact_email: '',
+    premium_rate_per_entry: 1.15,
+    logo_url: ''
+  });
+  const [updateCompany, setUpdateCompany] = useState({
     name: '',
     contact_email: '',
     premium_rate_per_entry: 1.15,
@@ -152,6 +159,16 @@ const AdminInsuranceManagement = () => {
       if (companyError) throw companyError;
       setCurrentCompany(companyData);
 
+      // Set update form with current company data when company is loaded
+      if (companyData) {
+        setUpdateCompany({
+          name: companyData.name,
+          contact_email: companyData.contact_email,
+          premium_rate_per_entry: companyData.premium_rate_per_entry,
+          logo_url: companyData.logo_url || ''
+        });
+      }
+
     } catch (error) {
       console.error('Error fetching insurance data:', error);
       toast({
@@ -161,6 +178,47 @@ const AdminInsuranceManagement = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateCompany = async () => {
+    if (!currentCompany || !updateCompany.name || !updateCompany.contact_email) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('insurance_companies')
+        .update({
+          name: updateCompany.name,
+          contact_email: updateCompany.contact_email,
+          premium_rate_per_entry: updateCompany.premium_rate_per_entry,
+          logo_url: updateCompany.logo_url || null,
+        })
+        .eq('id', currentCompany.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Insurance partner details updated successfully"
+      });
+
+      setIsUpdateCompanyOpen(false);
+      fetchInsuranceData();
+
+    } catch (error) {
+      console.error('Error updating insurance partner:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update insurance partner details",
+        variant: "destructive"
+      });
     }
   };
 
@@ -282,71 +340,138 @@ const AdminInsuranceManagement = () => {
                 </p>
               </div>
 
-              <Dialog open={isChangeCompanyOpen} onOpenChange={setIsChangeCompanyOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="w-4 h-4 mr-2" />
-                    {hasInsurancePartner ? 'Change Partner' : 'Add Insurance Partner'}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>
-                      {hasInsurancePartner ? 'Change Insurance Partner' : 'Add Insurance Partner'}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="name">Company Name *</Label>
-                      <Input
-                        id="name"
-                        value={newCompany.name}
-                        onChange={(e) => setNewCompany(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="Acme Insurance Ltd"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="email">Contact Email *</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={newCompany.contact_email}
-                        onChange={(e) => setNewCompany(prev => ({ ...prev, contact_email: e.target.value }))}
-                        placeholder="contact@acmeinsurance.com"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="rate">Premium Rate per Entry (£)</Label>
-                      <Input
-                        id="rate"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={newCompany.premium_rate_per_entry}
-                        onChange={(e) => setNewCompany(prev => ({ ...prev, premium_rate_per_entry: parseFloat(e.target.value) || 0 }))}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="logoUrl">Logo URL (Optional)</Label>
-                      <Input
-                        id="logoUrl"
-                        type="url"
-                        value={newCompany.logo_url}
-                        onChange={(e) => setNewCompany(prev => ({ ...prev, logo_url: e.target.value }))}
-                        placeholder="https://example.com/logo.png"
-                      />
-                    </div>
-                    <div className="flex justify-end gap-3">
-                      <Button variant="outline" onClick={() => setIsChangeCompanyOpen(false)}>
-                        Cancel
+              <div className="flex gap-2">
+                {hasInsurancePartner && (
+                  <Dialog open={isUpdateCompanyOpen} onOpenChange={setIsUpdateCompanyOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">
+                        Update Details
                       </Button>
-                      <Button onClick={handleChangeCompany}>
-                        {hasInsurancePartner ? 'Update Partner' : 'Add Partner'}
-                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Update Insurance Partner Details</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="update-name">Company Name *</Label>
+                          <Input
+                            id="update-name"
+                            value={updateCompany.name}
+                            onChange={(e) => setUpdateCompany(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder="Acme Insurance Ltd"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="update-email">Contact Email *</Label>
+                          <Input
+                            id="update-email"
+                            type="email"
+                            value={updateCompany.contact_email}
+                            onChange={(e) => setUpdateCompany(prev => ({ ...prev, contact_email: e.target.value }))}
+                            placeholder="contact@acmeinsurance.com"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="update-rate">Premium Rate per Entry (£)</Label>
+                          <Input
+                            id="update-rate"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={updateCompany.premium_rate_per_entry}
+                            onChange={(e) => setUpdateCompany(prev => ({ ...prev, premium_rate_per_entry: parseFloat(e.target.value) || 0 }))}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="update-logoUrl">Logo URL (Optional)</Label>
+                          <Input
+                            id="update-logoUrl"
+                            type="url"
+                            value={updateCompany.logo_url}
+                            onChange={(e) => setUpdateCompany(prev => ({ ...prev, logo_url: e.target.value }))}
+                            placeholder="https://example.com/logo.png"
+                          />
+                        </div>
+                        <div className="flex justify-end gap-3">
+                          <Button variant="outline" onClick={() => setIsUpdateCompanyOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button onClick={handleUpdateCompany}>
+                            Update Details
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
+
+                <Dialog open={isChangeCompanyOpen} onOpenChange={setIsChangeCompanyOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" />
+                      {hasInsurancePartner ? 'Change Partner' : 'Add Insurance Partner'}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>
+                        {hasInsurancePartner ? 'Change Insurance Partner' : 'Add Insurance Partner'}
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="name">Company Name *</Label>
+                        <Input
+                          id="name"
+                          value={newCompany.name}
+                          onChange={(e) => setNewCompany(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="Acme Insurance Ltd"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="email">Contact Email *</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={newCompany.contact_email}
+                          onChange={(e) => setNewCompany(prev => ({ ...prev, contact_email: e.target.value }))}
+                          placeholder="contact@acmeinsurance.com"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="rate">Premium Rate per Entry (£)</Label>
+                        <Input
+                          id="rate"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={newCompany.premium_rate_per_entry}
+                          onChange={(e) => setNewCompany(prev => ({ ...prev, premium_rate_per_entry: parseFloat(e.target.value) || 0 }))}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="logoUrl">Logo URL (Optional)</Label>
+                        <Input
+                          id="logoUrl"
+                          type="url"
+                          value={newCompany.logo_url}
+                          onChange={(e) => setNewCompany(prev => ({ ...prev, logo_url: e.target.value }))}
+                          placeholder="https://example.com/logo.png"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-3">
+                        <Button variant="outline" onClick={() => setIsChangeCompanyOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleChangeCompany}>
+                          {hasInsurancePartner ? 'Update Partner' : 'Add Partner'}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
 
             {!hasInsurancePartner ? (
