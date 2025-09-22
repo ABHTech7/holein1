@@ -566,15 +566,22 @@ const UserManagement = () => {
                 <Label htmlFor="role">Role</Label>
                 <Select
                   value={newUser.role}
-                  onValueChange={(value: "SUPER_ADMIN" | "ADMIN" | "CLUB") => setNewUser({...newUser, role: value})}
+                  onValueChange={(value: "SUPER_ADMIN" | "ADMIN" | "CLUB") => {
+                    if (value === "ADMIN" || value === "SUPER_ADMIN") {
+                      setShowAddUser(false);
+                      setShowSecureAdminCreate(true);
+                    } else {
+                      setNewUser({...newUser, role: value});
+                    }
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="CLUB">Club Manager</SelectItem>
-                    <SelectItem value="ADMIN">Administrator</SelectItem>
-                    <SelectItem value="SUPER_ADMIN">Super Administrator</SelectItem>
+                    <SelectItem value="ADMIN">Administrator (Secure Creation)</SelectItem>
+                    <SelectItem value="SUPER_ADMIN">Super Administrator (Secure Creation)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

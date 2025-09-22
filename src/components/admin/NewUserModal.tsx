@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Building } from "lucide-react";
+import { User, Building, Shield } from "lucide-react";
 
 interface NewUserModalProps {
   isOpen: boolean;
@@ -17,7 +17,7 @@ interface NewUserModalProps {
 
 const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
   const [loading, setLoading] = useState(false);
-  const [userType, setUserType] = useState<'PLAYER' | 'CLUB'>('PLAYER');
+  const [userType, setUserType] = useState<'PLAYER' | 'CLUB' | 'ADMIN'>('PLAYER');
   
   // Player form data
   const [playerData, setPlayerData] = useState({
@@ -40,11 +40,20 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
     clubEmail: ''
   });
 
+  // Admin form data
+  const [adminData, setAdminData] = useState({
+    email: '',
+    firstName: '',
+    lastName: '',
+    password: '',
+    adminSecretKey: ''
+  });
+
   const handleCreateUser = async () => {
     try {
       setLoading(true);
       
-      let userData;
+      let userData: any;
       let clubId = null;
       
       if (userType === 'PLAYER') {
@@ -88,6 +97,32 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
             }
           }
         };
+      } else if (userType === 'ADMIN') {
+        // Use secure edge function for admin creation
+        const { data: adminRes, error: adminError } = await supabase.functions.invoke('create-admin-user', {
+          body: {
+            email: adminData.email,
+            firstName: adminData.firstName,
+            lastName: adminData.lastName,
+            password: adminData.password,
+            adminSecretKey: adminData.adminSecretKey
+          }
+        });
+
+        if (adminError) throw adminError;
+        if (!(adminRes as any)?.success) {
+          throw new Error((adminRes as any)?.error || 'Failed to create admin account');
+        }
+
+        toast({
+          title: "Success",
+          description: `Administrator account created successfully.`,
+        });
+
+        // Reset forms
+        setAdminData({ email: '', firstName: '', lastName: '', password: '', adminSecretKey: '' });
+        onClose();
+        return;
       }
 
       const { data, error } = await supabase.auth.admin.createUser(userData);
@@ -131,8 +166,16 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
   const isFormValid = () => {
     if (userType === 'PLAYER') {
       return playerData.email && playerData.firstName && playerData.password;
-    } else {
+    } else if (userType === 'CLUB') {
       return clubData.email && clubData.firstName && clubData.password && clubData.clubName;
+    } else {
+      return (
+        adminData.email &&
+        adminData.firstName &&
+        adminData.lastName &&
+        adminData.password &&
+        adminData.adminSecretKey
+      );
     }
   };
 
@@ -143,8 +186,8 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
           <DialogTitle>Add New User</DialogTitle>
         </DialogHeader>
 
-        <Tabs value={userType} onValueChange={(value) => setUserType(value as 'PLAYER' | 'CLUB')}>
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs value={userType} onValueChange={(value) => setUserType(value as 'PLAYER' | 'CLUB' | 'ADMIN')}>
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="PLAYER" className="flex items-center gap-2">
               <User className="w-4 h-4" />
               Player
@@ -152,6 +195,10 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
             <TabsTrigger value="CLUB" className="flex items-center gap-2">
               <Building className="w-4 h-4" />
               Club Manager
+            </TabsTrigger>
+            <TabsTrigger value="ADMIN" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Admin
             </TabsTrigger>
           </TabsList>
 
@@ -310,8 +357,68 @@ const NewUserModal = ({ isOpen, onClose }: NewUserModalProps) => {
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
 
+          <TabsContent value="ADMIN">
+            <Card>
+              <CardHeader>
+                <CardTitle>Create Administrator Account</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="adminFirstName">First Name</Label>
+                    <Input
+                      id="adminFirstName"
+                      value={adminData.firstName}
+                      onChange={(e) => setAdminData(prev => ({ ...prev, firstName: e.target.value }))}
+                      placeholder="Enter first name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="adminLastName">Last Name</Label>
+                    <Input
+                      id="adminLastName"
+                      value={adminData.lastName}
+                      onChange={(e) => setAdminData(prev => ({ ...prev, lastName: e.target.value }))}
+                      placeholder="Enter last name"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="adminEmail">Email</Label>
+                  <Input
+                    id="adminEmail"
+                    type="email"
+                    value={adminData.email}
+                    onChange={(e) => setAdminData(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="Enter email address"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="adminPassword">Password</Label>
+                  <Input
+                    id="adminPassword"
+                    type="password"
+                    value={adminData.password}
+                    onChange={(e) => setAdminData(prev => ({ ...prev, password: e.target.value }))}
+                    placeholder="Enter secure password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="adminSecret">Admin Secret Key</Label>
+                  <Input
+                    id="adminSecret"
+                    type="password"
+                    value={adminData.adminSecretKey}
+                    onChange={(e) => setAdminData(prev => ({ ...prev, adminSecretKey: e.target.value }))}
+                    placeholder="Enter admin creation secret"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+        </Tabs>
         <div className="flex justify-end gap-3 pt-4 border-t">
           <Button variant="outline" onClick={onClose}>
             Cancel
