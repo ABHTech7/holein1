@@ -1,6 +1,8 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureVerificationRecord } from '@/lib/verificationService';
+import '@/lib/tigerFixService'; // This will run fixTigerVerification immediately
 import useAuth from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { getConfig } from "@/lib/featureFlags";
@@ -500,23 +502,7 @@ const EntryConfirmation = () => {
                         <Button 
                           onClick={async () => {
                             // Ensure verification record exists before navigating
-                            try {
-                              const { error: verificationError } = await supabase
-                                .from('verifications')
-                                .insert({
-                                  entry_id: entry.id,
-                                  status: 'initiated',
-                                  witnesses: [],
-                                  evidence_captured_at: new Date().toISOString()
-                                });
-                              
-                              if (verificationError && !verificationError.message?.includes('duplicate')) {
-                                console.error('Error creating verification:', verificationError);
-                              }
-                            } catch (error) {
-                              console.error('Error ensuring verification record:', error);
-                            }
-                            
+                            await ensureVerificationRecord(entry.id);
                             // Navigate to win claim page
                             navigate(`/win-claim/${entry.id}`);
                           }}
