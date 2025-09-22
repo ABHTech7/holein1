@@ -194,17 +194,19 @@ const DeveloperDemo = () => {
                         Seed Demo Data
                       </CardTitle>
                       <CardDescription>
-                        Create demo users, clubs, competitions, and entries. Safe to run multiple times.
+                        Create comprehensive demo data for testing. Safe to run multiple times.
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="text-sm text-muted-foreground">
                         <p className="font-medium mb-2">This will create:</p>
                         <ul className="space-y-1 ml-4">
-                          <li>• 4 demo users (admin, 2 clubs, 1 player)</li>
-                          <li>• 2 demo golf clubs</li>
-                          <li>• 3 competitions (active, scheduled, ended)</li>
-                          <li>• Sample entries and data</li>
+                          <li>• 38 realistic UK golf clubs with locations</li>
+                          <li>• ~76 competitions (1-2 per club)</li>
+                          <li>• 2000 diverse player profiles</li>
+                          <li>• ~91,200 entries across 4 months (June-Sept 2025)</li>
+                          <li>• Winners, verifications, and claims data</li>
+                          <li>• Comprehensive dashboard data for testing</li>
                         </ul>
                       </div>
                       <Button 
