@@ -2,7 +2,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureVerificationRecord } from '@/lib/verificationService';
-import '@/lib/tigerFixService'; // This will run fixTigerVerification immediately
 import useAuth from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { getConfig } from "@/lib/featureFlags";
