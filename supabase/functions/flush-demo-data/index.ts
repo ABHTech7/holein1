@@ -23,26 +23,25 @@ const handler = async (req: Request): Promise<Response> => {
     
     let recentOnly = false;
     
+    // Parse request body once
+    let requestBody: FlushRequest = {};
+    try {
+      requestBody = await req.json();
+    } catch {
+      // No body or invalid JSON, use defaults
+    }
+    
     if (!isDevelopment) {
       if (!demoSecret) {
         throw new Error("Demo flushing not available in production without secret");
       }
       
-      const { demoSecret: providedSecret, recentOnly: requestRecentOnly }: FlushRequest = await req.json();
-      if (providedSecret !== demoSecret) {
+      if (requestBody.demoSecret !== demoSecret) {
         throw new Error("Invalid demo secret");
       }
-      recentOnly = requestRecentOnly || false;
-    } else {
-      // In development, check for recentOnly parameter
-      try {
-        const body = await req.json();
-        recentOnly = body.recentOnly || false;
-      } catch {
-        // No body or invalid JSON, use default
-        recentOnly = false;
-      }
     }
+    
+    recentOnly = requestBody.recentOnly || false;
 
     // Create Supabase admin client
     const supabaseAdmin = createClient(
