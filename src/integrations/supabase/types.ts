@@ -1367,7 +1367,7 @@ export type Database = {
         | "LOST"
         | "IN_REVIEW"
         | "REJECTED"
-      user_role: "ADMIN" | "CLUB" | "PLAYER"
+      user_role: "ADMIN" | "CLUB" | "PLAYER" | "SUPER_ADMIN"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1505,7 +1505,7 @@ export const Constants = {
         "IN_REVIEW",
         "REJECTED",
       ],
-      user_role: ["ADMIN", "CLUB", "PLAYER"],
+      user_role: ["ADMIN", "CLUB", "PLAYER", "SUPER_ADMIN"],
     },
   },
 } as const
