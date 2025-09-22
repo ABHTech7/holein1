@@ -67,6 +67,10 @@ const AdminDashboard = () => {
     month: string;
     members: number;
   }>>([]);
+  const [insurancePremiums, setInsurancePremiums] = useState({
+    monthToDate: 0,
+    currentRate: 1.15
+  });
 
   // Fetch dashboard data
   useEffect(() => {
@@ -316,6 +320,35 @@ const AdminDashboard = () => {
           });
         }
         setMembershipData(membershipTrendData);
+        
+        // Fetch insurance premium calculations
+        try {
+          // Get active insurance company and calculate month-to-date premiums
+          const { data: insuranceCompany } = await supabase
+            .from('insurance_companies')
+            .select('*')
+            .eq('active', true)
+            .maybeSingle();
+
+          if (insuranceCompany) {
+            // Get month-to-date entries count
+            const { count: monthlyEntries } = await supabase
+              .from('entries')
+              .select('id', { count: 'exact', head: true })
+              .gte('entry_date', monthStart);
+
+            const monthlyPremium = (monthlyEntries || 0) * insuranceCompany.premium_rate_per_entry;
+            
+            setInsurancePremiums({
+              monthToDate: monthlyPremium,
+              currentRate: insuranceCompany.premium_rate_per_entry
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching insurance data:', error);
+          // Don't block the dashboard if insurance data fails
+        }
+        
         console.log('Dashboard data loaded successfully:', {
           totalPlayers: playersRes.count,
           newPlayersThisMonth: newPlayersRes.count,
@@ -497,7 +530,7 @@ const AdminDashboard = () => {
               monthlyRevenue: stats.monthlyRevenue,
               activeCompetitions: stats.activeCompetitions,
               totalClubs: stats.totalClubs
-            }} onAddUser={handleAddUser} isEditing={isEditingActions} />
+            }} insurancePremiums={insurancePremiums} onAddUser={handleAddUser} isEditing={isEditingActions} />
             </div>
 
             {/* Stats Overview */}

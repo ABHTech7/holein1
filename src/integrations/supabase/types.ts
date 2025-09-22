@@ -1547,6 +1547,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      setup_insurer_account: {
+        Args: { p_email: string; p_first_name?: string; p_last_name?: string }
+        Returns: Json
+      }
       update_club_contract_status: {
         Args: {
           p_club_id: string

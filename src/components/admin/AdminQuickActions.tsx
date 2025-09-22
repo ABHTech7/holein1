@@ -29,11 +29,15 @@ interface QuickActionsProps {
     activeCompetitions: number;
     totalClubs: number;
   };
+  insurancePremiums?: {
+    monthToDate: number;
+    currentRate: number;
+  };
   onAddUser?: () => void;
   isEditing?: boolean;
 }
 
-const AdminQuickActions = ({ stats, onAddUser, isEditing = false }: QuickActionsProps) => {
+const AdminQuickActions = ({ stats, insurancePremiums, onAddUser, isEditing = false }: QuickActionsProps) => {
   const navigate = useNavigate();
   const { newLeads, pendingClaims } = useNotificationCounts();
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -133,8 +137,11 @@ const AdminQuickActions = ({ stats, onAddUser, isEditing = false }: QuickActions
       description: "Manage insurance partners and premiums",
       icon: FileText,
       path: "/dashboard/admin/insurance",
+      count: insurancePremiums?.monthToDate ? Math.round(insurancePremiums.monthToDate * 100) : undefined,
+      countLabel: "MTD Premium",
       color: "bg-slate-50 border-slate-200 hover:bg-slate-100",
-      iconColor: "text-slate-600"
+      iconColor: "text-slate-600",
+      isAmount: true
     },
     {
       id: "enquiries", 
