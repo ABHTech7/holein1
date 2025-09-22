@@ -189,7 +189,7 @@ const App = () => {
             <Route 
               path="/dashboard/admin" 
               element={
-                <EnhancedRoleGuard allowedRoles={['ADMIN']}>
+                <EnhancedRoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                   <AdminDashboard />
                 </EnhancedRoleGuard>
               } 
@@ -197,7 +197,7 @@ const App = () => {
           <Route 
             path="/dashboard/admin/players" 
             element={
-              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
+              <EnhancedRoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                 <PlayersPage />
               </EnhancedRoleGuard>
             } 
@@ -205,7 +205,7 @@ const App = () => {
           <Route 
             path="/dashboard/admin/clubs" 
             element={
-              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
+              <EnhancedRoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                 <ClubsPage />
               </EnhancedRoleGuard>
             } 
@@ -213,7 +213,7 @@ const App = () => {
           <Route 
             path="/dashboard/admin/competitions" 
             element={
-              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
+                <EnhancedRoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                 <CompetitionsPage />
               </EnhancedRoleGuard>
             } 
@@ -221,7 +221,7 @@ const App = () => {
           <Route 
             path="/dashboard/admin/competitions/new" 
             element={
-              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
+               <EnhancedRoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                 <CompetitionWizardPage />
               </EnhancedRoleGuard>
             } 
@@ -229,7 +229,7 @@ const App = () => {
           <Route 
             path="/dashboard/admin/competitions/:id" 
             element={
-              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
+               <EnhancedRoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                 <CompetitionDetailEnhanced />
               </EnhancedRoleGuard>
             } 
@@ -237,7 +237,7 @@ const App = () => {
           <Route 
             path="/dashboard/admin/competitions/:id/edit" 
             element={
-              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
+               <EnhancedRoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                 <CompetitionEditPage />
               </EnhancedRoleGuard>
             } 
@@ -245,7 +245,7 @@ const App = () => {
           <Route 
             path="/dashboard/admin/claims" 
             element={
-              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
+               <EnhancedRoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                 <ClaimsPage />
               </EnhancedRoleGuard>
             } 
@@ -269,7 +269,7 @@ const App = () => {
           <Route 
             path="/dashboard/admin/revenue" 
             element={
-              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
+               <EnhancedRoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                 <RevenuePage />
               </EnhancedRoleGuard>
             } 
@@ -277,7 +277,7 @@ const App = () => {
           <Route 
             path="/dashboard/admin/clubs/:clubId" 
             element={
-              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
+               <EnhancedRoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                 <ClubDetailPage />
               </EnhancedRoleGuard>
             } 
@@ -285,7 +285,7 @@ const App = () => {
           <Route 
             path="/dashboard/admin/players/:playerId" 
             element={
-              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
+               <EnhancedRoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                 <PlayerDetailPage />
               </EnhancedRoleGuard>
             } 
@@ -293,7 +293,7 @@ const App = () => {
           <Route 
             path="/dashboard/admin/users" 
             element={
-              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
+               <EnhancedRoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                 <UserManagement />
               </EnhancedRoleGuard>
             } 
@@ -301,7 +301,7 @@ const App = () => {
           <Route 
             path="/dashboard/admin/revenue/breakdown" 
             element={
-              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
+               <EnhancedRoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                 <RevenueBreakdown />
               </EnhancedRoleGuard>
             } 
@@ -309,7 +309,7 @@ const App = () => {
           <Route 
             path="/dashboard/admin/entries" 
             element={
-              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
+               <EnhancedRoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                 <EntriesPage />
               </EnhancedRoleGuard>
             } 
@@ -317,7 +317,7 @@ const App = () => {
           <Route 
             path="/dashboard/admin/enquiries" 
             element={
-              <EnhancedRoleGuard allowedRoles={['ADMIN']}>
+               <EnhancedRoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
                 <AdminEnquiries />
               </EnhancedRoleGuard>
             } 
