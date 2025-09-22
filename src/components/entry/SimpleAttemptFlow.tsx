@@ -13,6 +13,7 @@ interface SimpleAttemptFlowProps {
   venueName: string;
   timeRemaining: number;
   onOutcomeReported: (outcome: string) => void;
+  onWinReported?: (entryId: string) => void;
 }
 
 export const SimpleAttemptFlow = ({
@@ -21,7 +22,8 @@ export const SimpleAttemptFlow = ({
   holeNumber,
   venueName,
   timeRemaining,
-  onOutcomeReported
+  onOutcomeReported,
+  onWinReported
 }: SimpleAttemptFlowProps) => {
   const [step, setStep] = useState<'ready' | 'attempting' | 'reporting'>('ready');
   const [submitting, setSubmitting] = useState(false);
@@ -38,6 +40,7 @@ export const SimpleAttemptFlow = ({
     setSubmitting(true);
 
     try {
+      // Update entry outcome
       await supabase
         .from('entries')
         .update({
@@ -46,12 +49,34 @@ export const SimpleAttemptFlow = ({
         })
         .eq('id', entryId);
 
+      // If it's a win, create verification record and navigate to win claim
+      if (outcome === 'win') {
+        const { error: verificationError } = await supabase
+          .from('verifications')
+          .insert({
+            entry_id: entryId,
+            status: 'initiated',
+            witnesses: [],
+            evidence_captured_at: new Date().toISOString()
+          });
+
+        if (verificationError) {
+          console.error('Error creating verification:', verificationError);
+          // Don't fail the whole operation, just log the error
+        }
+
+        // Call win callback for navigation
+        if (onWinReported) {
+          onWinReported(entryId);
+        }
+      }
+
       onOutcomeReported(outcome);
       
       toast({
         title: outcome === 'win' ? "🏆 Hole-in-One!" : "Thanks for playing!",
         description: outcome === 'win' ? 
-          "Amazing shot! Your win is being verified." : 
+          "Amazing shot! Now let's verify it with evidence." : 
           "Better luck next time - try again later!"
       });
     } catch (error) {

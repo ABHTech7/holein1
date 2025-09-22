@@ -503,12 +503,10 @@ const EntryConfirmation = () => {
                     timeRemaining={timeRemaining}
                     onOutcomeReported={(outcome) => {
                       setEntry(prev => prev ? { ...prev, outcome_self: outcome } : null);
-                      toast({
-                        title: outcome === 'win' ? 'Win reported!' : 'Outcome recorded',
-                        description: outcome === 'win' ? 
-                          'Your win claim has been submitted for verification' :
-                          'Thanks for reporting your result'
-                      });
+                    }}
+                    onWinReported={(entryId) => {
+                      // Navigate to win claim page for evidence collection
+                      navigate(`/win-claim/${entryId}`);
                     }}
                   />
                 ) : null}
