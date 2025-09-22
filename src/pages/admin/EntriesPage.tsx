@@ -56,6 +56,7 @@ const EntriesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
+  const [bulkUpdating, setBulkUpdating] = useState(false);
 
   useEffect(() => {
     fetchEntries();
@@ -169,7 +170,15 @@ const EntriesPage = () => {
 
     // Status filter
     if (statusFilter !== "all") {
-      filtered = filtered.filter(entry => entry.status === statusFilter);
+      if (statusFilter === "won") {
+        filtered = filtered.filter(entry => entry.outcome_self === "win");
+      } else if (statusFilter === "auto_miss") {
+        filtered = filtered.filter(entry => entry.outcome_self === "auto_miss");
+      } else if (statusFilter === "expired") {
+        filtered = filtered.filter(entry => entry.status === "expired");
+      } else {
+        filtered = filtered.filter(entry => entry.status === statusFilter);
+      }
     }
 
     // Payment filter
@@ -201,6 +210,7 @@ const EntriesPage = () => {
       case 'completed': return 'default';
       case 'pending': return 'secondary';
       case 'expired': return 'destructive';
+      case 'verification_pending': return 'default';
       default: return 'outline';
     }
   };
@@ -232,11 +242,81 @@ const EntriesPage = () => {
     return { status: 'unknown', text: 'No window set' };
   };
 
+  const handleMarkAllUnpaidAsPaid = async () => {
+    const unpaidEntries = entries.filter(e => !e.paid);
+    if (unpaidEntries.length === 0) {
+      toast({
+        title: "No unpaid entries",
+        description: "All entries are already marked as paid.",
+        variant: "default"
+      });
+      return;
+    }
+
+    if (!confirm(`Mark ${unpaidEntries.length} unpaid entries as paid?`)) {
+      return;
+    }
+
+    setBulkUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('entries')
+        .update({ 
+          paid: true, 
+          payment_date: new Date().toISOString() 
+        })
+        .eq('paid', false);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${unpaidEntries.length} entries marked as paid`,
+        variant: "default"
+      });
+
+      await fetchEntries();
+    } catch (error) {
+      console.error('Error updating payments:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update entry payments",
+        variant: "destructive"
+      });
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
+  const handleEnsureWinVerifications = async () => {
+    setBulkUpdating(true);
+    try {
+      const { ensureAllWinVerifications } = await import('@/lib/verificationService');
+      const newVerifications = await ensureAllWinVerifications();
+      
+      toast({
+        title: "Success",
+        description: `${newVerifications.length} win claims synchronized`,
+        variant: "default"
+      });
+    } catch (error) {
+      console.error('Error syncing win verifications:', error);
+      toast({
+        title: "Error", 
+        description: "Failed to sync win claims",
+        variant: "destructive"
+      });
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
   // Stats calculations
   const totalEntries = entries.length;
   const paidEntries = entries.filter(e => e.paid).length;
   const pendingEntries = entries.filter(e => e.status === 'pending').length;
   const completedEntries = entries.filter(e => e.status === 'completed').length;
+  const wonEntries = entries.filter(e => e.outcome_self === 'win').length;
   const totalRevenue = entries.filter(e => e.paid).reduce((sum, e) => sum + e.competition.entry_fee, 0);
 
   return (
@@ -264,7 +344,7 @@ const EntriesPage = () => {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <Card>
               <CardContent className="p-4">
                 <div className="text-lg md:text-2xl font-bold">{totalEntries}</div>
@@ -287,6 +367,12 @@ const EntriesPage = () => {
               <CardContent className="p-4">
                 <div className="text-lg md:text-2xl font-bold text-blue-600">{completedEntries}</div>
                 <div className="text-xs md:text-sm text-muted-foreground">Completed</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-lg md:text-2xl font-bold text-amber-600">{wonEntries}</div>
+                <div className="text-xs md:text-sm text-muted-foreground">Won</div>
               </CardContent>
             </Card>
             <Card className="col-span-2 md:col-span-1">
@@ -319,8 +405,9 @@ const EntriesPage = () => {
                       <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
-                       <SelectItem value="expired">Expired</SelectItem>
-                       <SelectItem value="auto_miss">Auto Missed</SelectItem>
+                      <SelectItem value="won">Won</SelectItem>
+                      <SelectItem value="expired">Expired</SelectItem>
+                      <SelectItem value="auto_miss">Auto Missed</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={paymentFilter} onValueChange={setPaymentFilter}>
@@ -334,6 +421,25 @@ const EntriesPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              
+              {/* Bulk Actions */}
+              <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
+                <Button
+                  onClick={handleMarkAllUnpaidAsPaid}
+                  disabled={bulkUpdating || entries.filter(e => !e.paid).length === 0}
+                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white"
+                >
+                  {bulkUpdating ? "Updating..." : `Mark All Unpaid as Paid (${entries.filter(e => !e.paid).length})`}
+                </Button>
+                <Button
+                  onClick={handleEnsureWinVerifications}
+                  variant="outline"
+                  disabled={bulkUpdating}
+                  className="border-primary text-primary hover:bg-primary/10"
+                >
+                  {bulkUpdating ? "Processing..." : "Sync Win Claims"}
+                </Button>
               </div>
             </CardContent>
           </Card>
