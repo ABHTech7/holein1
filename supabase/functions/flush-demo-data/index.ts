@@ -115,7 +115,7 @@ const handler = async (req: Request): Promise<Response> => {
       return matchesEmailPattern;
     }) || [];
 
-    // If recentOnly, include all players who created entries recently (last 3 hours)
+    // If recentOnly, include ALL players who created entries recently (last 3 hours)
     let recentEntryIds: string[] = [];
     if (recentOnly) {
       const { data: recentEntries, error: recentEntriesError } = await supabaseAdmin
@@ -127,12 +127,13 @@ const handler = async (req: Request): Promise<Response> => {
       }
       const recentPlayerIds = [...new Set((recentEntries || []).map(e => e.player_id))];
       recentEntryIds = (recentEntries || []).map(e => e.id);
+      
+      console.log(`Found ${recentEntries?.length || 0} recent entries from ${recentPlayerIds.length} unique players`);
+      
       if (recentPlayerIds.length > 0) {
-        const unionIds = new Set<string>([
-          ...demoUsers.map(u => u.id),
-          ...recentPlayerIds,
-        ]);
-        demoUsers = allUsers.users?.filter(u => unionIds.has(u.id)) || [];
+        // For recent-only mode, include ALL players with recent entries (not just demo email patterns)
+        demoUsers = allUsers.users?.filter(u => recentPlayerIds.includes(u.id)) || [];
+        console.log(`Including ${demoUsers.length} players with recent entries for deletion`);
       }
     }
 
