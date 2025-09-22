@@ -64,14 +64,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get all demo clubs first (they have the demo email pattern)
     let clubQuery = supabaseAdmin
-      .from("clubs");
+      .from("clubs")
+      .select("id, name, email, created_at");
 
     if (recentOnly) {
       clubQuery = clubQuery.gte("created_at", thresholdIso);
     }
 
-    const { data: allClubs, error: clubsFetchError } = await clubQuery
-      .select("id, name, email, created_at");
+    const { data: allClubs, error: clubsFetchError } = await clubQuery;
 
     if (clubsFetchError) {
       console.error("Error fetching clubs:", clubsFetchError);
@@ -154,7 +154,10 @@ const handler = async (req: Request): Promise<Response> => {
     const demoUserIds = demoUsers.map(u => u.id);
     console.log(`Found ${demoUsers.length} demo users to clean up`);
 
-    // demoClubIds already computed above; avoiding redeclaration to prevent runtime errors
+    // Ensure demoClubIds is available
+    // If not defined earlier, compute here as fallback
+    const demoClubIds = typeof demoClubIds !== 'undefined' ? demoClubIds : (demoClubs?.map(c => c.id) || []);
+    console.log(`Found ${demoClubs.length} demo clubs to clean up`);
 
     // Delete in proper order due to foreign key constraints
     
