@@ -14,8 +14,8 @@ const SiteHeader = () => {
   const { user, profile, signOut } = useAuth();
 
   const navigation = [
-    // Only show Home on non-admin and non-insurance pages
-    ...(location.pathname.startsWith('/dashboard/admin') || location.pathname.startsWith('/dashboard/insurance') ? [] : [{ name: "Home", href: ROUTES.HOME }]),
+    // Only show Home for non-admin/super-admin roles and non-insurance pages
+    ...((profile?.role === 'SUPER_ADMIN' || profile?.role === 'ADMIN') || location.pathname.startsWith('/dashboard/insurance') ? [] : [{ name: "Home", href: ROUTES.HOME }]),
   ];
 
   const authNavigation = user ? [

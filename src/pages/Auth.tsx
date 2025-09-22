@@ -41,6 +41,7 @@ const Auth = () => {
   // Redirect based on user role
   if (user && profile) {
     switch (profile.role) {
+      case 'SUPER_ADMIN':
       case 'ADMIN':
         return <Navigate to={ROUTES.ADMIN.DASHBOARD} replace />;
       case 'CLUB':
