@@ -5,7 +5,7 @@
 
 import { ROUTES } from '@/routes';
 
-export type UserRole = 'ADMIN' | 'CLUB' | 'PLAYER';
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'PLAYER';
 export type RouteCategory = 'public' | 'auth' | 'admin' | 'club' | 'player' | 'entry';
 
 export interface RoutePermission {
@@ -26,8 +26,8 @@ export interface PageElement {
 // Route permissions matrix
 export const ROUTE_PERMISSIONS: RoutePermission[] = [
   // Public routes
-  { path: '/', allowedRoles: ['ADMIN', 'CLUB', 'PLAYER'], category: 'public', requiresAuth: false, description: 'Homepage' },
-  { path: '/auth', allowedRoles: ['ADMIN', 'CLUB', 'PLAYER'], category: 'public', requiresAuth: false, description: 'Authentication page' },
+  { path: '/', allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'CLUB', 'PLAYER'], category: 'public', requiresAuth: false, description: 'Homepage' },
+  { path: '/auth', allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'CLUB', 'PLAYER'], category: 'public', requiresAuth: false, description: 'Authentication page' },
   { path: '/auth/callback', allowedRoles: ['ADMIN', 'CLUB', 'PLAYER'], category: 'auth', requiresAuth: false, description: 'Authentication callback' },
   { path: '/partnership', allowedRoles: ['ADMIN', 'CLUB', 'PLAYER'], category: 'public', requiresAuth: false, description: 'Partnership application' },
   { path: '/clubs/signup', allowedRoles: ['ADMIN', 'CLUB', 'PLAYER'], category: 'public', requiresAuth: false, description: 'Club signup' },
@@ -62,37 +62,37 @@ export const ROUTE_PERMISSIONS: RoutePermission[] = [
   { path: '/dashboard/club/claims', allowedRoles: ['CLUB', 'ADMIN'], category: 'club', requiresAuth: true, description: 'Club claims' },
 
   // Admin routes
-  { path: '/dashboard/admin', allowedRoles: ['ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin dashboard' },
-  { path: '/dashboard/admin/players', allowedRoles: ['ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin players' },
-  { path: '/dashboard/admin/clubs', allowedRoles: ['ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin clubs' },
-  { path: '/dashboard/admin/competitions', allowedRoles: ['ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin competitions' },
-  { path: '/dashboard/admin/competitions/new', allowedRoles: ['ADMIN'], category: 'admin', requiresAuth: true, description: 'New admin competition' },
-  { path: '/dashboard/admin/revenue', allowedRoles: ['ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin revenue' },
-  { path: '/dashboard/admin/revenue/breakdown', allowedRoles: ['ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin revenue breakdown' },
-  { path: '/dashboard/admin/entries', allowedRoles: ['ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin entries' },
-  { path: '/dashboard/admin/claims', allowedRoles: ['ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin claims' },
-  { path: '/dashboard/admin/users', allowedRoles: ['ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin user management' },
+  { path: '/dashboard/admin', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin dashboard' },
+  { path: '/dashboard/admin/players', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin players' },
+  { path: '/dashboard/admin/clubs', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin clubs' },
+  { path: '/dashboard/admin/competitions', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin competitions' },
+  { path: '/dashboard/admin/competitions/new', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'New admin competition' },
+  { path: '/dashboard/admin/revenue', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin revenue' },
+  { path: '/dashboard/admin/revenue/breakdown', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin revenue breakdown' },
+  { path: '/dashboard/admin/entries', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin entries' },
+  { path: '/dashboard/admin/claims', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin claims' },
+  { path: '/dashboard/admin/users', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Admin user management' },
 
   // Detail routes
-  { path: '/dashboard/admin/clubs/:clubId', allowedRoles: ['ADMIN'], category: 'admin', requiresAuth: true, description: 'Club detail (admin)' },
-  { path: '/dashboard/admin/players/:playerId', allowedRoles: ['ADMIN'], category: 'admin', requiresAuth: true, description: 'Player detail (admin)' },
-  { path: '/claims/:verificationId', allowedRoles: ['ADMIN', 'CLUB'], category: 'admin', requiresAuth: true, description: 'Claim detail' },
-  { path: '/dashboard/admin/competitions/:id', allowedRoles: ['ADMIN'], category: 'admin', requiresAuth: true, description: 'Competition detail (admin)' },
-  { path: '/dashboard/admin/competitions/:id/edit', allowedRoles: ['ADMIN'], category: 'admin', requiresAuth: true, description: 'Competition edit (admin)' },
+  { path: '/dashboard/admin/clubs/:clubId', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Club detail (admin)' },
+  { path: '/dashboard/admin/players/:playerId', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Player detail (admin)' },
+  { path: '/claims/:verificationId', allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'CLUB'], category: 'admin', requiresAuth: true, description: 'Claim detail' },
+  { path: '/dashboard/admin/competitions/:id', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Competition detail (admin)' },
+  { path: '/dashboard/admin/competitions/:id/edit', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Competition edit (admin)' },
   { path: '/dashboard/club/competitions/:id', allowedRoles: ['CLUB', 'ADMIN'], category: 'club', requiresAuth: true, description: 'Competition detail (club)' },
 
   // Development routes
-  { path: '/dev/demo', allowedRoles: ['ADMIN'], category: 'admin', requiresAuth: true, description: 'Developer demo' },
-  { path: '/styleguide', allowedRoles: ['ADMIN'], category: 'admin', requiresAuth: true, description: 'Style guide' },
+  { path: '/dev/demo', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Developer demo' },
+  { path: '/styleguide', allowedRoles: ['SUPER_ADMIN', 'ADMIN'], category: 'admin', requiresAuth: true, description: 'Style guide' },
 ];
 
 // Page element visibility matrix
 export const PAGE_ELEMENTS: Record<string, PageElement[]> = {
   '/dashboard/admin': [
-    { name: 'Player Management Card', visibleToRoles: ['ADMIN'], type: 'section' },
-    { name: 'Club Management Card', visibleToRoles: ['ADMIN'], type: 'section' },
-    { name: 'Revenue Analytics Card', visibleToRoles: ['ADMIN'], type: 'section' },
-    { name: 'System Settings Card', visibleToRoles: ['ADMIN'], type: 'section' },
+    { name: 'Player Management Card', visibleToRoles: ['SUPER_ADMIN', 'ADMIN'], type: 'section' },
+    { name: 'Club Management Card', visibleToRoles: ['SUPER_ADMIN', 'ADMIN'], type: 'section' },
+    { name: 'Revenue Analytics Card', visibleToRoles: ['SUPER_ADMIN', 'ADMIN'], type: 'section' },
+    { name: 'System Settings Card', visibleToRoles: ['SUPER_ADMIN', 'ADMIN'], type: 'section' },
   ],
   '/dashboard/club': [
     { name: 'Competition Management Card', visibleToRoles: ['CLUB', 'ADMIN'], type: 'section' },
@@ -101,9 +101,9 @@ export const PAGE_ELEMENTS: Record<string, PageElement[]> = {
     { name: 'Banking Setup Card', visibleToRoles: ['CLUB', 'ADMIN'], type: 'section' },
   ],
   '/players/entries': [
-    { name: 'Active Entries Table', visibleToRoles: ['PLAYER', 'ADMIN'], type: 'section' },
-    { name: 'Entry History', visibleToRoles: ['PLAYER', 'ADMIN'], type: 'section' },
-    { name: 'Profile Settings Link', visibleToRoles: ['PLAYER', 'ADMIN'], type: 'link' },
+    { name: 'Active Entries Table', visibleToRoles: ['PLAYER', 'SUPER_ADMIN', 'ADMIN'], type: 'section' },
+    { name: 'Entry History', visibleToRoles: ['PLAYER', 'SUPER_ADMIN', 'ADMIN'], type: 'section' },
+    { name: 'Profile Settings Link', visibleToRoles: ['PLAYER', 'SUPER_ADMIN', 'ADMIN'], type: 'link' },
   ],
 };
 
@@ -160,8 +160,11 @@ export const getUnauthorizedRedirect = (route: string, userRole: UserRole | null
   // Default redirects based on role
   if (!userRole) return '/auth';
   
+  // Super Admin gets same treatment as Admin for redirects
+  const effectiveRole = userRole === 'SUPER_ADMIN' ? 'ADMIN' : userRole;
+  
   // Manual role-based dashboard routing
-  switch (userRole) {
+  switch (effectiveRole) {
     case 'ADMIN':
       return ROUTES.ADMIN.DASHBOARD;
     case 'CLUB':

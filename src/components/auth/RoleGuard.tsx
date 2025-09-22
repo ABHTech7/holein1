@@ -4,7 +4,7 @@ import useAuth from '@/hooks/useAuth';
 
 interface RoleGuardProps {
   children: ReactNode;
-  allowedRoles: Array<'ADMIN' | 'CLUB' | 'PLAYER'>;
+  allowedRoles: Array<'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'PLAYER'>;
   fallbackPath?: string;
 }
 

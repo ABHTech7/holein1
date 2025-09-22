@@ -18,7 +18,7 @@ interface User {
   email: string;
   first_name: string;
   last_name: string;
-  role: 'ADMIN' | 'CLUB' | 'PLAYER';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'PLAYER';
   club_id?: string;
   created_at: string;
   club_name?: string;
@@ -103,7 +103,7 @@ const UserManagementModal = ({ isOpen, onClose }: UserManagementModalProps) => {
     setFilteredUsers(filtered);
   }, [users, searchTerm, filterType]);
 
-  const updateUserRole = async (userId: string, newRole: 'ADMIN' | 'CLUB' | 'PLAYER') => {
+  const updateUserRole = async (userId: string, newRole: 'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'PLAYER') => {
     setUpdating(userId);
     try {
       const { error } = await supabase

@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_permissions: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      admin_user_permissions: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          id: string
+          permission_id: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          permission_id: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          permission_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_user_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "admin_permissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_events: {
         Row: {
           action: string
@@ -1186,6 +1242,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_current_user_permissions: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          category: string
+          permission_description: string
+          permission_name: string
+        }[]
+      }
       get_current_user_profile_safe: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1342,6 +1406,10 @@ export type Database = {
           user_id: string
         }
         Returns: string
+      }
+      user_has_permission: {
+        Args: { permission_name: string; user_uuid: string }
+        Returns: boolean
       }
       validate_file_upload: {
         Args: {

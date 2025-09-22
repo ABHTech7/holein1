@@ -51,7 +51,7 @@ import { showSupabaseError } from '@/lib/showSupabaseError';
 
 interface Profile {
   id: string;
-  role: 'ADMIN' | 'CLUB' | 'PLAYER';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'PLAYER';
   club_id?: string;
 }
 

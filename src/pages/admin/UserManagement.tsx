@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/formatters";
 import SecureAdminCreation from "@/components/admin/SecureAdminCreation";
+import { PermissionManagement } from "@/components/admin/PermissionManagement";
 
 interface UserProfile {
   id: string;
@@ -22,7 +23,7 @@ interface UserProfile {
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
-  role: 'ADMIN' | 'CLUB';
+  role: 'SUPER_ADMIN' | 'ADMIN' | 'CLUB';
   club_id: string | null;
   created_at: string;
   clubs?: {
@@ -43,13 +44,16 @@ const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddUser, setShowAddUser] = useState(false);
   const [showSecureAdminCreate, setShowSecureAdminCreate] = useState(false);
+  const [showPermissionManagement, setShowPermissionManagement] = useState(false);
+  const [permissionUserId, setPermissionUserId] = useState<string>("");
+  const [permissionUserEmail, setPermissionUserEmail] = useState<string>("");
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [newUser, setNewUser] = useState({
     email: "",
     firstName: "",
     lastName: "",
     phone: "",
-    role: "CLUB" as "ADMIN" | "CLUB",
+    role: "CLUB" as "SUPER_ADMIN" | "ADMIN" | "CLUB",
     clubId: "",
     password: ""
   });
@@ -57,7 +61,7 @@ const UserManagement = () => {
     firstName: "",
     lastName: "",
     phone: "",
-    role: "CLUB" as "ADMIN" | "CLUB",
+    role: "CLUB" as "SUPER_ADMIN" | "ADMIN" | "CLUB",
     clubId: ""
   });
 
@@ -74,7 +78,7 @@ const UserManagement = () => {
             id, email, first_name, last_name, phone, role, club_id, created_at,
             clubs(name)
           `)
-          .in('role', ['ADMIN', 'CLUB'])
+          .in('role', ['SUPER_ADMIN', 'ADMIN', 'CLUB'])
           .order('created_at', { ascending: false });
 
         if (usersError) {
@@ -252,6 +256,8 @@ const UserManagement = () => {
 
   const getRoleColor = (role: string) => {
     switch (role) {
+      case 'SUPER_ADMIN':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'ADMIN':
         return 'bg-red-100 text-red-800 border-red-200';
       case 'CLUB':
@@ -259,6 +265,12 @@ const UserManagement = () => {
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
+  };
+
+  const handleManagePermissions = (user: UserProfile) => {
+    setPermissionUserId(user.id);
+    setPermissionUserEmail(user.email);
+    setShowPermissionManagement(true);
   };
 
   return (
@@ -367,15 +379,28 @@ const UserManagement = () => {
                               <p>Created {formatDate(user.created_at)}</p>
                             </div>
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleEditUser(user)}
-                            className="gap-2"
-                          >
-                            <Edit className="w-4 h-4" />
-                            Edit
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleEditUser(user)}
+                              className="gap-2"
+                            >
+                              <Edit className="w-4 h-4" />
+                              Edit
+                            </Button>
+                            {user.role === 'ADMIN' && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleManagePermissions(user)}
+                                className="gap-2"
+                              >
+                                <Shield className="w-4 h-4" />
+                                Permissions
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))
                     )}
@@ -441,15 +466,28 @@ const UserManagement = () => {
                               <p>Created {formatDate(user.created_at)}</p>
                             </div>
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleEditUser(user)}
-                            className="gap-2"
-                          >
-                            <Edit className="w-4 h-4" />
-                            Edit
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleEditUser(user)}
+                              className="gap-2"
+                            >
+                              <Edit className="w-4 h-4" />
+                              Edit
+                            </Button>
+                            {user.role === 'ADMIN' && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleManagePermissions(user)}
+                                className="gap-2"
+                              >
+                                <Shield className="w-4 h-4" />
+                                Permissions
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))
                     )}
@@ -709,6 +747,22 @@ const UserManagement = () => {
           window.location.reload();
         }}
       />
+
+      {/* Permission Management Modal */}
+      {showPermissionManagement && (
+        <Dialog open={showPermissionManagement} onOpenChange={setShowPermissionManagement}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Permission Management</DialogTitle>
+            </DialogHeader>
+            <PermissionManagement
+              userId={permissionUserId}
+              userEmail={permissionUserEmail}
+              onClose={() => setShowPermissionManagement(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
