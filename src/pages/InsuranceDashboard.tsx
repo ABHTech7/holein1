@@ -159,9 +159,14 @@ const InsuranceDashboard = () => {
     );
   }
 
-  const currentMonthEntries = entries.length;
-  const currentMonthPremium = currentMonthEntries * company.premium_rate_per_entry;
-  const totalPremiumsYTD = premiums.reduce((sum, p) => sum + parseFloat(p.total_premium_amount.toString()), 0);
+  const currentMonthEntries = entries?.length || 0;
+  const currentMonthPremium = currentMonthEntries * (company?.premium_rate_per_entry || 0);
+  
+  // Calculate YTD premiums properly - only from current year
+  const currentYear = new Date().getFullYear();
+  const totalPremiumsYTD = premiums.filter(p => 
+    new Date(p.period_start).getFullYear() === currentYear
+  ).reduce((sum, p) => sum + Number(p.total_premium_amount), 0);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -198,17 +203,6 @@ const InsuranceDashboard = () => {
                   <h1 className="text-3xl font-bold">{company.name}</h1>
                   <p className="text-muted-foreground">Insurance Premium Dashboard</p>
                 </div>
-              </div>
-              
-              <div className="flex gap-3">
-                <Button variant="outline" onClick={() => navigate('/dashboard/insurance/reports')}>
-                  <FileText className="w-4 h-4 mr-2" />
-                  Reports
-                </Button>
-                <Button variant="outline" onClick={() => navigate('/dashboard/insurance/premiums')}>
-                  <PoundSterling className="w-4 h-4 mr-2" />
-                  All Premiums
-                </Button>
               </div>
             </div>
 
