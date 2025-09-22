@@ -22,7 +22,6 @@ import { showSupabaseError } from "@/lib/showSupabaseError";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotificationCounts } from "@/hooks/useNotificationCounts";
 import { ROUTES } from "@/routes";
-
 interface DashboardStats {
   totalPlayers: number;
   newPlayersThisMonth: number;
@@ -32,7 +31,6 @@ interface DashboardStats {
   monthlyRevenue: number;
   yearlyRevenue: number;
 }
-
 interface Competition {
   id: string;
   name: string;
@@ -42,11 +40,15 @@ interface Competition {
   entry_count: number;
   club_name: string;
 }
-
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { profile } = useAuth();
-  const { newLeads, pendingClaims } = useNotificationCounts();
+  const {
+    profile
+  } = useAuth();
+  const {
+    newLeads,
+    pendingClaims
+  } = useNotificationCounts();
   const [loading, setLoading] = useState(true);
   const [showSiteSettings, setShowSiteSettings] = useState(false);
   const [showNewUser, setShowNewUser] = useState(false);
@@ -61,7 +63,10 @@ const AdminDashboard = () => {
     yearlyRevenue: 0
   });
   const [competitions, setCompetitions] = useState<Competition[]>([]);
-  const [membershipData, setMembershipData] = useState<Array<{month: string, members: number}>>([]);
+  const [membershipData, setMembershipData] = useState<Array<{
+    month: string;
+    members: number;
+  }>>([]);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -72,15 +77,19 @@ const AdminDashboard = () => {
         // Development diagnostic logging
         if (process.env.NODE_ENV !== 'production') {
           console.log('🔍 [AdminDashboard.fetchDashboardData] Starting dashboard data fetch', {
-            userProfile: { 
-              role: profile?.role, 
-              id: profile?.id, 
-              club_id: profile?.club_id 
+            userProfile: {
+              role: profile?.role,
+              id: profile?.id,
+              club_id: profile?.club_id
             },
             operation: 'Fetching comprehensive admin dashboard data',
-            queryParams: { 
+            queryParams: {
               tables: ['profiles', 'clubs', 'competitions', 'entries'],
-              filters: { role: 'PLAYER', status: 'ACTIVE', paid: true }
+              filters: {
+                role: 'PLAYER',
+                status: 'ACTIVE',
+                paid: true
+              }
             }
           });
         }
@@ -93,57 +102,54 @@ const AdminDashboard = () => {
         const yearStart = new Date(now.getFullYear(), 0, 1).toISOString();
 
         // Fetch basic stats with proper error handling
-        const [playersRes, newPlayersRes, clubsRes, activeCompsRes] = await Promise.all([
-          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'PLAYER').neq('status', 'deleted').is('deleted_at', null),
-          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'PLAYER').neq('status', 'deleted').is('deleted_at', null).gte('created_at', monthStart),
-          supabase.from('clubs').select('id', { count: 'exact', head: true }),
-          supabase.from('competitions').select('id, name, status').eq('status', 'ACTIVE')
-        ]);
+        const [playersRes, newPlayersRes, clubsRes, activeCompsRes] = await Promise.all([supabase.from('profiles').select('id', {
+          count: 'exact',
+          head: true
+        }).eq('role', 'PLAYER').neq('status', 'deleted').is('deleted_at', null), supabase.from('profiles').select('id', {
+          count: 'exact',
+          head: true
+        }).eq('role', 'PLAYER').neq('status', 'deleted').is('deleted_at', null).gte('created_at', monthStart), supabase.from('clubs').select('id', {
+          count: 'exact',
+          head: true
+        }), supabase.from('competitions').select('id, name, status').eq('status', 'ACTIVE')]);
 
         // Fetch revenue data for different periods
         const [todayEntriesRes, monthlyEntriesRes, yearlyEntriesRes] = await Promise.all([
-          // Today's revenue
-          supabase
-            .from('entries')
-            .select(`
+        // Today's revenue
+        supabase.from('entries').select(`
               entry_date,
               paid,
               competitions!inner(entry_fee)
-            `)
-            .eq('paid', true)
-            .gte('entry_date', today)
-            .lt('entry_date', tomorrow),
-          
-          // Month-to-date revenue
-          supabase
-            .from('entries')
-            .select(`
+            `).eq('paid', true).gte('entry_date', today).lt('entry_date', tomorrow),
+        // Month-to-date revenue
+        supabase.from('entries').select(`
               entry_date,
               paid,
               competitions!inner(entry_fee)
-            `)
-            .eq('paid', true)
-            .gte('entry_date', monthStart),
-          
-          // Year-to-date revenue
-          supabase
-            .from('entries')
-            .select(`
+            `).eq('paid', true).gte('entry_date', monthStart),
+        // Year-to-date revenue
+        supabase.from('entries').select(`
               entry_date,
               paid,
               competitions!inner(entry_fee)
-            `)
-            .eq('paid', true)
-            .gte('entry_date', yearStart)
-        ]);
+            `).eq('paid', true).gte('entry_date', yearStart)]);
 
         // Enhanced error logging with comprehensive diagnostic details
         if (playersRes.error && process.env.NODE_ENV !== 'production') {
           console.error("ADMIN PAGE ERROR:", {
             location: "AdminDashboard.fetchDashboardData.players",
-            userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+            userProfile: {
+              role: profile?.role,
+              id: profile?.id,
+              club_id: profile?.club_id
+            },
             operation: "Fetching total player count",
-            queryParams: { table: 'profiles', filters: { role: 'PLAYER' } },
+            queryParams: {
+              table: 'profiles',
+              filters: {
+                role: 'PLAYER'
+              }
+            },
             code: playersRes.error.code,
             message: playersRes.error.message,
             details: playersRes.error.details,
@@ -154,9 +160,19 @@ const AdminDashboard = () => {
         if (newPlayersRes.error && process.env.NODE_ENV !== 'production') {
           console.error("ADMIN PAGE ERROR:", {
             location: "AdminDashboard.fetchDashboardData.newPlayers",
-            userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+            userProfile: {
+              role: profile?.role,
+              id: profile?.id,
+              club_id: profile?.club_id
+            },
             operation: "Fetching new players this month",
-            queryParams: { table: 'profiles', filters: { role: 'PLAYER', created_at: 'gte monthStart' } },
+            queryParams: {
+              table: 'profiles',
+              filters: {
+                role: 'PLAYER',
+                created_at: 'gte monthStart'
+              }
+            },
             code: newPlayersRes.error.code,
             message: newPlayersRes.error.message,
             details: newPlayersRes.error.details,
@@ -167,9 +183,16 @@ const AdminDashboard = () => {
         if (clubsRes.error && process.env.NODE_ENV !== 'production') {
           console.error("ADMIN PAGE ERROR:", {
             location: "AdminDashboard.fetchDashboardData.clubs",
-            userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+            userProfile: {
+              role: profile?.role,
+              id: profile?.id,
+              club_id: profile?.club_id
+            },
             operation: "Fetching total club count",
-            queryParams: { table: 'clubs', filters: {} },
+            queryParams: {
+              table: 'clubs',
+              filters: {}
+            },
             code: clubsRes.error.code,
             message: clubsRes.error.message,
             details: clubsRes.error.details,
@@ -183,17 +206,14 @@ const AdminDashboard = () => {
           const fee = (entry as any).competitions?.entry_fee || 0;
           return sum + fee;
         }, 0);
-
         const monthlyRevenue = (monthlyEntriesRes.data || []).reduce((sum, entry) => {
           const fee = (entry as any).competitions?.entry_fee || 0;
           return sum + fee;
         }, 0);
-
         const yearlyRevenue = (yearlyEntriesRes.data || []).reduce((sum, entry) => {
           const fee = (entry as any).competitions?.entry_fee || 0;
           return sum + fee;
         }, 0);
-
         setStats({
           totalPlayers: playersRes.count || 0,
           newPlayersThisMonth: newPlayersRes.count || 0,
@@ -205,22 +225,30 @@ const AdminDashboard = () => {
         });
 
         // Fetch recent competitions with entry counts and club info
-        const { data: recentComps, error: compsError } = await supabase
-          .from('competitions')
-          .select(`
+        const {
+          data: recentComps,
+          error: compsError
+        } = await supabase.from('competitions').select(`
             id, name, start_date, end_date, status, entry_fee,
             clubs(name),
             entries(id)
-          `)
-          .order('created_at', { ascending: false })
-          .limit(5);
-
+          `).order('created_at', {
+          ascending: false
+        }).limit(5);
         if (compsError && process.env.NODE_ENV !== 'production') {
           console.error("ADMIN PAGE ERROR:", {
             location: "AdminDashboard.fetchDashboardData.recentCompetitions",
-            userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+            userProfile: {
+              role: profile?.role,
+              id: profile?.id,
+              club_id: profile?.club_id
+            },
             operation: "Fetching recent competitions with entry counts",
-            queryParams: { table: 'competitions', joins: ['clubs', 'entries'], limit: 5 },
+            queryParams: {
+              table: 'competitions',
+              joins: ['clubs', 'entries'],
+              limit: 5
+            },
             code: compsError.code,
             message: compsError.message,
             details: compsError.details,
@@ -228,7 +256,6 @@ const AdminDashboard = () => {
             fullError: compsError
           });
         }
-
         if (recentComps) {
           setCompetitions(recentComps.map(comp => ({
             id: comp.id,
@@ -245,26 +272,36 @@ const AdminDashboard = () => {
         const membershipTrendData = [];
         for (let i = 3; i >= 0; i--) {
           const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const monthName = monthDate.toLocaleDateString('en-GB', { month: 'short' });
+          const monthName = monthDate.toLocaleDateString('en-GB', {
+            month: 'short'
+          });
           const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1).toISOString();
           const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59).toISOString();
-          
-          // Get actual new players for this specific month
-          const { count: monthlyCount, error: monthlyPlayersError } = await supabase
-            .from('profiles')
-            .select('id', { count: 'exact', head: true })
-            .eq('role', 'PLAYER')
-            .neq('status', 'deleted')
-            .is('deleted_at', null)
-            .gte('created_at', monthStart)
-            .lte('created_at', monthEnd);
 
+          // Get actual new players for this specific month
+          const {
+            count: monthlyCount,
+            error: monthlyPlayersError
+          } = await supabase.from('profiles').select('id', {
+            count: 'exact',
+            head: true
+          }).eq('role', 'PLAYER').neq('status', 'deleted').is('deleted_at', null).gte('created_at', monthStart).lte('created_at', monthEnd);
           if (monthlyPlayersError && process.env.NODE_ENV !== 'production') {
             console.error("ADMIN PAGE ERROR:", {
               location: "AdminDashboard.fetchDashboardData.monthlyPlayers",
-              userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+              userProfile: {
+                role: profile?.role,
+                id: profile?.id,
+                club_id: profile?.club_id
+              },
               operation: `Fetching players for month: ${monthName}`,
-              queryParams: { table: 'profiles', filters: { role: 'PLAYER', created_at: `${monthStart} to ${monthEnd}` } },
+              queryParams: {
+                table: 'profiles',
+                filters: {
+                  role: 'PLAYER',
+                  created_at: `${monthStart} to ${monthEnd}`
+                }
+              },
               code: monthlyPlayersError.code,
               message: monthlyPlayersError.message,
               details: monthlyPlayersError.details,
@@ -272,17 +309,14 @@ const AdminDashboard = () => {
               fullError: monthlyPlayersError
             });
           }
-
           const newPlayersThisMonth = monthlyCount || 0;
-          
           membershipTrendData.push({
             month: monthName,
             members: newPlayersThisMonth
           });
         }
         setMembershipData(membershipTrendData);
-
-                        console.log('Dashboard data loaded successfully:', {
+        console.log('Dashboard data loaded successfully:', {
           totalPlayers: playersRes.count,
           newPlayersThisMonth: newPlayersRes.count,
           clubs: clubsRes.count,
@@ -292,15 +326,21 @@ const AdminDashboard = () => {
           yearlyRevenue: yearlyRevenue,
           competitions: recentComps?.length
         });
-
       } catch (error) {
         // Enhanced error handling with comprehensive logging
         if (process.env.NODE_ENV !== 'production') {
           console.error("ADMIN PAGE ERROR:", {
             location: "AdminDashboard.fetchDashboardData.general",
-            userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+            userProfile: {
+              role: profile?.role,
+              id: profile?.id,
+              club_id: profile?.club_id
+            },
             operation: "General dashboard data fetching operation",
-            queryParams: { tables: 'multiple', operation: 'comprehensive dashboard fetch' },
+            queryParams: {
+              tables: 'multiple',
+              operation: 'comprehensive dashboard fetch'
+            },
             code: (error as any)?.code,
             message: (error as any)?.message,
             details: (error as any)?.details,
@@ -308,7 +348,6 @@ const AdminDashboard = () => {
             fullError: error
           });
         }
-
         const errorMessage = showSupabaseError(error, 'AdminDashboard.fetchDashboardData');
         toast({
           title: 'Failed to load dashboard data',
@@ -319,46 +358,40 @@ const AdminDashboard = () => {
         setLoading(false);
       }
     };
-
     fetchDashboardData();
   }, []);
-
   const handleSettings = () => {
     setShowSiteSettings(true);
   };
-
   const handleUserManagement = () => {
     navigate(ROUTES.ADMIN.USERS);
   };
-
   const handleAddUser = () => {
     setShowNewUser(true);
   };
-
   const handlePlayersClick = () => {
     navigate(ROUTES.ADMIN.PLAYERS);
   };
-
   const handleClubsClick = () => {
     navigate(ROUTES.ADMIN.CLUBS);
   };
-
   const handleCompetitionsClick = () => {
     console.log('Competition link clicked, navigating to:', ROUTES.ADMIN.COMPETITIONS);
     navigate(ROUTES.ADMIN.COMPETITIONS);
   };
-
   const handleRevenueClick = () => {
     navigate(ROUTES.ADMIN.REVENUE);
   };
-
-  const clubDistribution = [
-    { name: "Active Clubs", value: stats.totalClubs, color: "hsl(var(--primary))" },
-    { name: "Inactive", value: Math.max(0, 10 - stats.totalClubs), color: "hsl(var(--muted))" }
-  ];
-
-  return (
-    <div className="min-h-screen flex flex-col">
+  const clubDistribution = [{
+    name: "Active Clubs",
+    value: stats.totalClubs,
+    color: "hsl(var(--primary))"
+  }, {
+    name: "Inactive",
+    value: Math.max(0, 10 - stats.totalClubs),
+    color: "hsl(var(--muted))"
+  }];
+  return <div className="min-h-screen flex flex-col">
       <SiteHeader />
       
       <main className="flex-1">
@@ -369,12 +402,10 @@ const AdminDashboard = () => {
               <div>
                 <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">The Clubhouse HQ</h1>
                 {/* Personal greeting for admin user */}
-                {profile?.first_name && (
-                  <p className="text-lg text-primary mt-1">
+                {profile?.first_name && <p className="text-lg text-primary mt-1">
                     Hi {profile.first_name}, welcome back!
-                  </p>
-                )}
-                <p className="text-muted-foreground mt-1 text-sm md:text-base">Keeping score, counting cash, and dodging sand traps.</p>
+                  </p>}
+                
               </div>
               <div className="flex flex-wrap gap-2 md:gap-3">
                 <Button variant="outline" className="gap-2" onClick={handleSettings}>
@@ -385,11 +416,7 @@ const AdminDashboard = () => {
             </div>
 
             {/* Revenue Overview - Top Priority */}
-            <Card 
-              className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20 cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => navigate(ROUTES.ADMIN.REVENUE_BREAKDOWN)}
-              data-testid="admin-revenue-breakdown"
-            >
+            <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20 cursor-pointer hover:shadow-lg transition-shadow" onClick={() => navigate(ROUTES.ADMIN.REVENUE_BREAKDOWN)} data-testid="admin-revenue-breakdown">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <PoundSterling className="w-5 h-5 text-primary" />
@@ -398,17 +425,12 @@ const AdminDashboard = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {loading ? (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="text-center">
+                {loading ? <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {[...Array(3)].map((_, i) => <div key={i} className="text-center">
                         <Skeleton className="h-8 w-24 mx-auto mb-2" />
                         <Skeleton className="h-4 w-20 mx-auto" />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      </div>)}
+                  </div> : <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <TooltipProvider>
                       <div className="text-center">
                         <Tooltip>
@@ -450,8 +472,7 @@ const AdminDashboard = () => {
                         <div className="text-sm text-muted-foreground">Year to Date</div>
                       </div>
                     </TooltipProvider>
-                  </div>
-                )}
+                  </div>}
               </CardContent>
             </Card>
 
@@ -462,97 +483,56 @@ const AdminDashboard = () => {
                   <h2 className="text-lg font-semibold">Quick Actions</h2>
                   <p className="text-sm text-muted-foreground">Fast access to key management areas</p>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="gap-2"
-                  onClick={() => setIsEditingActions(!isEditingActions)}
-                >
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsEditingActions(!isEditingActions)}>
                   <Edit3 className="w-4 h-4" />
                   {isEditingActions ? 'Done' : 'Edit Order'}
                 </Button>
               </div>
-              <AdminQuickActions 
-                stats={{
-                  totalPlayers: stats.totalPlayers,
-                  pendingEntries: newLeads, // Real count of NEW partnership enquiries
-                  pendingClaims: pendingClaims,  // Real count of pending claims
-                  monthlyRevenue: stats.monthlyRevenue,
-                  activeCompetitions: stats.activeCompetitions,
-                  totalClubs: stats.totalClubs
-                }}
-                onAddUser={handleAddUser}
-                isEditing={isEditingActions}
-              />
+              <AdminQuickActions stats={{
+              totalPlayers: stats.totalPlayers,
+              pendingEntries: newLeads,
+              // Real count of NEW partnership enquiries
+              pendingClaims: pendingClaims,
+              // Real count of pending claims
+              monthlyRevenue: stats.monthlyRevenue,
+              activeCompetitions: stats.activeCompetitions,
+              totalClubs: stats.totalClubs
+            }} onAddUser={handleAddUser} isEditing={isEditingActions} />
             </div>
 
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {loading ? (
-                <>
-                  {[...Array(4)].map((_, i) => (
-                    <Card key={i} className="p-6">
+              {loading ? <>
+                  {[...Array(4)].map((_, i) => <Card key={i} className="p-6">
                       <Skeleton className="h-4 w-20 mb-2" />
                       <Skeleton className="h-8 w-16 mb-2" />
                       <Skeleton className="h-3 w-24" />
-                    </Card>
-                  ))}
-                </>
-              ) : (
-                <>
-                  <StatsCard
-                    title="Total Players"
-                    value={stats.totalPlayers.toString()}
-                    description="Registered players"
-                    icon={Users}
-                    onClick={handlePlayersClick}
-                  />
-                  <StatsCard
-                    title="New Players This Month"
-                    value={stats.newPlayersThisMonth.toString()}
-                    description={`Since ${new Date().toLocaleDateString('en-GB', { month: 'long' })} 1st`}
-                    icon={Users}
-                  />
-                  <StatsCard
-                    title="Active Clubs"
-                    value={stats.totalClubs.toString()}
-                    description="Golf clubs using platform"
-                    icon={Calendar}
-                    onClick={handleClubsClick}
-                  />
-                  <StatsCard
-                    title="Active Competitions"
-                    value={stats.activeCompetitions.toString()}
-                    description="Currently running"
-                    icon={Trophy}
-                    onClick={handleCompetitionsClick}
-                  />
-                </>
-              )}
+                    </Card>)}
+                </> : <>
+                  <StatsCard title="Total Players" value={stats.totalPlayers.toString()} description="Registered players" icon={Users} onClick={handlePlayersClick} />
+                  <StatsCard title="New Players This Month" value={stats.newPlayersThisMonth.toString()} description={`Since ${new Date().toLocaleDateString('en-GB', {
+                month: 'long'
+              })} 1st`} icon={Users} />
+                  <StatsCard title="Active Clubs" value={stats.totalClubs.toString()} description="Golf clubs using platform" icon={Calendar} onClick={handleClubsClick} />
+                  <StatsCard title="Active Competitions" value={stats.activeCompetitions.toString()} description="Currently running" icon={Trophy} onClick={handleCompetitionsClick} />
+                </>}
             </div>
 
             <div className="grid lg:grid-cols-1 gap-8">
               {/* Main Content Area */}
               <div className="space-y-8">
                 {/* Membership Growth Chart */}
-                <ChartWrapper
-                  title="New Player Registrations"
-                  description="Monthly new player sign-ups over the last 4 months"
-                >
-                  {loading ? (
-                    <div className="h-[300px] flex items-center justify-center">
+                <ChartWrapper title="New Player Registrations" description="Monthly new player sign-ups over the last 4 months">
+                  {loading ? <div className="h-[300px] flex items-center justify-center">
                       <Skeleton className="h-[250px] w-full" />
-                    </div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={300}>
+                    </div> : <ResponsiveContainer width="100%" height={300}>
                       <BarChart data={membershipData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                         <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
                         <YAxis stroke="hsl(var(--muted-foreground))" />
                         <Bar dataKey="members" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                       </BarChart>
-                    </ResponsiveContainer>
-                  )}
+                    </ResponsiveContainer>}
                 </ChartWrapper>
               </div>
             </div>
@@ -561,17 +541,9 @@ const AdminDashboard = () => {
       </main>
 
       {/* Site Settings Modal */}
-        <SiteSettingsModal 
-          isOpen={showSiteSettings}
-          onClose={() => setShowSiteSettings(false)}
-        />
+        <SiteSettingsModal isOpen={showSiteSettings} onClose={() => setShowSiteSettings(false)} />
 
-        <NewUserModal 
-          isOpen={showNewUser}
-          onClose={() => setShowNewUser(false)}
-        />
-      </div>
-    );
-  };
-
+        <NewUserModal isOpen={showNewUser} onClose={() => setShowNewUser(false)} />
+      </div>;
+};
 export default AdminDashboard;
