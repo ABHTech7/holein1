@@ -56,6 +56,7 @@ const InsuranceDashboard = () => {
   const [entries, setEntries] = useState<InsuranceEntry[]>([]);
   const [premiums, setPremiums] = useState<InsurancePremium[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [ytdPremiumPence, setYtdPremiumPence] = useState(0);
 
   // Get current month date range - fixed to use proper end date
   const monthStart = new Date(selectedMonth + '-01');
@@ -101,7 +102,24 @@ const InsuranceDashboard = () => {
         if (entriesError) throw entriesError;
         setEntries(entriesData || []);
 
-        // Get premiums data
+        // Compute YTD premium from entries (current year)
+        const yearStart = new Date(new Date().getFullYear(), 0, 1);
+        const today = new Date();
+        const { data: ytdEntries, error: ytdError } = await supabase
+          .rpc('get_insurance_entries_data', {
+            company_id: companyData.id,
+            month_start: yearStart.toISOString().split('T')[0],
+            month_end: today.toISOString().split('T')[0]
+          });
+        if (ytdError) {
+          console.warn('YTD entries fetch error:', ytdError);
+          setYtdPremiumPence(0);
+        } else {
+          const count = (ytdEntries?.length || 0);
+          setYtdPremiumPence(Math.round(count * Number(companyData.premium_rate_per_entry) * 100));
+        }
+
+        // Get premiums data (optional, for historical list if needed elsewhere)
         const { data: premiumsData, error: premiumsError } = await supabase
           .from('insurance_premiums')
           .select('*')
@@ -162,11 +180,8 @@ const InsuranceDashboard = () => {
   const currentMonthEntries = entries?.length || 0;
   const currentMonthPremium = currentMonthEntries * (company?.premium_rate_per_entry || 0);
   
-  // Calculate YTD premiums properly - only from current year
-  const currentYear = new Date().getFullYear();
-  const totalPremiumsYTD = premiums.filter(p => 
-    new Date(p.period_start).getFullYear() === currentYear
-  ).reduce((sum, p) => sum + Number(p.total_premium_amount), 0);
+  // YTD premium computed from YTD entries fetched server-side
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -240,7 +255,7 @@ const InsuranceDashboard = () => {
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(totalPremiumsYTD * 100)}</div>
+                  <div className="text-2xl font-bold">{formatCurrency(ytdPremiumPence)}</div>
                   <p className="text-xs text-muted-foreground">
                     Year to date total
                   </p>
