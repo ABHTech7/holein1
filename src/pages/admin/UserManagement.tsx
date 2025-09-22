@@ -145,9 +145,9 @@ const UserManagement = () => {
         return;
       }
 
-      toast({
+              toast({
         title: "Success",
-        description: `${newUser.role === 'ADMIN' ? 'Administrator' : 'Club manager'} account created successfully`
+        description: `${newUser.role === 'SUPER_ADMIN' ? 'Super Administrator' : newUser.role === 'ADMIN' ? 'Administrator' : 'Club manager'} account created successfully`
       });
 
       // Reset form and close modal
@@ -566,21 +566,15 @@ const UserManagement = () => {
                 <Label htmlFor="role">Role</Label>
                 <Select
                   value={newUser.role}
-                  onValueChange={(value: "ADMIN" | "CLUB") => {
-                    if (value === "ADMIN") {
-                      setShowAddUser(false);
-                      setShowSecureAdminCreate(true);
-                    } else {
-                      setNewUser({...newUser, role: value});
-                    }
-                  }}
+                  onValueChange={(value: "SUPER_ADMIN" | "ADMIN" | "CLUB") => setNewUser({...newUser, role: value})}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="CLUB">Club Manager</SelectItem>
-                    <SelectItem value="ADMIN">Administrator (Secure Creation)</SelectItem>
+                    <SelectItem value="ADMIN">Administrator</SelectItem>
+                    <SelectItem value="SUPER_ADMIN">Super Administrator</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -684,7 +678,7 @@ const UserManagement = () => {
                 <Label htmlFor="editRole">Role</Label>
                 <Select
                   value={editUser.role}
-                  onValueChange={(value: "ADMIN" | "CLUB") => setEditUser({...editUser, role: value})}
+                  onValueChange={(value: "SUPER_ADMIN" | "ADMIN" | "CLUB") => setEditUser({...editUser, role: value})}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -692,6 +686,7 @@ const UserManagement = () => {
                   <SelectContent>
                     <SelectItem value="CLUB">Club Manager</SelectItem>
                     <SelectItem value="ADMIN">Administrator</SelectItem>
+                    <SelectItem value="SUPER_ADMIN">Super Administrator</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
