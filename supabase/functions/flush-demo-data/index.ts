@@ -154,10 +154,6 @@ const handler = async (req: Request): Promise<Response> => {
     const demoUserIds = demoUsers.map(u => u.id);
     console.log(`Found ${demoUsers.length} demo users to clean up`);
 
-    // Ensure demoClubIds is available
-    // If not defined earlier, compute here as fallback
-    const demoClubIds = typeof demoClubIds !== 'undefined' ? demoClubIds : (demoClubs?.map(c => c.id) || []);
-    console.log(`Found ${demoClubs.length} demo clubs to clean up`);
 
     // Delete in proper order due to foreign key constraints
     
