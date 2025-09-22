@@ -115,9 +115,10 @@ const handler = async (req: Request): Promise<Response> => {
       return matchesEmailPattern;
     }) || [];
 
-    // If recentOnly, include ALL players who created entries recently (last 3 hours)
+    // If recentOnly, include ALL players created in last 3 hours OR who created entries in last 3 hours
     let recentEntryIds: string[] = [];
     if (recentOnly) {
+      // 1) Recent entries (last 3h)
       const { data: recentEntries, error: recentEntriesError } = await supabaseAdmin
         .from("entries")
         .select("id, player_id, competition_id, created_at")
@@ -125,15 +126,31 @@ const handler = async (req: Request): Promise<Response> => {
       if (recentEntriesError) {
         console.error("Error fetching recent entries:", recentEntriesError);
       }
-      const recentPlayerIds = [...new Set((recentEntries || []).map(e => e.player_id))];
+      const recentPlayerIdsFromEntries = [...new Set((recentEntries || []).map(e => e.player_id))];
       recentEntryIds = (recentEntries || []).map(e => e.id);
-      
-      console.log(`Found ${recentEntries?.length || 0} recent entries from ${recentPlayerIds.length} unique players`);
-      
-      if (recentPlayerIds.length > 0) {
-        // For recent-only mode, include ALL players with recent entries (not just demo email patterns)
-        demoUsers = allUsers.users?.filter(u => recentPlayerIds.includes(u.id)) || [];
-        console.log(`Including ${demoUsers.length} players with recent entries for deletion`);
+
+      // 2) Recent PLAYER profiles (last 3h)
+      const { data: recentProfiles, error: recentProfilesError } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("role", "PLAYER")
+        .gte("created_at", thresholdIso);
+      if (recentProfilesError) {
+        console.error("Error fetching recent profiles:", recentProfilesError);
+      }
+      const recentPlayerIdsFromProfiles = (recentProfiles || []).map(p => p.id);
+
+      const unionRecentPlayerIds = new Set<string>([
+        ...recentPlayerIdsFromEntries,
+        ...recentPlayerIdsFromProfiles,
+      ]);
+
+      console.log(`Recent-only scope: ${recentEntries?.length || 0} entries, ${recentPlayerIdsFromProfiles.length} recent player profiles, ${unionRecentPlayerIds.size} unique players`);
+
+      if (unionRecentPlayerIds.size > 0) {
+        // For recent-only mode, include ALL players in union of recent entries and recent profiles
+        demoUsers = allUsers.users?.filter(u => unionRecentPlayerIds.has(u.id)) || [];
+        console.log(`Including ${demoUsers.length} players for deletion in recent-only mode`);
       }
     }
 
