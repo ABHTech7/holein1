@@ -30,6 +30,7 @@ interface DashboardStats {
   todayRevenue: number;
   monthlyRevenue: number;
   yearlyRevenue: number;
+  unpaidEntries: number;
 }
 interface Competition {
   id: string;
@@ -60,7 +61,8 @@ const AdminDashboard = () => {
     activeCompetitions: 0,
     todayRevenue: 0,
     monthlyRevenue: 0,
-    yearlyRevenue: 0
+    yearlyRevenue: 0,
+    unpaidEntries: 0
   });
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [membershipData, setMembershipData] = useState<Array<{
@@ -106,7 +108,7 @@ const AdminDashboard = () => {
         const yearStart = new Date(now.getFullYear(), 0, 1).toISOString();
 
         // Fetch basic stats with proper error handling
-        const [playersRes, newPlayersRes, clubsRes, activeCompsRes] = await Promise.all([supabase.from('profiles').select('id', {
+        const [playersRes, newPlayersRes, clubsRes, activeCompsRes, unpaidEntriesRes] = await Promise.all([supabase.from('profiles').select('id', {
           count: 'exact',
           head: true
         }).eq('role', 'PLAYER').neq('status', 'deleted').is('deleted_at', null), supabase.from('profiles').select('id', {
@@ -115,7 +117,10 @@ const AdminDashboard = () => {
         }).eq('role', 'PLAYER').neq('status', 'deleted').is('deleted_at', null).gte('created_at', monthStart), supabase.from('clubs').select('id', {
           count: 'exact',
           head: true
-        }), supabase.from('competitions').select('id, name, status').eq('status', 'ACTIVE')]);
+        }), supabase.from('competitions').select('id, name, status').eq('status', 'ACTIVE'), supabase.from('entries').select('id', {
+          count: 'exact',
+          head: true
+        }).eq('paid', false)]);
 
         // Fetch revenue data for different periods
         const [todayEntriesRes, monthlyEntriesRes, yearlyEntriesRes] = await Promise.all([
@@ -225,7 +230,8 @@ const AdminDashboard = () => {
           activeCompetitions: activeCompsRes.data?.length || 0,
           todayRevenue: todayRevenue,
           monthlyRevenue: monthlyRevenue,
-          yearlyRevenue: yearlyRevenue
+          yearlyRevenue: yearlyRevenue,
+          unpaidEntries: unpaidEntriesRes.count || 0
         });
 
         // Fetch recent competitions with entry counts and club info
@@ -523,8 +529,8 @@ const AdminDashboard = () => {
               </div>
               <AdminQuickActions stats={{
               totalPlayers: stats.totalPlayers,
-              pendingEntries: newLeads,
-              // Real count of NEW partnership enquiries
+              pendingEntries: stats.unpaidEntries,
+              // Real count of unpaid entries
               pendingClaims: pendingClaims,
               // Real count of pending claims
               monthlyRevenue: stats.monthlyRevenue,
