@@ -6,6 +6,32 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Utility: chunk array into batches to avoid Cloudflare 414 issues
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
+}
+
+// Utility: perform batched deletes using .in(column, values)
+async function deleteInBatches(
+  supabase: any,
+  table: string,
+  column: string,
+  values: string[],
+  batchSize = 200
+): Promise<void> {
+  if (!values || values.length === 0) return;
+  for (const batch of chunkArray(values, batchSize)) {
+    const { error } = await supabase.from(table).delete().in(column, batch);
+    if (error && error.code !== 'PGRST116') {
+      console.error(`Error deleting from ${table} (${column}) batch:`, error);
+    }
+  }
+}
+
 interface FlushRequest {
   demoSecret?: string;
   recentOnly?: boolean; // Only flush data created in the last 3 hours
@@ -231,71 +257,25 @@ const handler = async (req: Request): Promise<Response> => {
         if (demoEntries && demoEntries.length > 0) {
           const demoEntryIds = demoEntries.map(e => e.id);
           
-          // Delete claims for these entries
-          const { error: claimsError } = await supabaseAdmin
-            .from("claims")
-            .delete()
-            .in("entry_id", demoEntryIds);
-
-          if (claimsError && claimsError.code !== 'PGRST116') {
-            console.error("Error deleting demo claims:", claimsError);
-          } else {
-            console.log("Deleted demo claims");
-          }
-
-          // Delete verifications for these entries
-          const { error: verificationsError } = await supabaseAdmin
-            .from("verifications")
-            .delete()
-            .in("entry_id", demoEntryIds);
-
-          if (verificationsError && verificationsError.code !== 'PGRST116') {
-            console.error("Error deleting demo verifications:", verificationsError);
-          } else {
-            console.log("Deleted demo verifications");
-          }
+          // Delete claims and verifications for these entries in batches to avoid URI too large
+          await deleteInBatches(supabaseAdmin, "claims", "entry_id", demoEntryIds);
+          await deleteInBatches(supabaseAdmin, "verifications", "entry_id", demoEntryIds);
+          console.log("Deleted demo claims and verifications");
         }
 
-        // Delete entries from demo competitions
-        const { error: entriesError } = await supabaseAdmin
-          .from("entries")
-          .delete()
-          .in("competition_id", demoCompetitionIds);
-
-        if (entriesError && entriesError.code !== 'PGRST116') {
-          console.error("Error deleting demo entries:", entriesError);
-        } else {
-          console.log("Deleted demo entries");
-        }
+        // Delete entries from demo competitions in batches
+        await deleteInBatches(supabaseAdmin, "entries", "competition_id", demoCompetitionIds);
+        console.log("Deleted demo entries");
       }
     }
 
     // Delete by recent-only entries if applicable
     if (recentOnly && recentEntryIds.length > 0) {
       try {
-        const { error: claimsRecentError } = await supabaseAdmin
-          .from("claims")
-          .delete()
-          .in("entry_id", recentEntryIds);
-        if (claimsRecentError && claimsRecentError.code !== 'PGRST116') {
-          console.error("Error deleting recent claims:", claimsRecentError);
-        }
-        const { error: verifsRecentError } = await supabaseAdmin
-          .from("verifications")
-          .delete()
-          .in("entry_id", recentEntryIds);
-        if (verifsRecentError && verifsRecentError.code !== 'PGRST116') {
-          console.error("Error deleting recent verifications:", verifsRecentError);
-        }
-        const { error: entriesRecentError } = await supabaseAdmin
-          .from("entries")
-          .delete()
-          .in("id", recentEntryIds);
-        if (entriesRecentError && entriesRecentError.code !== 'PGRST116') {
-          console.error("Error deleting recent entries:", entriesRecentError);
-        } else {
-          console.log(`Deleted ${recentEntryIds.length} recent entries`);
-        }
+        await deleteInBatches(supabaseAdmin, "claims", "entry_id", recentEntryIds);
+        await deleteInBatches(supabaseAdmin, "verifications", "entry_id", recentEntryIds);
+        await deleteInBatches(supabaseAdmin, "entries", "id", recentEntryIds);
+        console.log(`Deleted ${recentEntryIds.length} recent entries`);
       } catch (e) {
         console.error("Error during recent-only entry cleanup:", e);
       }
@@ -303,16 +283,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     // 4. Delete entries from demo players (if any remain)
     if (demoUserIds.length > 0) {
-      const { error: playerEntriesError } = await supabaseAdmin
-        .from("entries")
-        .delete()
-        .in("player_id", demoUserIds);
-
-      if (playerEntriesError && playerEntriesError.code !== 'PGRST116') {
-        console.error("Error deleting remaining demo player entries:", playerEntriesError);
-      } else {
-        console.log("Deleted remaining demo player entries");
-      }
+      await deleteInBatches(supabaseAdmin, "entries", "player_id", demoUserIds);
+      console.log("Deleted remaining demo player entries");
     }
 
     // 5. Delete competitions from demo clubs
@@ -378,16 +350,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     // 9. Delete demo user profiles
     if (demoUserIds.length > 0) {
-      const { error: profilesError } = await supabaseAdmin
-        .from("profiles")
-        .delete()
-        .in("id", demoUserIds);
-
-      if (profilesError && profilesError.code !== 'PGRST116') {
-        console.error("Error deleting demo profiles:", profilesError);
-      } else {
-        console.log("Deleted demo profiles");
-      }
+      await deleteInBatches(supabaseAdmin, "profiles", "id", demoUserIds);
+      console.log("Deleted demo profiles");
     }
 
     // 10. Delete auth users in batches (avoid timeout)
