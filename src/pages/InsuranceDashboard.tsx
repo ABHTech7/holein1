@@ -16,6 +16,8 @@ import {
   Eye,
   Trophy
 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import ChartWrapper from '@/components/ui/chart-wrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import useAuth from '@/hooks/useAuth';
@@ -48,6 +50,12 @@ interface InsurancePremium {
   generated_at: string;
 }
 
+interface MonthlyData {
+  month: string;
+  entries: number;
+  premiums: number;
+}
+
 const InsuranceDashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -57,10 +65,47 @@ const InsuranceDashboard = () => {
   const [premiums, setPremiums] = useState<InsurancePremium[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [ytdPremiumPence, setYtdPremiumPence] = useState(0);
+  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
 
   // Get current month date range - fixed to use proper end date
   const monthStart = new Date(selectedMonth + '-01');
   const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0); // Last day of month
+
+  const fetchMonthlyData = async (company: InsuranceCompany) => {
+    try {
+      const currentYear = new Date().getFullYear();
+      const months = [];
+      
+      // Get data for each month of the current year
+      for (let month = 0; month < 12; month++) {
+        const monthStart = new Date(currentYear, month, 1);
+        const monthEnd = new Date(currentYear, month + 1, 0, 23, 59, 59, 999);
+        
+        const { data: monthEntries, error } = await supabase
+          .rpc('get_insurance_entries_data', {
+            company_id: company.id,
+            month_start: monthStart.toISOString().split('T')[0],
+            month_end: monthEnd.toISOString().split('T')[0]
+          });
+
+        if (error) throw error;
+
+        const monthName = monthStart.toLocaleDateString('en-US', { month: 'short' });
+        const entriesCount = monthEntries?.length || 0;
+        const premiums = entriesCount * company.premium_rate_per_entry;
+
+        months.push({
+          month: monthName,
+          entries: entriesCount,
+          premiums: premiums
+        });
+      }
+
+      setMonthlyData(months);
+    } catch (error) {
+      console.error('Error fetching monthly data:', error);
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -90,6 +135,9 @@ const InsuranceDashboard = () => {
         }
 
         setCompany(companyData);
+
+        // Fetch monthly chart data
+        await fetchMonthlyData(companyData);
 
         // Get entries data for the selected month
         const { data: entriesData, error: entriesError } = await supabase
@@ -248,6 +296,37 @@ const InsuranceDashboard = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Monthly Growth Chart */}
+            <ChartWrapper
+              title="Monthly Premium Growth"
+              description="Premium totals by month for the current year"
+            >
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis 
+                      tickFormatter={(value) => formatCurrency(Math.round((value as number) * 100))}
+                    />
+                    <Tooltip 
+                      formatter={(value: number, name: string) => [
+                        name === 'premiums' ? formatCurrency(Math.round((value as number) * 100)) : (value as number).toLocaleString(),
+                        name === 'premiums' ? 'Premiums' : 'Entries'
+                      ]}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="premiums" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={2}
+                      dot={{ fill: "hsl(var(--primary))" }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </ChartWrapper>
 
             {/* Entries Table */}
             <Card>
