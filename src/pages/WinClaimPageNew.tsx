@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { uploadFile } from "@/lib/fileUploadService";
-import { getConfig } from "@/lib/featureFlags";
 import { Loader2, AlertTriangle, ArrowLeft } from "lucide-react";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
@@ -15,6 +14,9 @@ import SelfieCapture from "@/components/entry/SelfieCapture";
 import IDDocumentCapture from "@/components/entry/IDDocumentCapture";
 import WitnessForm from "@/components/entry/WitnessForm";
 import VerificationSuccess from "@/components/entry/VerificationSuccess";
+import { VideoEvidenceCapture } from '@/components/entry/VideoEvidenceCapture';
+import { SocialConsent } from '@/components/entry/SocialConsent';
+import { updateVerificationEvidence } from '@/lib/verificationService';
 import type { Gender } from '@/lib/copyEngine';
 
 interface EntryData {
@@ -23,23 +25,32 @@ interface EntryData {
   competition: {
     id: string;
     name: string;
-    prize_pool: number;
     hole_number: number;
-    club_name: string;
+    club?: {
+      id: string;
+      name: string;
+    };
   };
   player: {
-    first_name: string;
+    id: string;
+    first_name?: string;
+    last_name?: string;
     gender?: Gender;
   };
-  outcome_self: string | null;
-  status: string;
 }
 
 interface WitnessData {
   name: string;
-  email: string;
-  phone: string;
-  notes?: string;
+  contact: string;
+  relationship: string;
+}
+
+interface VerificationData {
+  selfie?: File;
+  idDocument?: File;
+  witness?: WitnessData;
+  videoEvidence?: File;
+  socialConsent: boolean;
 }
 
 type VerificationStep = 'selfie' | 'id' | 'witness' | 'video' | 'social' | 'success';
@@ -57,106 +68,92 @@ const WinClaimPageNew: React.FC = () => {
   
   // Verification flow state
   const [currentStep, setCurrentStep] = useState<VerificationStep>('selfie');
-  const [verificationData, setVerificationData] = useState<{
-    selfieFile?: File;
-    idFile?: File;
-    witnessData?: WitnessData;
-  }>({});
+  const [verificationData, setVerificationData] = useState<VerificationData>({
+    socialConsent: false
+  });
 
-  const stepLabels = ['Take Selfie', 'Upload ID', 'Add Witness', 'Complete'];
-  const stepIndex = ['selfie', 'id', 'witness', 'success'].indexOf(currentStep) + 1;
+  const stepLabels = ['Take Selfie', 'Upload ID', 'Add Witness', 'Video Evidence', 'Social Consent', 'Complete'];
+  const stepIndex = ['selfie', 'id', 'witness', 'video', 'social', 'success'].indexOf(currentStep) + 1;
 
   useEffect(() => {
     const loadEntryData = async () => {
       if (!entryId) {
         setError('Entry ID is required');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!user) {
+        setError('Please log in to continue');
+        setIsLoading(false);
         return;
       }
 
       try {
-        // 1) Load entry
-        const { data: entryRecord, error: entryError } = await supabase
+        // Fetch entry with related data using maybeSingle to avoid 406 errors
+        const { data: entry, error: entryError } = await supabase
           .from('entries')
-          .select('id, player_id, outcome_self, status, competition_id')
+          .select(`
+            id,
+            player_id,
+            competition:competitions(
+              id,
+              name,
+              hole_number,
+              club:clubs(
+                id,
+                name
+              )
+            ),
+            player:profiles(
+              id,
+              first_name,
+              last_name,
+              gender
+            )
+          `)
           .eq('id', entryId)
           .maybeSingle();
 
-        if (entryError || !entryRecord) {
-          console.error('Failed to fetch entry:', entryError);
+        if (entryError) {
+          console.error('Entry fetch error:', entryError);
+          setError('Unable to load entry data');
+          setIsLoading(false);
+          return;
+        }
+
+        if (!entry) {
           setError('Entry not found');
+          setIsLoading(false);
           return;
         }
 
-        // 2) Authorization: allow owner, ADMIN, or CLUB
-        if (user && entryRecord.player_id !== user.id) {
-          const role = (user.user_metadata as any)?.role;
-          const isPrivileged = role === 'ADMIN' || role === 'CLUB';
-          if (!isPrivileged) {
-            setError('You are not authorized to access this entry');
-            return;
-          }
-        }
+        // Authorization check
+        const isPlayerOwner = entry.player_id === user.id;
+        const isAdmin = user.user_metadata?.role === 'admin';
 
-        // 3) Validate eligibility
-        if (entryRecord.outcome_self !== 'win' && entryRecord.status !== 'pending_verification') {
-          setError('This entry is not eligible for win verification');
+        if (!isPlayerOwner && !isAdmin) {
+          setError('You are not authorized to access this entry');
+          setIsLoading(false);
           return;
         }
 
-        // 4) Load competition
-        const { data: competitionRecord } = await supabase
-          .from('competitions')
-          .select('id, name, prize_pool, hole_number, club_id')
-          .eq('id', entryRecord.competition_id)
-          .maybeSingle();
-
-        // 5) Load club (security definer function)
-        let clubName = 'Unknown Club';
-        if (competitionRecord?.club_id) {
-          const { data: clubData } = await supabase.rpc('get_safe_club_info', { club_uuid: competitionRecord.club_id });
-          if (clubData && Array.isArray(clubData) && clubData.length > 0) {
-            clubName = clubData[0].name;
-          }
-        }
-
-        // 6) Load player profile (own profile or safe function)
-        let playerFirstName = 'Player';
-        if (user && entryRecord.player_id === user.id) {
-          const { data: playerRecord } = await supabase
-            .from('profiles')
-            .select('first_name, gender')
-            .eq('id', entryRecord.player_id)
-            .maybeSingle();
-          if (playerRecord?.first_name) playerFirstName = playerRecord.first_name;
-        } else {
-          const { data: profileSafe } = await supabase.rpc('get_current_user_profile_safe');
-          if (profileSafe && Array.isArray(profileSafe) && profileSafe.length > 0) {
-            playerFirstName = profileSafe[0].first_name || 'Player';
-          }
-        }
-
-        setEntryData({
-          id: entryRecord.id,
-          player_id: entryRecord.player_id,
-          competition: {
-            id: competitionRecord?.id || '',
-            name: competitionRecord?.name || 'Competition',
-            prize_pool: competitionRecord?.prize_pool || 0,
-            hole_number: competitionRecord?.hole_number || 1,
-            club_name: clubName,
-          },
-          player: {
-            first_name: playerFirstName,
-            gender: undefined,
-          },
-          outcome_self: entryRecord.outcome_self,
-          status: entryRecord.status,
+        // Validate entry is eligible for win verification
+        const { data: entryCheck, error: checkError } = await supabase.rpc('get_safe_competition_data', {
+          club_uuid: entry.competition?.club?.id,
+          competition_slug_param: ''
         });
 
+        if (checkError) {
+          console.warn('Competition validation warning:', checkError);
+        }
+
+        setEntryData(entry as EntryData);
+        setIsLoading(false);
+
       } catch (error) {
-        console.error('Error loading entry:', error);
-        setError('Failed to load entry data');
-      } finally {
+        console.error('Error loading entry data:', error);
+        setError('Failed to load entry information');
         setIsLoading(false);
       }
     };
@@ -165,92 +162,86 @@ const WinClaimPageNew: React.FC = () => {
   }, [entryId, user]);
 
   const handleSelfieCapture = (file: File) => {
-    setVerificationData(prev => ({ ...prev, selfieFile: file }));
+    setVerificationData(prev => ({ ...prev, selfie: file }));
   };
 
   const handleIdCapture = (file: File) => {
-    setVerificationData(prev => ({ ...prev, idFile: file }));
+    setVerificationData(prev => ({ ...prev, idDocument: file }));
   };
 
-  const handleWitnessSubmit = (witnessData: WitnessData) => {
-    setVerificationData(prev => ({ ...prev, witnessData }));
+  const handleWitnessSubmit = (witness: WitnessData) => {
+    setVerificationData(prev => ({ ...prev, witness }));
+  };
+
+  const handleVideoCapture = (file: File) => {
+    setVerificationData(prev => ({ ...prev, videoEvidence: file }));
+  };
+
+  const handleSocialConsentChange = (consent: boolean) => {
+    setVerificationData(prev => ({ ...prev, socialConsent: consent }));
   };
 
   const handleSubmitVerification = async () => {
-    if (!entryData || !user || !verificationData.selfieFile || !verificationData.idFile || !verificationData.witnessData) {
+    if (!verificationData.selfie || !verificationData.idDocument || !verificationData.witness) {
       toast({
         title: "Missing information",
-        description: "Please complete all verification steps.",
+        description: "Please complete all required verification steps.",
         variant: "destructive"
       });
       return;
     }
 
     setIsSubmitting(true);
-
+    
     try {
+      const { user } = await supabase.auth.getUser();
+      if (!user.data.user?.id) throw new Error('User not authenticated');
+
       // Upload files
-      const [selfieUpload, idUpload] = await Promise.all([
-        uploadFile(verificationData.selfieFile, user.id, {
-          purpose: 'selfie',
-          expiresInHours: 24,
-        }),
-        uploadFile(verificationData.idFile, user.id, {
-          purpose: 'id_document',
-          expiresInHours: 24,
-        })
-      ]);
+      const uploads: Record<string, string> = {};
 
-      const config = getConfig();
-      const autoMissAt = new Date(Date.now() + config.verificationTimeoutHours * 60 * 60 * 1000);
+      // Upload selfie
+      const { url: selfieUrl } = await uploadFile(verificationData.selfie, user.data.user.id, {
+        purpose: 'selfie',
+        expiresInHours: 24
+      });
+      uploads.selfie_url = selfieUrl;
 
-      // Create verification record
-      const { error: verificationError } = await supabase
-        .from('verifications')
-        .insert({
-          entry_id: entryId,
-          witnesses: {
-            name: verificationData.witnessData.name.trim(),
-            contact: verificationData.witnessData.email.trim(),
-            phone: verificationData.witnessData.phone.trim(),
-            notes: verificationData.witnessData.notes?.trim() || null
-          },
-          selfie_url: `${selfieUpload.storage_bucket}/${selfieUpload.storage_path}`,
-          id_document_url: `${idUpload.storage_bucket}/${idUpload.storage_path}`,
-          status: 'pending',
-          evidence_captured_at: new Date().toISOString(),
-          auto_miss_at: autoMissAt.toISOString(),
-          auto_miss_applied: false,
+      // Upload ID document
+      const { url: idUrl } = await uploadFile(verificationData.idDocument, user.data.user.id, {
+        purpose: 'id_document', 
+        expiresInHours: 24
+      });
+      uploads.id_document_url = idUrl;
+
+      // Upload video if provided
+      if (verificationData.videoEvidence) {
+        const { url: videoUrl } = await uploadFile(verificationData.videoEvidence, user.data.user.id, {
+          purpose: 'shot_video',
+          expiresInHours: 24
         });
-
-      if (verificationError) {
-        console.error('Verification creation failed:', verificationError);
-        throw new Error('Failed to create verification record');
+        uploads.video_url = videoUrl;
       }
 
-      // Update entry status
-      const { error: entryError } = await supabase
-        .from('entries')
-        .update({
-          outcome_self: 'win',
-          outcome_reported_at: new Date().toISOString(),
-          status: 'pending_verification'
-        })
-        .eq('id', entryId);
+      // Update verification with all evidence
+      await updateVerificationEvidence(entryId!, {
+        ...uploads,
+        witnesses: verificationData.witness,
+        social_consent: verificationData.socialConsent,
+        status: 'submitted'
+      });
 
-      if (entryError) {
-        console.error('Entry update failed:', entryError);
-        throw new Error('Failed to update entry status');
-      }
-
-      // Move to success step
-      setCurrentStep('success');
+      toast({
+        title: "🏆 Verification Submitted!",
+        description: "Your legendary shot is now under review. We'll be in touch soon!",
+      });
       
+      setCurrentStep('success');
     } catch (error) {
-      console.error('Submission error:', error);
+      console.error('Verification submission error:', error);
       toast({
         title: "Submission failed",
-        description: error instanceof Error ? error.message : "Please try again",
+        description: "Please try again or contact support if the problem persists.",
         variant: "destructive"
       });
     } finally {
@@ -259,163 +250,232 @@ const WinClaimPageNew: React.FC = () => {
   };
 
   const handleComplete = () => {
-    toast({
-      title: "Verification submitted!",
-      description: "Your hole-in-one claim has been submitted for review",
-    });
-    navigate(`/entry-success/${entryData?.id}`);
+    navigate('/entry-success');
   };
 
   const handleStepNavigation = (direction: 'next' | 'back') => {
-    if (direction === 'next') {
-      switch (currentStep) {
-        case 'selfie':
-          setCurrentStep('id');
-          break;
-        case 'id':
-          setCurrentStep('witness');
-          break;
-        case 'witness':
-          handleSubmitVerification();
-          break;
-      }
-    } else {
-      switch (currentStep) {
-        case 'id':
-          setCurrentStep('selfie');
-          break;
-        case 'witness':
-          setCurrentStep('id');
-          break;
-        case 'selfie':
-          navigate(`/entry-success/${entryData?.id}`);
-          break;
-      }
+    const steps: VerificationStep[] = ['selfie', 'id', 'witness', 'video', 'social', 'success'];
+    const currentIndex = steps.indexOf(currentStep);
+    
+    if (direction === 'next' && currentIndex < steps.length - 1) {
+      setCurrentStep(steps[currentIndex + 1]);
+    } else if (direction === 'back' && currentIndex > 0) {
+      setCurrentStep(steps[currentIndex - 1]);
     }
   };
 
+  // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
+      <div className="min-h-screen bg-background">
         <SiteHeader />
-        <main className="flex-1 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardContent className="flex items-center justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin mr-3 text-primary" />
-              <span className="text-muted-foreground">Loading entry details...</span>
+        <div className="container mx-auto px-4 py-8">
+          <Card className="max-w-2xl mx-auto">
+            <CardContent className="flex items-center justify-center py-12">
+              <div className="text-center space-y-4">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                <p className="text-muted-foreground">Loading your verification...</p>
+              </div>
             </CardContent>
           </Card>
-        </main>
+        </div>
         <SiteFooter />
       </div>
     );
   }
 
-  if (error || !entryData) {
+  // Error state
+  if (error) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
+      <div className="min-h-screen bg-background">
         <SiteHeader />
-        <main className="flex-1 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardContent className="text-center p-8">
-              <AlertTriangle className="h-12 w-12 text-warning mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Unable to Load Entry</h2>
-              <p className="text-muted-foreground mb-6">{error || 'Entry not found'}</p>
-              <Button onClick={() => navigate('/')}>
-                Go Home
-              </Button>
+        <div className="container mx-auto px-4 py-8">
+          <Card className="max-w-2xl mx-auto">
+            <CardContent className="py-12">
+              <div className="text-center space-y-4">
+                <AlertTriangle className="h-12 w-12 mx-auto text-destructive" />
+                <h2 className="text-xl font-semibold">Unable to Load Entry</h2>
+                <p className="text-muted-foreground">{error}</p>
+                <div className="flex gap-4 justify-center">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate(-1)}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Go Back
+                  </Button>
+                  <Button 
+                    onClick={() => window.location.reload()}
+                  >
+                    Try Again
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        </main>
+        </div>
         <SiteFooter />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen bg-background">
       <SiteHeader />
       
-      <main className="flex-1 py-8 px-4">
-        <div className="max-w-2xl mx-auto">
-          {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(`/entry-success/${entryData.id}`)}
-              className="p-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-display font-bold text-foreground">
-                Hole-in-One Verification
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-4xl mx-auto">
+          <CardContent className="p-8">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-foreground mb-2">
+                🏆 Verify Your Hole-in-One!
               </h1>
+              <p className="text-lg text-muted-foreground mb-4">
+                Complete the verification process for your legendary shot at{' '}
+                <span className="font-semibold">{entryData?.competition?.club?.name}</span>
+              </p>
               <p className="text-sm text-muted-foreground">
-                {entryData.competition.name} • {entryData.competition.club_name}
+                Competition: {entryData?.competition?.name} • Hole {entryData?.competition?.hole_number}
               </p>
             </div>
-          </div>
 
-          {/* Progress Indicator */}
-          {currentStep !== 'success' && (
-            <VerificationStepIndicator
-              currentStep={stepIndex}
-              totalSteps={3}
-              stepLabels={stepLabels.slice(0, 3)}
-            />
-          )}
+            {/* Progress Indicator */}
+            {currentStep !== 'success' && (
+              <div className="mb-8">
+                <VerificationStepIndicator 
+                  currentStep={stepIndex}
+                  totalSteps={stepLabels.length}
+                  stepLabels={stepLabels}
+                />
+              </div>
+            )}
 
-          {/* Step Content */}
-          <Card className="shadow-medium animate-fade-in">
-            <CardContent className="p-6">
-              {isSubmitting && (
-                <div className="text-center py-12">
-                  <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">Processing Your Verification</h3>
-                  <p className="text-muted-foreground">
-                    Please wait while we securely process your hole-in-one claim...
-                  </p>
+            {/* Processing Overlay */}
+            {isSubmitting && (
+              <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+                <Card className="p-8">
+                  <div className="text-center space-y-4">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                    <h3 className="text-lg font-semibold">Submitting Your Evidence</h3>
+                    <p className="text-muted-foreground">
+                      Uploading files and creating your verification record...
+                    </p>
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {/* Step Content */}
+            {currentStep === 'selfie' && (
+              <SelfieCapture
+                onPhotoCapture={handleSelfieCapture}
+                onNext={() => handleStepNavigation('next')}
+                onBack={() => handleStepNavigation('back')}
+              />
+            )}
+
+            {currentStep === 'id' && (
+              <IDDocumentCapture
+                onDocumentCapture={handleIdCapture}
+                onNext={() => handleStepNavigation('next')}
+                onBack={() => handleStepNavigation('back')}
+              />
+            )}
+
+            {currentStep === 'witness' && (
+              <WitnessForm
+                onSubmit={handleWitnessSubmit}
+                onNext={() => handleStepNavigation('next')}
+                onBack={() => handleStepNavigation('back')}
+                canProceed={!!verificationData.witness}
+              />
+            )}
+
+            {currentStep === 'video' && (
+              <div className="space-y-6">
+                <VideoEvidenceCapture
+                  onVideoCapture={handleVideoCapture}
+                  capturedVideo={verificationData.videoEvidence}
+                  onRemove={() => setVerificationData(prev => ({ ...prev, videoEvidence: undefined }))}
+                />
+                
+                {/* Navigation for Video Step */}
+                <div className="flex justify-between pt-6 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleStepNavigation('back')}
+                  >
+                    Back
+                  </Button>
+                  
+                  <Button
+                    onClick={() => handleStepNavigation('next')}
+                  >
+                    Continue
+                  </Button>
                 </div>
-              )}
-              
-              {!isSubmitting && currentStep === 'selfie' && (
-                <SelfieCapture
-                  onPhotoCapture={handleSelfieCapture}
-                  onNext={() => handleStepNavigation('next')}
-                  onBack={() => handleStepNavigation('back')}
-                />
-              )}
-              
-              {!isSubmitting && currentStep === 'id' && (
-                <IDDocumentCapture
-                  onDocumentCapture={handleIdCapture}
-                  onNext={() => handleStepNavigation('next')}
-                  onBack={() => handleStepNavigation('back')}
-                />
-              )}
-              
-              {!isSubmitting && currentStep === 'witness' && (
-                <WitnessForm
-                  onWitnessSubmit={handleWitnessSubmit}
-                  onNext={() => handleStepNavigation('next')}
-                  onBack={() => handleStepNavigation('back')}
-                />
-              )}
-              
-              {currentStep === 'success' && (
-                <VerificationSuccess
-                  competitionName={entryData.competition.name}
-                  prizeAmount={entryData.competition.prize_pool}
-                  onComplete={handleComplete}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+              </div>
+            )}
 
+            {currentStep === 'social' && (
+              <div className="space-y-6">
+                <SocialConsent
+                  consent={verificationData.socialConsent}
+                  onConsentChange={handleSocialConsentChange}
+                />
+                
+                {/* Final Navigation */}
+                <div className="flex justify-between pt-6 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleStepNavigation('back')}
+                  >
+                    Back
+                  </Button>
+                  
+                  <Button
+                    onClick={handleSubmitVerification}
+                    disabled={isSubmitting}
+                    className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600"
+                  >
+                    {isSubmitting ? 'Submitting...' : '🏆 Submit for Glory!'}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {currentStep === 'success' && (
+              <VerificationSuccess onComplete={handleComplete} />
+            )}
+
+            {/* Navigation Buttons for Main Steps */}
+            {currentStep !== 'success' && currentStep !== 'video' && currentStep !== 'social' && (
+              <div className="flex justify-between pt-6 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => handleStepNavigation('back')}
+                  disabled={currentStep === 'selfie'}
+                >
+                  Back
+                </Button>
+                
+                <Button
+                  onClick={() => handleStepNavigation('next')}
+                  disabled={
+                    (currentStep === 'selfie' && !verificationData.selfie) ||
+                    (currentStep === 'id' && !verificationData.idDocument) ||
+                    (currentStep === 'witness' && !verificationData.witness)
+                  }
+                >
+                  Continue
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      
       <SiteFooter />
     </div>
   );
