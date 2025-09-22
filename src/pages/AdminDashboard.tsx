@@ -20,6 +20,7 @@ import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate, formatRelativeTime } from "@/lib/formatters";
 import { showSupabaseError } from "@/lib/showSupabaseError";
 import { useAuth } from "@/hooks/useAuth";
+import { useNotificationCounts } from "@/hooks/useNotificationCounts";
 import { ROUTES } from "@/routes";
 
 interface DashboardStats {
@@ -45,6 +46,7 @@ interface Competition {
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const { newLeads, pendingClaims } = useNotificationCounts();
   const [loading, setLoading] = useState(true);
   const [showSiteSettings, setShowSiteSettings] = useState(false);
   const [showNewUser, setShowNewUser] = useState(false);
@@ -473,8 +475,8 @@ const AdminDashboard = () => {
               <AdminQuickActions 
                 stats={{
                   totalPlayers: stats.totalPlayers,
-                  pendingEntries: 0, // This would need to be calculated from entries data
-                  pendingClaims: 0,  // This would need to be calculated from claims data
+                  pendingEntries: newLeads, // Real count of NEW partnership enquiries
+                  pendingClaims: pendingClaims,  // Real count of pending claims
                   monthlyRevenue: stats.monthlyRevenue,
                   activeCompetitions: stats.activeCompetitions,
                   totalClubs: stats.totalClubs
