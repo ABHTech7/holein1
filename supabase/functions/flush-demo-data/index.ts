@@ -43,47 +43,119 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
 
-    console.log("Starting demo data flush...");
+    console.log("Starting comprehensive demo data flush...");
 
-    const demoEmails = [
+    // Demo emails to preserve (original small demo set)
+    const preservedDemoEmails = [
       "admin@holein1.test",
       "club1@holein1.test", 
       "club2@holein1.test",
       "player1@holein1.test"
     ];
 
-    // Get demo user IDs
-    const { data: users } = await supabaseAdmin.auth.admin.listUsers();
-    const demoUsers = users.users?.filter(u => demoEmails.includes(u.email!)) || [];
+    // Get ALL users to identify demo users (comprehensive dataset)
+    const { data: allUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const demoUsers = allUsers.users?.filter(u => 
+      u.email?.includes('@holein1demo.test') || 
+      u.email?.includes('@demo.test') ||
+      preservedDemoEmails.includes(u.email!)
+    ) || [];
+    
     const demoUserIds = demoUsers.map(u => u.id);
-
     console.log(`Found ${demoUsers.length} demo users to clean up`);
 
-    // Delete entries for demo users
+    // Get all demo clubs (both old and new comprehensive dataset)
+    const { data: allClubs } = await supabaseAdmin
+      .from("clubs")
+      .select("id, name, email");
+
+    const demoClubs = allClubs?.filter(club => 
+      club.email?.includes('@holein1demo.test') ||
+      club.email?.includes('@demo.test') ||
+      club.name === "Fairway Park Golf Club" ||
+      club.name === "Oakview Links"
+    ) || [];
+
+    const demoClubIds = demoClubs.map(c => c.id);
+    console.log(`Found ${demoClubs.length} demo clubs to clean up`);
+
+    // Delete in proper order due to foreign key constraints
+    
+    // 1. Delete claims first (using subquery approach)
+    if (demoClubIds.length > 0) {
+      // Get all entries from demo competitions first
+      const { data: demoCompetitions } = await supabaseAdmin
+        .from("competitions")
+        .select("id")
+        .in("club_id", demoClubIds);
+
+      if (demoCompetitions && demoCompetitions.length > 0) {
+        const demoCompetitionIds = demoCompetitions.map(c => c.id);
+        
+        // Get all entries from these competitions
+        const { data: demoEntries } = await supabaseAdmin
+          .from("entries")
+          .select("id")
+          .in("competition_id", demoCompetitionIds);
+
+        if (demoEntries && demoEntries.length > 0) {
+          const demoEntryIds = demoEntries.map(e => e.id);
+          
+          // Delete claims for these entries
+          const { error: claimsError } = await supabaseAdmin
+            .from("claims")
+            .delete()
+            .in("entry_id", demoEntryIds);
+
+          if (claimsError && claimsError.code !== 'PGRST116') {
+            console.error("Error deleting demo claims:", claimsError);
+          } else {
+            console.log("Deleted demo claims");
+          }
+
+          // Delete verifications for these entries
+          const { error: verificationsError } = await supabaseAdmin
+            .from("verifications")
+            .delete()
+            .in("entry_id", demoEntryIds);
+
+          if (verificationsError && verificationsError.code !== 'PGRST116') {
+            console.error("Error deleting demo verifications:", verificationsError);
+          } else {
+            console.log("Deleted demo verifications");
+          }
+        }
+
+        // Delete entries from demo competitions
+        const { error: entriesError } = await supabaseAdmin
+          .from("entries")
+          .delete()
+          .in("competition_id", demoCompetitionIds);
+
+        if (entriesError && entriesError.code !== 'PGRST116') {
+          console.error("Error deleting demo entries:", entriesError);
+        } else {
+          console.log("Deleted demo entries");
+        }
+      }
+    }
+
+    // 4. Delete entries from demo players (if any remain)
     if (demoUserIds.length > 0) {
-      const { error: entriesError } = await supabaseAdmin
+      const { error: playerEntriesError } = await supabaseAdmin
         .from("entries")
         .delete()
         .in("player_id", demoUserIds);
 
-      if (entriesError && entriesError.code !== 'PGRST116') { // PGRST116 is "no rows found"
-        console.error("Error deleting demo entries:", entriesError);
+      if (playerEntriesError && playerEntriesError.code !== 'PGRST116') {
+        console.error("Error deleting remaining demo player entries:", playerEntriesError);
       } else {
-        console.log("Deleted demo entries");
+        console.log("Deleted remaining demo player entries");
       }
     }
 
-    // Delete competitions from demo clubs
-    const demoClubNames = ["Fairway Park Golf Club", "Oakview Links"];
-    const { data: demoClubs } = await supabaseAdmin
-      .from("clubs")
-      .select("id")
-      .in("name", demoClubNames);
-
-    if (demoClubs && demoClubs.length > 0) {
-      const demoClubIds = demoClubs.map(c => c.id);
-      
-      // Delete competitions from demo clubs
+    // 5. Delete competitions from demo clubs
+    if (demoClubIds.length > 0) {
       const { error: competitionsError } = await supabaseAdmin
         .from("competitions")
         .delete()
@@ -94,8 +166,24 @@ const handler = async (req: Request): Promise<Response> => {
       } else {
         console.log("Deleted demo competitions");
       }
+    }
 
-      // Delete demo clubs
+    // 6. Delete club banking records
+    if (demoClubIds.length > 0) {
+      const { error: bankingError } = await supabaseAdmin
+        .from("club_banking")
+        .delete()
+        .in("club_id", demoClubIds);
+
+      if (bankingError && bankingError.code !== 'PGRST116') {
+        console.error("Error deleting demo club banking:", bankingError);
+      } else {
+        console.log("Deleted demo club banking records");
+      }
+    }
+
+    // 7. Delete demo clubs
+    if (demoClubIds.length > 0) {
       const { error: clubsError } = await supabaseAdmin
         .from("clubs")
         .delete()
@@ -108,19 +196,26 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Delete leads from demo clubs (if any)
-    const { error: leadsError } = await supabaseAdmin
-      .from("leads")
-      .delete()
-      .in("email", demoEmails);
+    // 8. Delete leads from demo data
+    const demoEmailPatterns = [
+      '@holein1demo.test',
+      '@demo.test',
+      '@holein1.test'
+    ];
+    
+    for (const pattern of demoEmailPatterns) {
+      const { error: leadsError } = await supabaseAdmin
+        .from("leads")
+        .delete()
+        .like("email", `%${pattern}`);
 
-    if (leadsError && leadsError.code !== 'PGRST116') {
-      console.error("Error deleting demo leads:", leadsError);
-    } else {
-      console.log("Deleted demo leads");
+      if (leadsError && leadsError.code !== 'PGRST116') {
+        console.error(`Error deleting demo leads for ${pattern}:`, leadsError);
+      }
     }
+    console.log("Deleted demo leads");
 
-    // Delete profiles for demo users
+    // 9. Delete demo user profiles
     if (demoUserIds.length > 0) {
       const { error: profilesError } = await supabaseAdmin
         .from("profiles")
@@ -134,28 +229,46 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Delete auth users
-    for (const user of demoUsers) {
-      try {
-        const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
-        if (deleteError) {
-          console.error(`Error deleting auth user ${user.email}:`, deleteError);
-        } else {
-          console.log(`Deleted auth user: ${user.email}`);
+    // 10. Delete auth users in batches (avoid timeout)
+    const batchSize = 50;
+    let deletedUsersCount = 0;
+    
+    for (let i = 0; i < demoUsers.length; i += batchSize) {
+      const batch = demoUsers.slice(i, i + batchSize);
+      
+      for (const user of batch) {
+        try {
+          const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
+          if (deleteError) {
+            console.error(`Error deleting auth user ${user.email}:`, deleteError);
+          } else {
+            deletedUsersCount++;
+            if (deletedUsersCount % 100 === 0) {
+              console.log(`Deleted ${deletedUsersCount}/${demoUsers.length} auth users`);
+            }
+          }
+        } catch (err) {
+          console.error(`Error deleting auth user ${user.email}:`, err);
         }
-      } catch (err) {
-        console.error(`Error deleting auth user ${user.email}:`, err);
       }
     }
 
-    console.log("Demo data flush completed successfully");
+    console.log(`Comprehensive demo data flush completed successfully`);
+    console.log(`Summary:`);
+    console.log(`- Auth users deleted: ${deletedUsersCount}`);
+    console.log(`- Clubs deleted: ${demoClubs.length}`);
+    console.log(`- Associated entries, competitions, claims, and verifications deleted`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "Demo data flushed successfully",
-        deletedUsers: demoUsers.length,
-        deletedClubs: demoClubs?.length || 0
+        message: "Comprehensive demo data flushed successfully",
+        summary: {
+          deletedUsers: deletedUsersCount,
+          deletedClubs: demoClubs.length,
+          totalDemoUsersFound: demoUsers.length,
+          totalDemoClubsFound: demoClubs.length
+        }
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
