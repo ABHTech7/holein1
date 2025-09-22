@@ -99,6 +99,7 @@ export const ROUTES = {
  * Role-based navigation helpers
  */
 export const ROLE_DASHBOARDS = {
+  SUPER_ADMIN: ROUTES.ADMIN.DASHBOARD,
   ADMIN: ROUTES.ADMIN.DASHBOARD,
   CLUB: ROUTES.CLUB.DASHBOARD,
   PLAYER: ROUTES.PLAYER.ENTRIES,
@@ -107,7 +108,7 @@ export const ROLE_DASHBOARDS = {
 /**
  * Get dashboard route for user role
  */
-export const getDashboardRoute = (role: 'ADMIN' | 'CLUB' | 'PLAYER' | null): string => {
+export const getDashboardRoute = (role: 'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'PLAYER' | null): string => {
   if (!role) return ROUTES.HOME;
   return ROLE_DASHBOARDS[role] || ROUTES.HOME;
 };
