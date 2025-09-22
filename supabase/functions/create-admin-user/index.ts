@@ -128,7 +128,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Create/update the profile
-    const { error: profileError } = await supabaseAdmin
+    const { error: profileUpsertError } = await supabaseAdmin
       .from('profiles')
       .upsert({
         id: userData.user.id,
@@ -138,8 +138,8 @@ const handler = async (req: Request): Promise<Response> => {
         role: role
       });
 
-    if (profileError) {
-      console.error("Error creating admin profile:", profileError);
+    if (profileUpsertError) {
+      console.error("Error creating admin profile:", profileUpsertError);
       // Don't fail the request, just log the error
     }
 
