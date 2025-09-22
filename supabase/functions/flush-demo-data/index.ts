@@ -89,7 +89,24 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get ALL demo users - they use regular email domains but were created in batches
     // We'll identify them by finding users created recently with the demo password pattern
-    const { data: allUsers } = await supabaseAdmin.auth.admin.listUsers();
+    // List all auth users with pagination to avoid missing users beyond first page
+    const allUsersList: any[] = [];
+    try {
+      const perPage = 1000;
+      for (let page = 1; page <= 50; page++) {
+        const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+        if (error) {
+          console.error(`Error listing users (page ${page}):`, error);
+          break;
+        }
+        const users = data?.users ?? [];
+        allUsersList.push(...users);
+        if (users.length < perPage) break; // last page
+      }
+      console.log(`Loaded ${allUsersList.length} auth users across pages`);
+    } catch (e) {
+      console.error("Error listing users:", e);
+    }
     
     // Demo users include:
     // 1. Users with demo email patterns (old small demo set)
@@ -101,7 +118,7 @@ const handler = async (req: Request): Promise<Response> => {
       "player1@holein1.test"
     ];
 
-    let demoUsers = allUsers.users?.filter(u => {
+    let demoUsers = allUsersList.filter((u: any) => {
       const matchesEmailPattern = u.email?.includes('@holein1demo.test') || 
         u.email?.includes('@demo.test') ||
         preservedDemoEmails.includes(u.email!);
@@ -115,6 +132,7 @@ const handler = async (req: Request): Promise<Response> => {
       return matchesEmailPattern;
     }) || [];
 
+    const targetUserIds = new Set<string>();
     // If recentOnly, include ALL players created in last 3 hours OR who created entries in last 3 hours
     let recentEntryIds: string[] = [];
     if (recentOnly) {
@@ -148,9 +166,8 @@ const handler = async (req: Request): Promise<Response> => {
       console.log(`Recent-only scope: ${recentEntries?.length || 0} entries, ${recentPlayerIdsFromProfiles.length} recent player profiles, ${unionRecentPlayerIds.size} unique players`);
 
       if (unionRecentPlayerIds.size > 0) {
-        // For recent-only mode, include ALL players in union of recent entries and recent profiles
-        demoUsers = allUsers.users?.filter(u => unionRecentPlayerIds.has(u.id)) || [];
-        console.log(`Including ${demoUsers.length} players for deletion in recent-only mode`);
+        for (const id of unionRecentPlayerIds) targetUserIds.add(id);
+        console.log(`Including ${unionRecentPlayerIds.size} players for deletion in recent-only mode`);
       }
     }
 
@@ -174,18 +191,8 @@ const handler = async (req: Request): Promise<Response> => {
         if (demoPlayerEntries && demoPlayerEntries.length > 0) {
           const demoPlayerIds = [...new Set(demoPlayerEntries.map(e => e.player_id))];
           
-          // Add these users to our demo users list
-          const additionalDemoUsers = allUsers.users?.filter(u => 
-            demoPlayerIds.includes(u.id)
-          ) || [];
-          
-          // Combine and deduplicate
-          const allDemoUserIds = new Set([
-            ...demoUsers.map(u => u.id),
-            ...additionalDemoUsers.map(u => u.id)
-          ]);
-          
-          demoUsers = allUsers.users?.filter(u => allDemoUserIds.has(u.id)) || [];
+          // Add these users to target set
+          for (const id of demoPlayerIds) targetUserIds.add(id);
 
           // Merge entry ids so we can delete by explicit entry id too
           recentEntryIds = [...new Set([
@@ -196,8 +203,10 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
     
-    const demoUserIds = demoUsers.map(u => u.id);
-    console.log(`Found ${demoUsers.length} demo users to clean up`);
+    // Add pattern-matched users into target set as well
+    for (const u of demoUsers) targetUserIds.add(u.id);
+    const demoUserIds = Array.from(targetUserIds);
+    console.log(`Found ${demoUserIds.length} demo users to clean up (targeted by IDs)`);
 
 
     // Delete in proper order due to foreign key constraints
@@ -385,22 +394,22 @@ const handler = async (req: Request): Promise<Response> => {
     const batchSize = 50;
     let deletedUsersCount = 0;
     
-    for (let i = 0; i < demoUsers.length; i += batchSize) {
-      const batch = demoUsers.slice(i, i + batchSize);
+    for (let i = 0; i < demoUserIds.length; i += batchSize) {
+      const batch = demoUserIds.slice(i, i + batchSize);
       
-      for (const user of batch) {
+      for (const userId of batch) {
         try {
-          const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
+          const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
           if (deleteError) {
-            console.error(`Error deleting auth user ${user.email}:`, deleteError);
+            console.error(`Error deleting auth user ${userId}:`, deleteError);
           } else {
             deletedUsersCount++;
             if (deletedUsersCount % 100 === 0) {
-              console.log(`Deleted ${deletedUsersCount}/${demoUsers.length} auth users`);
+              console.log(`Deleted ${deletedUsersCount}/${demoUserIds.length} auth users`);
             }
           }
         } catch (err) {
-          console.error(`Error deleting auth user ${user.email}:`, err);
+          console.error(`Error deleting auth user ${userId}:`, err);
         }
       }
     }
@@ -420,7 +429,7 @@ const handler = async (req: Request): Promise<Response> => {
         summary: {
           deletedUsers: deletedUsersCount,
           deletedClubs: demoClubs.length,
-          totalDemoUsersFound: demoUsers.length,
+          totalDemoUsersFound: demoUserIds.length,
           totalDemoClubsFound: demoClubs.length
         }
       }),
