@@ -5,28 +5,38 @@ import { Badge } from "@/components/ui/badge";
 import { Target, Trophy, Zap, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { ensureVerificationRecord } from "@/lib/verificationService";
 
 interface SimpleAttemptFlowProps {
-  entryId: string;
-  competitionName: string;
+  entry: {
+    id: string;
+  };
+  competition: {
+    name: string;
+    club?: {
+      name: string;
+    };
+  };
   holeNumber: number;
   venueName: string;
   timeRemaining: number;
-  onOutcomeReported: (outcome: string) => void;
-  onWinReported?: (entryId: string) => void;
+  onOutcome?: (outcome: string) => void;
+  onWin?: () => void;
 }
 
 export const SimpleAttemptFlow = ({
-  entryId,
-  competitionName,
+  entry,
+  competition,
   holeNumber,
   venueName,
   timeRemaining,
-  onOutcomeReported,
-  onWinReported
+  onOutcome,
+  onWin
 }: SimpleAttemptFlowProps) => {
   const [step, setStep] = useState<'ready' | 'attempting' | 'reporting'>('ready');
   const [submitting, setSubmitting] = useState(false);
+  const { user } = useAuth();
 
   const handleStartAttempt = () => {
     setStep('attempting');
@@ -38,73 +48,64 @@ export const SimpleAttemptFlow = ({
 
   const handleReportOutcome = async (outcome: 'win' | 'miss') => {
     setSubmitting(true);
-
+    
     try {
-      // Update entry outcome
-      await supabase
-        .from('entries')
-        .update({
-          outcome_self: outcome,
-          outcome_reported_at: new Date().toISOString()
-        })
-        .eq('id', entryId);
+      // Use secure RPC to update entry outcome
+      const { data: success, error: rpcError } = await supabase.rpc('update_entry_outcome', {
+        p_entry_id: entry.id,
+        p_outcome: outcome
+      });
 
-      // If it's a win, create verification record and navigate to win claim
-      if (outcome === 'win') {
-        try {
-          const { error: verificationError } = await supabase
-            .from('verifications')
-            .insert({
-              entry_id: entryId,
-              status: 'initiated',
-              witnesses: [],
-              evidence_captured_at: new Date().toISOString()
-            });
-
-          if (verificationError && !verificationError.message?.includes('duplicate')) {
-            console.error('Error creating verification:', verificationError);
-            toast({
-              title: "Notice",
-              description: "Win recorded successfully. You can complete verification from your entry page.",
-              variant: "default"
-            });
-          }
-        } catch (error) {
-          console.error('Error creating verification record:', error);
-          toast({
-            title: "Notice", 
-            description: "Win recorded successfully. You can complete verification from your entry page.",
-            variant: "default"
-          });
-        }
-
-        // Call win callback for navigation
-        if (onWinReported) {
-          onWinReported(entryId);
-        }
+      // Even if RPC fails, we continue with win flow
+      if (rpcError && outcome === 'win') {
+        console.warn('RLS blocked entry update, continuing with win flow:', rpcError);
+      } else if (rpcError && outcome === 'miss') {
+        toast({
+          title: "Update failed",
+          description: "Could not record your result. Please try again.",
+          variant: "destructive"
+        });
+        return;
       }
 
-      onOutcomeReported(outcome);
-      
-      toast({
-        title: outcome === 'win' ? "🏆 Hole-in-One!" : "Thanks for playing!",
-        description: outcome === 'win' ? 
-          "Amazing shot! Legend status awaits — let's lock it in with your evidence." : 
-          "Better luck next time — take another swing soon!"
-      });
+      if (outcome === 'win') {
+        // Send winners email with verification link
+        try {
+          await supabase.functions.invoke('send-winners-email', {
+            body: {
+              entryId: entry.id,
+              playerEmail: user?.email,
+              playerName: `${user?.user_metadata?.first_name || ''} ${user?.user_metadata?.last_name || ''}`.trim() || 'Player',
+              competitionName: competition.name,
+              clubName: competition.club?.name || 'Golf Club'
+            }
+          });
+        } catch (emailError) {
+          console.warn('Failed to send winners email:', emailError);
+        }
+
+        // Create verification record
+        await ensureVerificationRecord(entry.id);
+        
+        toast({
+          title: "🏆 LEGENDARY SHOT!",
+          description: "Check your email for the verification link! Legend status awaits — let's lock it in with your evidence!",
+        });
+        onWin?.();
+      } else {
+        toast({
+          title: "Result recorded",
+          description: "Better luck next time! Keep practicing that legendary swing.",
+        });
+        onOutcome?.(outcome);
+      }
     } catch (error) {
       console.error('Error reporting outcome:', error);
       toast({
-        title: outcome === 'win' ? "Win reported, but with a hiccup" : "Error",
-        description: outcome === 'win' 
-          ? "We'll sort the details during verification. Legend status still awaits!"
-          : "Failed to report outcome. Please try again.",
-        variant: outcome === 'win' ? "default" : "destructive"
+        title: "Error",
+        description: "Could not record your result. Please try again.",
+        variant: "destructive"
       });
-      // Ensure winners can proceed even if the entry update fails (e.g., admin testing)
-      if (outcome === 'win' && onWinReported) {
-        onWinReported(entryId);
-      }
     } finally {
       setSubmitting(false);
     }

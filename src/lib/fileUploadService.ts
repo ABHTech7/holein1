@@ -8,7 +8,7 @@ export interface UploadedFile {
   original_filename: string;
   file_size_bytes: number;
   mime_type: string;
-  upload_purpose: 'selfie' | 'id_document' | 'handicap_proof' | 'video_evidence';
+  upload_purpose: 'selfie' | 'id_document' | 'handicap_proof' | 'shot_video';
   expires_at?: string;
   uploaded_at: string;
   public_url?: string;
@@ -24,14 +24,14 @@ const BUCKET_MAPPING = {
   selfie: 'player-selfies',
   id_document: 'id-documents', 
   handicap_proof: 'handicap-proofs',
-  video_evidence: 'shot-videos',
+  shot_video: 'shot-videos',
 } as const;
 
 const DEFAULT_MAX_SIZES = {
   selfie: 5 * 1024 * 1024, // 5MB
   id_document: 10 * 1024 * 1024, // 10MB
   handicap_proof: 10 * 1024 * 1024, // 10MB
-  video_evidence: 50 * 1024 * 1024, // 50MB
+  shot_video: 20 * 1024 * 1024, // 20MB
 } as const;
 
 export const uploadFile = async (
@@ -189,7 +189,7 @@ const validateFileType = (file: File, purpose: UploadOptions['purpose']) => {
     selfie: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
     id_document: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'],
     handicap_proof: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'],
-    video_evidence: ['video/mp4', 'video/mov', 'video/avi', 'video/webm'],
+    shot_video: ['video/mp4', 'video/mov', 'video/avi', 'video/webm'],
   };
 
   const allowed = allowedTypes[purpose];

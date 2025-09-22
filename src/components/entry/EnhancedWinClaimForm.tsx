@@ -115,7 +115,7 @@ const EnhancedWinClaimForm: React.FC<EnhancedWinClaimFormProps> = ({
       
       // Upload file with expiration (24 hours for verification files)
       const uploadedFile = await uploadFile(file, user.id, {
-        purpose,
+        purpose: purpose === 'video_evidence' ? 'shot_video' : purpose,
         expiresInHours: 24,
       });
       

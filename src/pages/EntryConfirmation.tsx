@@ -518,17 +518,20 @@ const EntryConfirmation = () => {
                   </div>
                 ) : !isTimeUp ? (
                   <SimpleAttemptFlow
-                    entryId={entry.id}
-                    competitionName={entry.competition_name}
+                    entry={{ id: entry.id }}
+                    competition={{ 
+                      name: entry.competition_name,
+                      club: { name: entry.venue_name }
+                    }}
                     holeNumber={entry.hole_number}
                     venueName={entry.venue_name}
                     timeRemaining={timeRemaining}
-                    onOutcomeReported={(outcome) => {
+                    onOutcome={(outcome) => {
                       setEntry(prev => prev ? { ...prev, outcome_self: outcome } : null);
                     }}
-                    onWinReported={(entryId) => {
+                    onWin={() => {
                       // Navigate to win claim page for evidence collection
-                      navigate(`/win-claim/${entryId}`);
+                      navigate(`/win-claim/${entry.id}`);
                     }}
                   />
                 ) : null}

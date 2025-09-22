@@ -1100,6 +1100,7 @@ export type Database = {
           id: string
           id_document_url: string | null
           selfie_url: string | null
+          social_consent: boolean | null
           staff_code: string | null
           status: string | null
           updated_at: string
@@ -1118,6 +1119,7 @@ export type Database = {
           id?: string
           id_document_url?: string | null
           selfie_url?: string | null
+          social_consent?: boolean | null
           staff_code?: string | null
           status?: string | null
           updated_at?: string
@@ -1136,6 +1138,7 @@ export type Database = {
           id?: string
           id_document_url?: string | null
           selfie_url?: string | null
+          social_consent?: boolean | null
           staff_code?: string | null
           status?: string | null
           updated_at?: string
@@ -1318,6 +1321,10 @@ export type Database = {
           p_signed_by_email?: string
           p_signed_by_name?: string
         }
+        Returns: boolean
+      }
+      update_entry_outcome: {
+        Args: { p_entry_id: string; p_outcome: string; p_video_url?: string }
         Returns: boolean
       }
       update_expired_entries: {

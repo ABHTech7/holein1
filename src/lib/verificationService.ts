@@ -1,26 +1,43 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export async function ensureVerificationRecord(entryId: string) {
-  // Check if verification record already exists
-  const { data: existing } = await supabase
-    .from('verifications')
-    .select('id')
-    .eq('entry_id', entryId)
-    .single();
-
-  if (existing) {
-    return { data: existing, error: null };
-  }
-
-  // Create verification record if it doesn't exist
+  // Upsert verification record (create or update if exists)
   const { data, error } = await supabase
     .from('verifications')
-    .insert({
+    .upsert({
       entry_id: entryId,
       status: 'initiated',
       witnesses: [],
-      evidence_captured_at: new Date().toISOString()
+      evidence_captured_at: new Date().toISOString(),
+      social_consent: false
+    }, {
+      onConflict: 'entry_id'
     })
+    .select()
+    .single();
+
+  return { data, error };
+}
+
+export async function updateVerificationEvidence(
+  entryId: string, 
+  evidence: {
+    selfie_url?: string;
+    id_document_url?: string;
+    handicap_proof_url?: string;
+    video_url?: string;
+    witnesses?: any;
+    social_consent?: boolean;
+    status?: string;
+  }
+) {
+  const { data, error } = await supabase
+    .from('verifications')
+    .update({
+      ...evidence,
+      updated_at: new Date().toISOString()
+    })
+    .eq('entry_id', entryId)
     .select()
     .single();
 

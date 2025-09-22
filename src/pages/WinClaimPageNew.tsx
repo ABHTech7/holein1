@@ -42,7 +42,7 @@ interface WitnessData {
   notes?: string;
 }
 
-type VerificationStep = 'selfie' | 'id' | 'witness' | 'success';
+type VerificationStep = 'selfie' | 'id' | 'witness' | 'video' | 'social' | 'success';
 
 const WinClaimPageNew: React.FC = () => {
   const { entryId } = useParams<{ entryId: string }>();
