@@ -208,7 +208,7 @@ const ClaimDetailPage = () => {
   const getAvailableStatuses = (): VerificationStatus[] => {
     if (!profile) return [];
     
-    if (profile.role === 'ADMIN') {
+    if (profile.role === 'SUPER_ADMIN' || profile.role === 'ADMIN') {
       return ['initiated', 'pending', 'under_review', 'verified', 'rejected'];
     } else if (profile.role === 'CLUB') {
       return ['under_review'];
@@ -218,7 +218,7 @@ const ClaimDetailPage = () => {
   };
 
   const getBackPath = () => {
-    if (profile?.role === 'ADMIN') {
+    if (profile?.role === 'SUPER_ADMIN' || profile?.role === 'ADMIN') {
       return '/dashboard/admin/claims';
     } else if (profile?.role === 'CLUB') {
       return '/dashboard/club/claims';

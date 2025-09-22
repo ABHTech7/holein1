@@ -265,7 +265,7 @@ const App = () => {
           <Route 
             path="/claims/:verificationId" 
             element={
-              <EnhancedRoleGuard allowedRoles={['ADMIN', 'CLUB']}>
+              <EnhancedRoleGuard allowedRoles={['SUPER_ADMIN', 'ADMIN', 'CLUB']}>
                 <ClaimDetailPage />
               </EnhancedRoleGuard>
             } 
