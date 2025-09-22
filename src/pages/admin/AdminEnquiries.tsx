@@ -390,7 +390,7 @@ const AdminEnquiries = () => {
             <Button
               variant="outline"
               onClick={() => navigate(ROUTES.ADMIN.DASHBOARD)}
-              className="flex items-center gap-2 mb-6"
+              className="flex items-center gap-2 mb-6 bg-gradient-to-r from-primary/10 to-secondary/10 hover:from-primary/20 hover:to-secondary/20 border-primary/20"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Dashboard
