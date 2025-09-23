@@ -116,7 +116,7 @@ const EntriesPage = () => {
           )
         `)
         .order('entry_date', { ascending: false })
-        .limit(5000); // Override default 1000 limit - CRITICAL FIX
+        .range(0, 4999); // Use range to bypass Supabase's default 1000 row cap
 
       console.log('🔢 ENTRIES FETCHED:', entriesData?.length || 0, 'entries (should be 1322, not 1000)');
 
