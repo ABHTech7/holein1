@@ -68,6 +68,9 @@ const EntriesPage = () => {
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
+  // Server-accurate counters (avoid 1000-row cap)
+  const [counts, setCounts] = useState({ total: 0, paid: 0, monthToDate: 0, yearToDate: 0, won: 0 });
+  const [countsLoading, setCountsLoading] = useState(true);
 
   useEffect(() => {
     fetchEntries();
@@ -300,6 +303,7 @@ const EntriesPage = () => {
 
       toast({ title: "Success", description: `${data ?? 0} entries marked as paid` });
       await fetchEntries();
+      await fetchCounts();
     } catch (err) {
       console.error('Error updating payments:', err);
       toast({ title: "Error", description: `Failed to update payments: ${(err as any)?.message || 'Unknown error'}`, variant: "destructive" });
@@ -323,19 +327,44 @@ const EntriesPage = () => {
     }
   };
 
-  // Stats calculations
-  const totalEntries = entries.length;
-  const paidEntries = entries.filter(e => e.paid).length;
-  
-  // Month to date and year to date calculations
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfYear = new Date(now.getFullYear(), 0, 1);
-  
-  const monthToDateEntries = entries.filter(e => new Date(e.entry_date) >= startOfMonth).length;
-  const yearToDateEntries = entries.filter(e => new Date(e.entry_date) >= startOfYear).length;
-  
-  const wonEntries = entries.filter(e => e.outcome_self === 'win').length;
+  // Server-side accurate counters
+  const fetchCounts = async () => {
+    try {
+      setCountsLoading(true);
+      const now = new Date();
+      const startOfMonthIso = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const startOfYearIso = new Date(now.getFullYear(), 0, 1).toISOString();
+
+      const [totalRes, paidRes, mtdRes, ytdRes, wonRes] = await Promise.all([
+        supabase.from('entries').select('id', { count: 'exact', head: true }),
+        supabase.from('entries').select('id', { count: 'exact', head: true }).eq('paid', true),
+        supabase.from('entries').select('id', { count: 'exact', head: true }).gte('entry_date', startOfMonthIso),
+        supabase.from('entries').select('id', { count: 'exact', head: true }).gte('entry_date', startOfYearIso),
+        supabase.from('entries').select('id', { count: 'exact', head: true }).eq('outcome_self', 'win'),
+      ]);
+
+      setCounts({
+        total: totalRes.count || 0,
+        paid: paidRes.count || 0,
+        monthToDate: mtdRes.count || 0,
+        yearToDate: ytdRes.count || 0,
+        won: wonRes.count || 0,
+      });
+    } catch (err) {
+      console.error('Error fetching counters', err);
+    } finally {
+      setCountsLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchCounts(); }, []);
+
+  // Stats calculations (use server counts)
+  const totalEntries = counts.total;
+  const paidEntries = counts.paid;
+  const monthToDateEntries = counts.monthToDate;
+  const yearToDateEntries = counts.yearToDate;
+  const wonEntries = counts.won;
   const totalRevenue = entries.filter(e => e.paid).reduce((sum, e) => sum + e.competition.entry_fee, 0);
 
   // Pagination calculations
