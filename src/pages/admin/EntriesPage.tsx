@@ -8,6 +8,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious, 
+  PaginationEllipsis 
+} from "@/components/ui/pagination";
 import { Search, ArrowLeft, Clock, CheckCircle, XCircle, DollarSign, FileText, Trophy, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -57,6 +66,8 @@ const EntriesPage = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentFilter, setPaymentFilter] = useState<string>("all");
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
 
   useEffect(() => {
     fetchEntries();
@@ -283,10 +294,28 @@ const EntriesPage = () => {
   // Stats calculations
   const totalEntries = entries.length;
   const paidEntries = entries.filter(e => e.paid).length;
-  const pendingEntries = entries.filter(e => e.status === 'pending').length;
-  const completedEntries = entries.filter(e => e.status === 'completed').length;
+  
+  // Month to date and year to date calculations
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  
+  const monthToDateEntries = entries.filter(e => new Date(e.entry_date) >= startOfMonth).length;
+  const yearToDateEntries = entries.filter(e => new Date(e.entry_date) >= startOfYear).length;
+  
   const wonEntries = entries.filter(e => e.outcome_self === 'win').length;
   const totalRevenue = entries.filter(e => e.paid).reduce((sum, e) => sum + e.competition.entry_fee, 0);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredEntries.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedEntries = filteredEntries.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, paymentFilter]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -328,14 +357,14 @@ const EntriesPage = () => {
             </Card>
             <Card>
               <CardContent className="p-4">
-                <div className="text-lg md:text-2xl font-bold text-yellow-600">{pendingEntries}</div>
-                <div className="text-xs md:text-sm text-muted-foreground">Pending</div>
+                <div className="text-lg md:text-2xl font-bold text-blue-600">{monthToDateEntries}</div>
+                <div className="text-xs md:text-sm text-muted-foreground">Month to Date</div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4">
-                <div className="text-lg md:text-2xl font-bold text-blue-600">{completedEntries}</div>
-                <div className="text-xs md:text-sm text-muted-foreground">Completed</div>
+                <div className="text-lg md:text-2xl font-bold text-purple-600">{yearToDateEntries}</div>
+                <div className="text-xs md:text-sm text-muted-foreground">Year to Date</div>
               </CardContent>
             </Card>
             <Card>
@@ -418,7 +447,7 @@ const EntriesPage = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="w-5 h-5" />
-                Competition Entries ({filteredEntries.length})
+                Competition Entries ({filteredEntries.length}) - Page {currentPage} of {totalPages}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -450,17 +479,17 @@ const EntriesPage = () => {
                          <TableHead>Fee</TableHead>
                        </TableRow>
                      </TableHeader>
-                    <TableBody>
-                      {filteredEntries.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                       {searchTerm || statusFilter !== "all" || paymentFilter !== "all" 
-                               ? 'No entries found matching your filters.' 
-                               : 'No entries found.'}
-                           </TableCell>
-                         </TableRow>
-                       ) : (
-                         filteredEntries.map((entry) => {
+                     <TableBody>
+                       {paginatedEntries.length === 0 ? (
+                         <TableRow>
+                           <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                        {searchTerm || statusFilter !== "all" || paymentFilter !== "all" 
+                                ? 'No entries found matching your filters.' 
+                                : 'No entries found.'}
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          paginatedEntries.map((entry) => {
                            const window = getAttemptWindow(entry);
                            return (
                              <TableRow key={entry.id} className="cursor-pointer hover:bg-muted/50">
@@ -523,6 +552,102 @@ const EntriesPage = () => {
                       )}
                     </TableBody>
                   </Table>
+                </div>
+              )}
+              
+              {/* Pagination */}
+              {totalPages > 1 && !loading && (
+                <div className="flex justify-center mt-6">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (currentPage > 1) setCurrentPage(currentPage - 1);
+                          }}
+                          className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+                      
+                      {/* First page */}
+                      {currentPage > 2 && (
+                        <>
+                          <PaginationItem>
+                            <PaginationLink 
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setCurrentPage(1);
+                              }}
+                            >
+                              1
+                            </PaginationLink>
+                          </PaginationItem>
+                          {currentPage > 3 && (
+                            <PaginationItem>
+                              <PaginationEllipsis />
+                            </PaginationItem>
+                          )}
+                        </>
+                      )}
+                      
+                      {/* Current page area */}
+                      {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
+                        const pageNum = Math.max(1, Math.min(totalPages - 2, currentPage - 1)) + i;
+                        if (pageNum > totalPages) return null;
+                        
+                        return (
+                          <PaginationItem key={pageNum}>
+                            <PaginationLink 
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setCurrentPage(pageNum);
+                              }}
+                              isActive={pageNum === currentPage}
+                            >
+                              {pageNum}
+                            </PaginationLink>
+                          </PaginationItem>
+                        );
+                      })}
+                      
+                      {/* Last page */}
+                      {currentPage < totalPages - 1 && (
+                        <>
+                          {currentPage < totalPages - 2 && (
+                            <PaginationItem>
+                              <PaginationEllipsis />
+                            </PaginationItem>
+                          )}
+                          <PaginationItem>
+                            <PaginationLink 
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setCurrentPage(totalPages);
+                              }}
+                            >
+                              {totalPages}
+                            </PaginationLink>
+                          </PaginationItem>
+                        </>
+                      )}
+                      
+                      <PaginationItem>
+                        <PaginationNext 
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                          }}
+                          className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
                 </div>
               )}
             </CardContent>
