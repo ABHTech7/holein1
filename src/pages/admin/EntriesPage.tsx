@@ -80,6 +80,9 @@ const EntriesPage = () => {
   const fetchEntries = async () => {
     try {
       setLoading(true);
+      
+      // FORCE REBUILD: Updated fetchEntries function - checking entry count limit
+      console.log('🚀 ENTRIES PAGE: Starting data fetch - should see 1322 entries, not 1000');
 
       // Development diagnostic logging
       if (process.env.NODE_ENV !== 'production') {
@@ -113,7 +116,9 @@ const EntriesPage = () => {
           )
         `)
         .order('entry_date', { ascending: false })
-        .limit(5000); // Override default 1000 limit
+        .limit(5000); // Override default 1000 limit - CRITICAL FIX
+
+      console.log('🔢 ENTRIES FETCHED:', entriesData?.length || 0, 'entries (should be 1322, not 1000)');
 
       if (error) throw error;
 
@@ -150,6 +155,8 @@ const EntriesPage = () => {
       }));
 
       setEntries(formattedEntries);
+      
+      console.log('✅ ENTRIES SET IN STATE:', formattedEntries.length, 'entries - UI should now show 1322!');
 
       // Debug logging for final stats
       if (process.env.NODE_ENV !== 'production') {
