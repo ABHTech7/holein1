@@ -112,9 +112,24 @@ const EntriesPage = () => {
             clubs:clubs!inner(id, name)
           )
         `)
-        .order('entry_date', { ascending: false });
+        .order('entry_date', { ascending: false })
+        .limit(5000); // Override default 1000 limit
 
       if (error) throw error;
+
+      // Debug logging to verify data fetch
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('📊 [EntriesPage.fetchEntries] Data fetched successfully', {
+          totalEntriesFetched: entriesData?.length || 0,
+          sampleEntry: entriesData?.[0] ? {
+            id: entriesData[0].id,
+            entry_date: entriesData[0].entry_date,
+            paid: entriesData[0].paid,
+            hasProfile: !!entriesData[0].profiles,
+            hasCompetition: !!entriesData[0].competitions
+          } : null
+        });
+      }
 
       const formattedEntries = (entriesData || []).map(entry => ({
         ...entry,
@@ -135,6 +150,16 @@ const EntriesPage = () => {
       }));
 
       setEntries(formattedEntries);
+
+      // Debug logging for final stats
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('📈 [EntriesPage.fetchEntries] Final statistics', {
+          totalEntries: formattedEntries.length,
+          paidEntries: formattedEntries.filter(e => e.paid).length,
+          wonEntries: formattedEntries.filter(e => e.outcome_self === 'win').length,
+          sampleDates: formattedEntries.slice(0, 5).map(e => e.entry_date)
+        });
+      }
     } catch (error) {
       // Enhanced error handling with comprehensive logging
       if (process.env.NODE_ENV !== 'production') {
