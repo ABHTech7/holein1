@@ -5,10 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, RefreshCw, Shield, AlertTriangle } from 'lucide-react';
 import { runSessionDiagnostics, forceSessionRefresh, SessionDiagnostics } from '@/lib/authDiagnostics';
+import { supabase } from '@/integrations/supabase/client';
+import { useParams } from 'react-router-dom';
 
 export const SessionDiagnosticsPanel: React.FC = () => {
   const [diagnostics, setDiagnostics] = useState<SessionDiagnostics | null>(null);
   const [loading, setLoading] = useState(false);
+  const { clubId } = useParams<{ clubId: string }>();
 
   const runDiagnostics = async () => {
     setLoading(true);
@@ -68,6 +71,84 @@ export const SessionDiagnosticsPanel: React.FC = () => {
     }
   };
 
+  const verifyLogo = async () => {
+    if (!clubId) {
+      toast({
+        title: "Error",
+        description: "No club ID available",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Get current club data
+      const { data: clubData, error: clubError } = await supabase
+        .from('clubs')
+        .select('logo_url')
+        .eq('id', clubId)
+        .single();
+
+      if (clubError) {
+        toast({
+          title: "Database Error",
+          description: `Error fetching club data: ${clubError.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!clubData?.logo_url) {
+        toast({
+          title: "No Logo",
+          description: "No logo URL set for this club",
+        });
+        return;
+      }
+
+      // Check if the file exists in storage
+      const fileName = clubData.logo_url.split('/').pop();
+      if (!fileName) {
+        toast({
+          title: "Invalid URL",
+          description: "Invalid logo URL format",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { data: fileData, error: fileError } = await supabase.storage
+        .from('club-logos')
+        .download(fileName);
+
+      if (fileError) {
+        toast({
+          title: "Logo Not Found",
+          description: `Logo file not found in storage: ${fileError.message}`,
+          variant: "destructive"
+        });
+        console.log('Available logo URL:', clubData.logo_url);
+        console.log('Attempting to download:', fileName);
+      } else {
+        toast({
+          title: "Logo Verified",
+          description: "Logo file exists and is accessible",
+        });
+        console.log('Logo file verified:', fileData);
+      }
+    } catch (error) {
+      console.error('Logo verification error:', error);
+      toast({
+        title: "Verification Failed",
+        description: "Failed to verify logo",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusBadge = (value: boolean | null, trueText: string, falseText: string) => {
     if (value === null) return <Badge variant="secondary">Unknown</Badge>;
     return value ? 
@@ -95,6 +176,9 @@ export const SessionDiagnosticsPanel: React.FC = () => {
             <Button onClick={refreshSession} disabled={loading} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4" />
               Refresh Session
+            </Button>
+            <Button onClick={verifyLogo} disabled={loading} variant="ghost" size="sm">
+              Verify Logo
             </Button>
           </div>
         </div>

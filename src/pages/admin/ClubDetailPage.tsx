@@ -324,7 +324,12 @@ const ClubDetailPage = () => {
           await runSessionDiagnostics();
         }
         
-        throw error;
+        toast({
+          title: "Database Error",
+          description: `Failed to update club: ${error.message || 'Unknown error'}`,
+          variant: "destructive"
+        });
+        return;
       }
 
       console.log('✅ Database update successful');
@@ -809,7 +814,13 @@ const ClubDetailPage = () => {
           details: updateError.details,
           hint: updateError.hint
         });
-        throw updateError;
+        
+        toast({
+          title: "Contract Error",
+          description: `Failed to update contract status: ${updateError.message || 'Permission denied'}`,
+          variant: "destructive"
+        });
+        return;
       }
 
       console.log('✅ [CONTRACT_TOGGLE] RPC update successful');
