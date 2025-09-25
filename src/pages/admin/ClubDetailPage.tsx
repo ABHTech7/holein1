@@ -382,6 +382,19 @@ const ClubDetailPage = () => {
     setUploadingLogo(true);
 
     try {
+      // Debug auth state
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('Auth debug - upload session check:', { 
+        hasSession: !!session, 
+        userId: session?.user?.id,
+        userRole: profile?.role,
+        sessionError 
+      });
+
+      if (!session) {
+        throw new Error('Authentication session expired. Please log in again.');
+      }
+
       // Create a unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `${clubId}-${Date.now()}.${fileExt}`;
@@ -401,6 +414,12 @@ const ClubDetailPage = () => {
         .from('club-logos')
         .getPublicUrl(fileName);
 
+      // Force a token refresh before the update operation
+      const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.warn('Token refresh failed:', refreshError);
+      }
+
       // Update the club record with the logo URL
       const { error: updateError } = await supabase
         .from('clubs')
@@ -409,6 +428,9 @@ const ClubDetailPage = () => {
 
       if (updateError) {
         console.error('Error updating club logo URL:', updateError);
+        if (updateError.code === '42501') {
+          throw new Error('Permission denied. Your session may have expired. Please refresh the page and try again.');
+        }
         throw new Error(`Failed to update club record: ${updateError.message}`);
       }
 
@@ -450,6 +472,19 @@ const ClubDetailPage = () => {
     setUploadingLogo(true);
 
     try {
+      // Debug auth state
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('Auth debug - session check:', { 
+        hasSession: !!session, 
+        userId: session?.user?.id,
+        userRole: profile?.role,
+        sessionError 
+      });
+
+      if (!session) {
+        throw new Error('Authentication session expired. Please log in again.');
+      }
+
       // Extract filename from URL
       const url = new URL(club.logo_url);
       const fileName = url.pathname.split('/').pop();
@@ -465,6 +500,14 @@ const ClubDetailPage = () => {
         }
       }
 
+      // Force a token refresh before the update operation
+      const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.warn('Token refresh failed:', refreshError);
+      } else {
+        console.log('Token refreshed successfully');
+      }
+
       // Update the club record to remove logo URL with proper error handling
       const { error: updateError } = await supabase
         .from('clubs')
@@ -473,6 +516,9 @@ const ClubDetailPage = () => {
 
       if (updateError) {
         console.error('Error deleting logo:', updateError);
+        if (updateError.code === '42501') {
+          throw new Error('Permission denied. Your session may have expired. Please refresh the page and try again.');
+        }
         throw new Error(`Failed to update club record: ${updateError.message}`);
       }
 
