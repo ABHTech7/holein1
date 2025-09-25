@@ -151,19 +151,34 @@ const CompetitionEditPage = () => {
   const handleImageUpload = async (file: File): Promise<string | null> => {
     try {
       setUploadingImage(true);
+      console.log('Starting hero image upload for competition:', competition!.id);
       
       // Delete old image if it exists
       if (competition!.hero_image_url) {
         try {
           const oldUrl = competition!.hero_image_url;
-          const urlParts = oldUrl.split('/');
-          const oldFileName = urlParts[urlParts.length - 1];
+          console.log('Attempting to delete old image:', oldUrl);
           
-          // Only attempt deletion if it looks like it's from our bucket
-          if (oldUrl.includes('competition-heroes')) {
-            await supabase.storage
+          // Extract filename from URL - handle both direct filenames and full URLs
+          let oldFileName = '';
+          if (oldUrl.includes('competition-heroes/')) {
+            const pathParts = oldUrl.split('competition-heroes/');
+            oldFileName = pathParts[1].split('?')[0]; // Remove query params
+          } else if (oldUrl.includes('/')) {
+            const urlParts = oldUrl.split('/');
+            oldFileName = urlParts[urlParts.length - 1].split('?')[0]; // Remove query params
+          }
+          
+          if (oldFileName) {
+            const { error: deleteError } = await supabase.storage
               .from('competition-heroes')
               .remove([oldFileName]);
+            
+            if (deleteError) {
+              console.warn('Delete error (continuing):', deleteError);
+            } else {
+              console.log('Successfully deleted old image:', oldFileName);
+            }
           }
         } catch (deleteError) {
           console.warn('Could not delete old image:', deleteError);
@@ -171,16 +186,20 @@ const CompetitionEditPage = () => {
         }
       }
       
-      // Create unique filename
+      // Create folder structure: competitions/{competitionId}/{timestamp}.{ext}
       const fileExt = file.name.split('.').pop();
-      const fileName = `${competition!.id}-${Date.now()}.${fileExt}`;
+      const timestamp = Date.now();
+      const folderPath = `competitions/${competition!.id}/${timestamp}.${fileExt}`;
       
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
+      console.log('Uploading to path:', folderPath);
+
+      const { error } = await supabase.storage
         .from('competition-heroes')
-        .upload(fileName, file, {
+        .upload(folderPath, file, {
+          contentType: file.type,
           cacheControl: '3600',
-          upsert: false
+          upsert: true, // Allow overwriting if exists
+          duplex: 'half' // Required for Safari compatibility
         });
 
       if (error) {
@@ -188,16 +207,20 @@ const CompetitionEditPage = () => {
         throw error;
       }
 
+      console.log('Upload successful, getting public URL...');
+
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('competition-heroes')
-        .getPublicUrl(fileName);
+        .getPublicUrl(folderPath);
 
-      // Add cache buster to ensure new image displays
-      const finalUrl = `${publicUrl}?v=${Date.now()}`;
+      // Add cache buster to ensure new image displays immediately
+      const finalUrl = `${publicUrl}?v=${timestamp}`;
+      console.log('Final image URL:', finalUrl);
+      
       return finalUrl;
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error('Error uploading hero image:', error);
       
       // Reset UI state on error
       if (competition!.hero_image_url) {
@@ -209,7 +232,7 @@ const CompetitionEditPage = () => {
       
       toast({
         title: 'Upload Error',
-        description: 'Failed to upload hero image. Please try again.',
+        description: `Failed to upload hero image: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: 'destructive',
       });
       return null;

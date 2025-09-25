@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useRef } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import useAuth from '@/hooks/useAuth';
 import { ROUTES, getDashboardRoute } from '@/routes';
@@ -22,6 +22,7 @@ const EnhancedRoleGuard = ({
 }: EnhancedRoleGuardProps) => {
   const { user, profile, loading } = useAuth();
   const location = useLocation();
+  const hasShownToastRef = useRef(false);
 
   // Show loading state with better UX
   if (loading) {
@@ -47,9 +48,10 @@ const EnhancedRoleGuard = ({
     />;
   }
 
-  // Handle missing or invalid profile
+  // Handle missing or invalid profile - wait a bit before redirecting to prevent flashing
   if (!profile) {
-    if (showUnauthorizedToast) {
+    if (showUnauthorizedToast && !hasShownToastRef.current) {
+      hasShownToastRef.current = true;
       toast({
         title: "Profile Error",
         description: "Unable to load your profile. Please try signing in again.",
@@ -59,9 +61,14 @@ const EnhancedRoleGuard = ({
     return <Navigate to={ROUTES.AUTH} replace />;
   }
 
-  // Check role authorization
-  if (!allowedRoles.includes(profile.role)) {
-    if (showUnauthorizedToast) {
+  // Check role authorization - also allow SUPER_ADMIN implicitly where ADMIN is allowed
+  const effectiveAllowedRoles = allowedRoles.includes('ADMIN' as const) 
+    ? [...allowedRoles, 'SUPER_ADMIN' as const] 
+    : allowedRoles;
+    
+  if (!effectiveAllowedRoles.includes(profile.role)) {
+    if (showUnauthorizedToast && !hasShownToastRef.current) {
+      hasShownToastRef.current = true;
       const roleText = profile.role.toLowerCase();
       toast({
         title: "Access Denied",
