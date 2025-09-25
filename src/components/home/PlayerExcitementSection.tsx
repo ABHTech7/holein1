@@ -10,6 +10,7 @@ import { Target, Trophy, Smartphone, MapPin, Star, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { createSlug } from "@/lib/slugUtils";
 import { toast } from "@/hooks/use-toast";
+import { resolvePublicUrl, withCacheBuster } from "@/lib/imageUtils";
 
 interface Competition {
   id: string;
@@ -21,6 +22,7 @@ interface Competition {
   start_date: string;
   end_date: string | null;
   is_year_round: boolean;
+  hero_image_url: string | null;
   clubs: {
     id: string;
     name: string;
@@ -71,6 +73,7 @@ const PlayerExcitementSection = () => {
           start_date: comp.start_date,
           end_date: comp.end_date,
           is_year_round: comp.is_year_round,
+          hero_image_url: comp.hero_image_url,
           clubs: {
             id: comp.club_id,
             name: comp.club_name,
@@ -274,38 +277,66 @@ const PlayerExcitementSection = () => {
                 const iconComponents = [Trophy, Star, Target];
                 const IconComponent = iconComponents[index % 3];
                 
+                // Get hero image URL with proper handling
+                const heroImageUrl = competition.hero_image_url ? 
+                  withCacheBuster(resolvePublicUrl(competition.hero_image_url) || '', competition.id) : 
+                  null;
+                
                 return (
-                  <div key={competition.id} className="bg-card rounded-xl p-6 shadow-soft hover:shadow-medium transition-all duration-300 hover:-translate-y-1">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className={`w-12 h-12 ${iconBackgrounds[index % 3]} rounded-lg flex items-center justify-center`}>
-                        <IconComponent className="w-6 h-6 text-primary-foreground" />
-                      </div>
-                      <div>
-                        <h3 className="font-display font-bold text-foreground">{competition.name}</h3>
-                        <p className="text-sm text-muted-foreground">{competition.clubs.name}</p>
-                      </div>
-                    </div>
-                    <div className="space-y-2 mb-4">
-                      {competition.prize_pool && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Prize Pool:</span>
-                          <span className="font-semibold text-secondary">{formatCurrency(competition.prize_pool)}</span>
+                  <div key={competition.id} className="bg-card rounded-xl overflow-hidden shadow-soft hover:shadow-medium transition-all duration-300 hover:-translate-y-1">
+                    {/* Hero Image */}
+                    <div className="relative h-48 bg-muted/30">
+                      {heroImageUrl ? (
+                        <img 
+                          src={heroImageUrl}
+                          alt={`${competition.name} at ${competition.clubs.name}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback to icon on error
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                      ) : null}
+                      <div className={`absolute inset-0 flex items-center justify-center ${heroImageUrl ? 'hidden' : ''}`}>
+                        <div className={`w-16 h-16 ${iconBackgrounds[index % 3]} rounded-xl flex items-center justify-center`}>
+                          <IconComponent className="w-8 h-8 text-primary-foreground" />
                         </div>
-                      )}
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Entry Fee:</span>
-                        <span className="font-semibold text-foreground">{formatCurrency(competition.entry_fee)}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Hole:</span>
-                        <span className="font-semibold text-foreground">{competition.hole_number}th Par 3</span>
+                      {/* Gradient overlay for better text readability */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                      
+                      {/* Competition title overlay */}
+                      <div className="absolute bottom-4 left-4 right-4">
+                        <h3 className="font-display font-bold text-white text-lg mb-1">{competition.name}</h3>
+                        <p className="text-white/90 text-sm">{competition.clubs.name}</p>
                       </div>
                     </div>
-                    <Button asChild className="w-full bg-gradient-primary hover:opacity-90">
-                      <Link to={getCompetitionUrl(competition)}>
-                        Enter Competition
-                      </Link>
-                    </Button>
+                    
+                    {/* Card Content */}
+                    <div className="p-6">
+                      <div className="space-y-2 mb-4">
+                        {competition.prize_pool && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Prize Pool:</span>
+                            <span className="font-semibold text-secondary">{formatCurrency(competition.prize_pool)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Entry Fee:</span>
+                          <span className="font-semibold text-foreground">{formatCurrency(competition.entry_fee)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Hole:</span>
+                          <span className="font-semibold text-foreground">{competition.hole_number}th Par 3</span>
+                        </div>
+                      </div>
+                      <Button asChild className="w-full bg-gradient-primary hover:opacity-90">
+                        <Link to={getCompetitionUrl(competition)}>
+                          Enter Competition
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
                 );
               })
