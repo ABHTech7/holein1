@@ -407,7 +407,10 @@ const ClubDetailPage = () => {
         .update({ logo_url: publicUrl })
         .eq('id', clubId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Error updating club logo URL:', updateError);
+        throw new Error(`Failed to update club record: ${updateError.message}`);
+      }
 
       // Update local state
       setClub(prev => prev ? { ...prev, logo_url: publicUrl } : null);
@@ -430,9 +433,10 @@ const ClubDetailPage = () => {
 
     } catch (error) {
       console.error('Error uploading logo:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
-        title: "Error",
-        description: "Failed to upload logo. Please try again.",
+        title: "Permission Error", 
+        description: `Failed to upload logo: ${errorMessage}. Please check your permissions.`,
         variant: "destructive"
       });
     } finally {
@@ -461,13 +465,16 @@ const ClubDetailPage = () => {
         }
       }
 
-      // Update the club record to remove logo URL
+      // Update the club record to remove logo URL with proper error handling
       const { error: updateError } = await supabase
         .from('clubs')
         .update({ logo_url: null })
         .eq('id', clubId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Error deleting logo:', updateError);
+        throw new Error(`Failed to update club record: ${updateError.message}`);
+      }
 
       // Update local state
       setClub(prev => prev ? { ...prev, logo_url: null } : null);
@@ -490,9 +497,10 @@ const ClubDetailPage = () => {
 
     } catch (error) {
       console.error('Error deleting logo:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
-        title: "Error",
-        description: "Failed to remove logo. Please try again.",
+        title: "Permission Error",
+        description: `Failed to remove logo: ${errorMessage}. Please check your permissions.`,
         variant: "destructive"
       });
     } finally {
