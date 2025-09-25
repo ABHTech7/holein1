@@ -20,6 +20,7 @@ import ClubBankDetailsSection from "@/components/admin/ClubBankDetailsSection";
 import NewClubUserModal from "@/components/admin/NewClubUserModal";
 import { useAuth } from "@/hooks/useAuth";
 import { trackClubChanges } from "@/lib/auditTracker";
+import { resolvePublicUrl, withCacheBuster } from "@/lib/imageUtils";
 
 interface Club {
   id: string;
@@ -31,6 +32,7 @@ interface Club {
   active: boolean;
   archived: boolean;
   created_at: string;
+  updated_at?: string;
   logo_url: string | null;
   contract_signed: boolean;
   contract_url: string | null;
@@ -968,10 +970,10 @@ const ClubDetailPage = () => {
               <div className="flex items-center gap-4">
                 {club.logo_url && (
                   <div className="w-12 h-12 rounded-lg overflow-hidden bg-background flex items-center justify-center border border-border/20">
-                    <img 
-                      src={club.logo_url} 
-                      alt={`${club.name} logo`} 
-                      className="w-full h-full object-contain"
+                      <img 
+                        src={withCacheBuster(resolvePublicUrl(club.logo_url) || '/brand/logo-placeholder.svg', club.updated_at || club.created_at)} 
+                        alt={`${club.name} logo`} 
+                        className="w-full h-full object-contain"
   loading="lazy"
   decoding="async"
   onError={(e) => {
@@ -1103,10 +1105,10 @@ const ClubDetailPage = () => {
                     <div className="flex items-center gap-4">
                       {club.logo_url ? (
                         <div className="w-16 h-16 rounded-lg overflow-hidden bg-background flex items-center justify-center border border-border/20">
-                          <img 
-                            src={club.logo_url} 
-                            alt={`${club.name} logo`} 
-                            className="w-full h-full object-contain"
+                            <img 
+                              src={withCacheBuster(resolvePublicUrl(club.logo_url) || '/brand/logo-placeholder.svg', club.updated_at || club.created_at)} 
+                              alt={`${club.name} logo`} 
+                              className="w-full h-full object-contain"
                             loading="lazy"
                             decoding="async"
                             onError={(e) => {
