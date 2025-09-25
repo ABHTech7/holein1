@@ -21,6 +21,8 @@ import NewClubUserModal from "@/components/admin/NewClubUserModal";
 import { useAuth } from "@/hooks/useAuth";
 import { trackClubChanges } from "@/lib/auditTracker";
 import { resolvePublicUrl, withCacheBuster } from "@/lib/imageUtils";
+import { runSessionDiagnostics, forceSessionRefresh } from "@/lib/authDiagnostics";
+import { SessionDiagnosticsPanel } from "@/components/admin/SessionDiagnosticsPanel";
 
 interface Club {
   id: string;
@@ -257,8 +259,49 @@ const ClubDetailPage = () => {
     try {
       setSaving(true);
 
+      // === Enhanced Authentication Debugging ===
+      console.log('🔐 Starting club save operation with auth debugging...');
+      console.log('📊 Current auth state:', { 
+        hasUser: !!user, 
+        userId: user?.id, 
+        userEmail: user?.email,
+        userRole: profile?.role,
+        clubId 
+      });
+
+      // Run comprehensive session diagnostics
+      const diagnostics = await runSessionDiagnostics();
+      
+      if (diagnostics.jwtIssue) {
+        console.error('❌ Authentication issue detected before save:', diagnostics.jwtIssue);
+        
+        // Try to force refresh session
+        console.log('🔄 Attempting session refresh to fix auth issue...');
+        const refreshed = await forceSessionRefresh();
+        
+        if (!refreshed) {
+          throw new Error(`Authentication error: ${diagnostics.jwtIssue}. Please sign out and sign back in.`);
+        }
+        
+        console.log('✅ Session refreshed, retrying save...');
+      } else {
+        console.log('✅ Authentication diagnostics passed');
+      }
+
       const oldData = club;
       const newData = formData;
+
+      console.log('💾 Attempting database update...', { 
+        clubId, 
+        updateData: {
+          name: formData.name,
+          address: formData.address,
+          email: formData.email,
+          phone: formData.phone,
+          website: formData.website,
+          active: formData.active
+        }
+      });
 
       const { error } = await supabase
         .from('clubs')
@@ -272,7 +315,19 @@ const ClubDetailPage = () => {
         })
         .eq('id', clubId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database update failed:', error);
+        
+        // If it's a permission error, run diagnostics again
+        if (error.message.includes('permission') || error.message.includes('policy')) {
+          console.log('🔍 Permission error detected, running additional diagnostics...');
+          await runSessionDiagnostics();
+        }
+        
+        throw error;
+      }
+
+      console.log('✅ Database update successful');
 
       // Track changes with audit system
       if (oldData && clubId) {
@@ -1088,6 +1143,10 @@ const ClubDetailPage = () => {
               <TabsTrigger value="banking">Bank Details</TabsTrigger>
               <TabsTrigger value="users">Club Users</TabsTrigger>
               <TabsTrigger value="notes">Notes</TabsTrigger>
+              <TabsTrigger value="diagnostics" className="text-orange-600">
+                <Shield className="w-4 h-4 mr-1" />
+                Auth Diagnostics
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="details">
@@ -1664,6 +1723,10 @@ const ClubDetailPage = () => {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="diagnostics">
+              <SessionDiagnosticsPanel />
             </TabsContent>
           </Tabs>
         </div>
