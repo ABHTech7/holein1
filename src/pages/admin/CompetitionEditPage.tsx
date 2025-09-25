@@ -152,6 +152,25 @@ const CompetitionEditPage = () => {
     try {
       setUploadingImage(true);
       
+      // Delete old image if it exists
+      if (competition!.hero_image_url) {
+        try {
+          const oldUrl = competition!.hero_image_url;
+          const urlParts = oldUrl.split('/');
+          const oldFileName = urlParts[urlParts.length - 1];
+          
+          // Only attempt deletion if it looks like it's from our bucket
+          if (oldUrl.includes('competition-heroes')) {
+            await supabase.storage
+              .from('competition-heroes')
+              .remove([oldFileName]);
+          }
+        } catch (deleteError) {
+          console.warn('Could not delete old image:', deleteError);
+          // Continue with upload even if deletion fails
+        }
+      }
+      
       // Create unique filename
       const fileExt = file.name.split('.').pop();
       const fileName = `${competition!.id}-${Date.now()}.${fileExt}`;
@@ -164,19 +183,33 @@ const CompetitionEditPage = () => {
           upsert: false
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Upload error details:', error);
+        throw error;
+      }
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('competition-heroes')
         .getPublicUrl(fileName);
 
-      return publicUrl;
+      // Add cache buster to ensure new image displays
+      const finalUrl = `${publicUrl}?v=${Date.now()}`;
+      return finalUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
+      
+      // Reset UI state on error
+      if (competition!.hero_image_url) {
+        setHeroImagePreview(competition!.hero_image_url);
+      } else {
+        setHeroImagePreview(null);
+      }
+      setHeroImageFile(null);
+      
       toast({
         title: 'Upload Error',
-        description: 'Failed to upload hero image',
+        description: 'Failed to upload hero image. Please try again.',
         variant: 'destructive',
       });
       return null;

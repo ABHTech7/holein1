@@ -170,13 +170,22 @@ export class EnhancedAuthSecurity {
   }
 }
 
-// Track user activity automatically
+// Track user activity automatically with throttling
 if (typeof window !== 'undefined') {
-  // Track mouse and keyboard activity
-  ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
-    document.addEventListener(event, () => {
+  let lastActivityUpdate = 0;
+  const ACTIVITY_THROTTLE = 30000; // Only update every 30 seconds
+  
+  const throttledTrackActivity = () => {
+    const now = Date.now();
+    if (now - lastActivityUpdate > ACTIVITY_THROTTLE) {
+      lastActivityUpdate = now;
       EnhancedAuthSecurity.trackActivity();
-    }, { passive: true });
+    }
+  };
+  
+  // Track mouse and keyboard activity (throttled)
+  ['mousedown', 'keypress', 'scroll', 'touchstart'].forEach(event => {
+    document.addEventListener(event, throttledTrackActivity, { passive: true });
   });
   
   // Handle session expiration
