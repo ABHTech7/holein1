@@ -972,15 +972,15 @@ const ClubDetailPage = () => {
                       src={club.logo_url} 
                       alt={`${club.name} logo`} 
                       className="w-full h-full object-contain"
-                      onError={(e) => {
-                        console.error('Logo failed to load:', club.logo_url);
-                        console.error('Image error event:', e);
-                        // Hide the broken image
-                        e.currentTarget.style.display = 'none';
-                      }}
-                      onLoad={() => {
-                        console.log('Logo loaded successfully:', club.logo_url);
-                      }}
+  loading="lazy"
+  decoding="async"
+  onError={(e) => {
+    console.warn('Logo failed to load:', club.logo_url);
+    e.currentTarget.src = '/brand/logo-placeholder.svg';
+  }}
+  onLoad={() => {
+    console.log('Logo loaded successfully:', club.logo_url);
+  }}
                     />
                   </div>
                 )}
@@ -1107,11 +1107,11 @@ const ClubDetailPage = () => {
                             src={club.logo_url} 
                             alt={`${club.name} logo`} 
                             className="w-full h-full object-contain"
+                            loading="lazy"
+                            decoding="async"
                             onError={(e) => {
-                              console.error('Logo failed to load in upload section:', club.logo_url);
-                              console.error('Image error event:', e);
-                              // Hide the broken image
-                              e.currentTarget.style.display = 'none';
+                              console.warn('Logo failed to load in upload section:', club.logo_url);
+                              e.currentTarget.src = '/brand/logo-placeholder.svg';
                             }}
                             onLoad={() => {
                               console.log('Logo loaded successfully in upload section:', club.logo_url);
