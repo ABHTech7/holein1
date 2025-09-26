@@ -1475,6 +1475,20 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      get_admin_players_with_stats: {
+        Args: { p_limit?: number; p_offset?: number; p_search?: string }
+        Returns: {
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_entry_date: string
+          last_name: string
+          phone: string
+          status: string
+          total_entries: number
+        }[]
+      }
       get_competition_status: {
         Args: { end_date: string; is_year_round: boolean; start_date: string }
         Returns: Database["public"]["Enums"]["competition_status"]
@@ -1673,6 +1687,10 @@ export type Database = {
       }
       setup_insurer_account: {
         Args: { p_email: string; p_first_name?: string; p_last_name?: string }
+        Returns: Json
+      }
+      top_up_demo_entries: {
+        Args: { p_target_count?: number }
         Returns: Json
       }
       update_club_contract_status: {

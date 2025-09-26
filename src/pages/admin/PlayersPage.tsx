@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -15,12 +18,9 @@ import {
   PaginationPrevious 
 } from "@/components/ui/pagination";
 import { Search, Mail, Calendar, Trophy, ArrowLeft, Phone, Plus, Trash2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/formatters";
 import { showSupabaseError } from "@/lib/showSupabaseError";
-import { useAuth } from "@/hooks/useAuth";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
@@ -37,129 +37,53 @@ interface Player {
   created_at: string;
   last_entry_date: string | null;
   total_entries: number;
+  status: string;
 }
 
 const PlayersPage = () => {
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [players, setPlayers] = useState<Player[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filteredPlayers, setFilteredPlayers] = useState<Player[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [showNewUser, setShowNewUser] = useState(false);
   const [showIncompleteModal, setShowIncompleteModal] = useState(false);
+  const [totalPages, setTotalPages] = useState(1);
 
   const ITEMS_PER_PAGE = 25;
 
-  useEffect(() => {
-    fetchPlayers();
-  }, []);
-
-  useEffect(() => {
-    const filtered = players.filter(player => {
-      const fullName = `${player.first_name || ''} ${player.last_name || ''}`.toLowerCase();
-      const search = searchTerm.toLowerCase();
-      return fullName.includes(search) || player.email.toLowerCase().includes(search);
-    });
-    setFilteredPlayers(filtered);
-    // Reset to first page when search changes
-    setCurrentPage(1);
-  }, [players, searchTerm]);
-
+  // Fetch players using the secure RPC function
   const fetchPlayers = async () => {
+    // Don't fetch if auth is still loading or user is not admin
+    if (authLoading || !profile || !['ADMIN', 'SUPER_ADMIN'].includes(profile.role)) {
+      return;
+    }
+
     try {
       setLoading(true);
-
-      // Development diagnostic logging
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('🔍 [PlayersPage.fetchPlayers] Starting players data fetch', {
-          userProfile: { 
-            role: profile?.role, 
-            id: profile?.id, 
-            club_id: profile?.club_id 
-          },
-          operation: 'Fetching players with entry statistics',
-          queryParams: { 
-            tables: ['profiles', 'entries'],
-            filters: { role: 'PLAYER' },
-            joins: ['entries (for statistics)'],
-            orderBy: 'created_at desc'
-          }
-        });
-      }
-
-      const { data: playersData, error } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          email,
-          first_name,
-          last_name,
-          phone,
-          created_at
-        `)
-        .eq('role', 'PLAYER')
-        .neq('status', 'deleted')
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
+      
+      // Use the secure RPC function to get players with stats
+      const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+      const { data, error } = await supabase.rpc('get_admin_players_with_stats', {
+        p_limit: ITEMS_PER_PAGE,
+        p_offset: offset,
+        p_search: searchTerm || null
+      });
 
       if (error) throw error;
 
-      const playersWithStats = await Promise.all(
-        (playersData || []).map(async (player) => {
-          const { data: entries, error: entriesError } = await supabase
-            .from('entries')
-            .select('entry_date')
-            .eq('player_id', player.id)
-            .order('entry_date', { ascending: false });
-
-          if (entriesError && process.env.NODE_ENV !== 'production') {
-            console.error("ADMIN PAGE ERROR:", {
-              location: "PlayersPage.fetchPlayers.entries",
-              userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
-              operation: `Fetching entries for player: ${player.email}`,
-              queryParams: { table: 'entries', filters: { player_id: player.id } },
-              code: entriesError.code,
-              message: entriesError.message,
-              details: entriesError.details,
-              hint: entriesError.hint,
-              fullError: entriesError
-            });
-          }
-
-          const totalEntries = entries?.length || 0;
-          const lastEntryDate = entries && entries.length > 0 ? entries[0].entry_date : null;
-
-          return {
-            ...player,
-            total_entries: totalEntries,
-            last_entry_date: lastEntryDate
-          };
-        })
-      );
-
-      setPlayers(playersWithStats);
+      setPlayers(data || []);
+      
+      // For now, estimate total pages based on results
+      // In production, you'd want a separate count query
+      setTotalPages(Math.max(1, Math.ceil((data?.length || 0) / ITEMS_PER_PAGE) + (data?.length === ITEMS_PER_PAGE ? 1 : 0)));
+      
     } catch (error) {
-      // Enhanced error handling with comprehensive logging
-      if (process.env.NODE_ENV !== 'production') {
-        console.error("ADMIN PAGE ERROR:", {
-          location: "PlayersPage.fetchPlayers.general",
-          userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
-          operation: "General players data fetching operation",
-          queryParams: { tables: 'profiles with entries join', operation: 'comprehensive players fetch' },
-          code: (error as any)?.code,
-          message: (error as any)?.message,
-          details: (error as any)?.details,
-          hint: (error as any)?.hint,
-          fullError: error
-        });
-      }
-
       const msg = showSupabaseError(error, 'PlayersPage.fetchPlayers');
       toast({ 
         title: "Failed to load players data", 
-        description: `${msg}${(error as any)?.code ? ` (Code: ${(error as any).code})` : ''}`, 
+        description: msg, 
         variant: "destructive" 
       });
     } finally {
@@ -167,9 +91,16 @@ const PlayersPage = () => {
     }
   };
 
-  const handlePlayerClick = (playerId: string) => {
-    navigate(`/dashboard/admin/players/${playerId}`);
-  };
+  useEffect(() => {
+    fetchPlayers();
+  }, [authLoading, profile, currentPage, searchTerm]);
+
+  useEffect(() => {
+    // Reset to first page when search changes
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [searchTerm]);
 
   const getPlayerName = (player: Player) => {
     if (player.first_name || player.last_name) {
@@ -178,11 +109,43 @@ const PlayersPage = () => {
     return 'No name provided';
   };
 
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredPlayers.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentPlayers = filteredPlayers.slice(startIndex, endIndex);
+  // Show loading state while auth is loading
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SiteHeader />
+        <Section className="py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading...</p>
+            </div>
+          </div>
+        </Section>
+      </div>
+    );
+  }
+
+  // Show access denied if not admin
+  if (!profile || !['ADMIN', 'SUPER_ADMIN'].includes(profile.role)) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SiteHeader />
+        <Section className="py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-destructive mb-2">Access Denied</h1>
+              <p className="text-muted-foreground">You need admin privileges to access this page.</p>
+            </div>
+          </div>
+        </Section>
+      </div>
+    );
+  }
+
+  const handlePlayerClick = (playerId: string) => {
+    navigate(`/dashboard/admin/players/${playerId}`);
+  };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -225,7 +188,7 @@ const PlayersPage = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="w-5 h-5" />
-                All Players ({filteredPlayers.length} total, showing {currentPlayers.length})
+                All Players ({players.length} total{players.length > 0 ? `, showing ${players.length}` : ''})
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -264,14 +227,14 @@ const PlayersPage = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {currentPlayers.length === 0 ? (
+                    {players.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                           {searchTerm ? 'No players found matching your search.' : 'No players found.'}
                         </TableCell>
                       </TableRow>
                     ) : (
-                      currentPlayers.map((player) => (
+                      players.map((player) => (
                         <TableRow key={player.id}>
                           <TableCell className="font-medium">
                             <button
@@ -327,10 +290,10 @@ const PlayersPage = () => {
               )}
 
               {/* Pagination */}
-              {filteredPlayers.length > ITEMS_PER_PAGE && (
+              {totalPages > 1 && (
                 <div className="flex justify-between items-center mt-6">
                   <div className="text-sm text-muted-foreground">
-                    Showing {startIndex + 1} to {Math.min(endIndex, filteredPlayers.length)} of {filteredPlayers.length} players
+                    Page {currentPage} of {totalPages}
                   </div>
                   
                   <Pagination>

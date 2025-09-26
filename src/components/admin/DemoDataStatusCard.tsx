@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Database, Trash2, AlertTriangle, TrendingUp, Users } from "lucide-react";
+import { Database, Trash2, AlertTriangle, TrendingUp, Users, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
@@ -23,6 +23,7 @@ export function DemoDataStatusCard() {
   const [stats, setStats] = useState<DemoStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [cleaning, setCleaning] = useState(false);
+  const [toppingUp, setToppingUp] = useState(false);
 
   const fetchStats = async () => {
     setLoading(true);
@@ -46,7 +47,42 @@ export function DemoDataStatusCard() {
     }
   };
 
+  const handleTopUp = async (targetCount: number = 1322) => {
+    setToppingUp(true);
+    try {
+      const { data, error } = await supabase.rpc('top_up_demo_entries', { 
+        p_target_count: targetCount 
+      });
+      
+      if (error) throw error;
+      
+      const result = data as any;
+      toast({
+        title: "Demo entries topped up",
+        description: `Added ${result.inserted_count} entries. Total demo entries: ${result.new_total}/${result.target_count}`
+      });
+      
+      // Refresh stats after top-up
+      fetchStats();
+    } catch (error: any) {
+      console.error("Error topping up demo entries:", error);
+      toast({
+        title: "Top-up failed", 
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setToppingUp(false);
+    }
+  };
+
   const handleCleanup = async (cleanupAll: boolean) => {
+    if (cleanupAll && !window.confirm(
+      "⚠️ This will delete ALL demo data (profiles, clubs, competitions, and entries). Are you sure?"
+    )) {
+      return;
+    }
+
     setCleaning(true);
     try {
       const { data, error } = await supabase.rpc('cleanup_demo_data', { cleanup_all: cleanupAll });
@@ -194,31 +230,48 @@ export function DemoDataStatusCard() {
           </div>
         )}
 
-        {/* Cleanup Actions */}
-        {hasDemoData && (
-          <div className="flex gap-2 pt-2 border-t">
+        {/* Demo Data Actions */}
+        <div className="space-y-3 pt-2 border-t">
+          {/* Top up entries if count is low */}
+          {stats && stats.demo_entries < 1000 && (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleCleanup(false)}
-              disabled={cleaning}
-              className="flex-1"
+              onClick={() => handleTopUp(1322)}
+              disabled={toppingUp}
+              className="w-full"
             >
-              <Trash2 className="w-3 h-3 mr-1" />
-              Clean Recent
+              <TrendingUp className="w-3 h-3 mr-2" />
+              {toppingUp ? "Adding entries..." : `Top up to 1,322 entries`}
             </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => handleCleanup(true)}
-              disabled={cleaning}
-              className="flex-1"
-            >
-              <Trash2 className="w-3 h-3 mr-1" />
-              Clean All Demo
-            </Button>
-          </div>
-        )}
+          )}
+
+          {/* Cleanup Actions */}
+          {hasDemoData && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleCleanup(false)}
+                disabled={cleaning || toppingUp}
+                className="flex-1"
+              >
+                <Trash2 className="w-3 h-3 mr-1" />
+                Clean Recent
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => handleCleanup(true)}
+                disabled={cleaning || toppingUp}
+                className="flex-1"
+              >
+                <Trash2 className="w-3 h-3 mr-1" />
+                Clean All Demo
+              </Button>
+            </div>
+          )}
+        </div>
         
       </CardContent>
     </Card>
