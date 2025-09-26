@@ -13,6 +13,7 @@ import ChartWrapper from "@/components/ui/chart-wrapper";
 import SiteSettingsModal from "@/components/admin/SiteSettingsModal";
 import NewUserModal from "@/components/admin/NewUserModal";
 import AdminQuickActions from "@/components/admin/AdminQuickActions";
+import { DemoDataStatusCard } from "@/components/admin/DemoDataStatusCard";
 import SecurityMonitor from "@/components/security/SecurityMonitor";
 import { Users, Calendar, Trophy, TrendingUp, Plus, Settings, PoundSterling, UserPlus, Edit3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -540,6 +541,9 @@ const AdminDashboard = () => {
               activeCompetitions: stats.activeCompetitions,
               totalClubs: stats.totalClubs
             }} insurancePremiums={insurancePremiums} onAddUser={handleAddUser} isEditing={isEditingActions} />
+            
+            {/* Demo Data Status Card */}
+            <DemoDataStatusCard />
             </div>
 
             {/* Stats Overview */}

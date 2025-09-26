@@ -109,7 +109,7 @@ function generateAddress(): string {
   return `${streetNumber} ${streetName} ${streetType}, ${county}, UK`;
 }
 
-// Date helpers for June-September 2025
+// Date helpers for realistic past dates (June-September 2024)
 function getRandomDateInMonth(year: number, month: number): Date {
   const daysInMonth = new Date(year, month, 0).getDate();
   const day = getRandomInt(1, daysInMonth);
@@ -119,9 +119,11 @@ function getRandomDateInMonth(year: number, month: number): Date {
 }
 
 function getDateRange(): { startDate: Date; endDate: Date; months: number[] } {
+  const currentYear = new Date().getFullYear();
+  const pastYear = currentYear - 1; // Use previous year for realistic demo data
   return {
-    startDate: new Date(2025, 5, 1), // June 1, 2025
-    endDate: new Date(2025, 8, 30), // September 30, 2025
+    startDate: new Date(pastYear, 5, 1), // June 1, previous year
+    endDate: new Date(pastYear, 8, 30), // September 30, previous year
     months: [6, 7, 8, 9] // June, July, August, September
   };
 }
@@ -160,6 +162,22 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     console.log("Starting comprehensive demo data seed...");
+    
+    // Check if demo data already exists
+    const { data: existingSession } = await supabaseAdmin
+      .from("demo_data_sessions")
+      .select("*")
+      .eq("is_active", true)
+      .eq("session_type", "seed")
+      .single();
+      
+    if (existingSession) {
+      console.log("Demo data already exists, cleaning up first...");
+      
+      // Clean up existing demo data
+      const { data: cleanupResult } = await supabaseAdmin.rpc("cleanup_demo_data", { cleanup_all: true });
+      console.log("Cleanup result:", cleanupResult);
+    }
 
     // Create basic demo admin
     const adminUser = {
@@ -206,7 +224,8 @@ const handler = async (req: Request): Promise<Response> => {
         contract_signed: true,
         contract_signed_date: new Date().toISOString(),
         contract_signed_by_name: "Club Manager",
-        contract_signed_by_email: `club${i + 1}@holein1demo.test`
+        contract_signed_by_email: `club${i + 1}@holein1demo.test`,
+        is_demo_data: true
       });
     }
 
@@ -240,9 +259,11 @@ const handler = async (req: Request): Promise<Response> => {
       const numCompetitions = 1;
       
       for (let i = 0; i < numCompetitions; i++) {
-        // Random start date in June-September 2025
+        // Random start date in past year (June-September)
         const month = getRandomElement(months);
-        const startDate = getRandomDateInMonth(2025, month);
+        const { startDate: _, endDate: __, months: ___ } = getDateRange();
+        const pastYear = new Date().getFullYear() - 1;
+        const startDate = getRandomDateInMonth(pastYear, month);
         const endDate = new Date(startDate.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days later
         
         competitionsToCreate.push({
@@ -256,7 +277,8 @@ const handler = async (req: Request): Promise<Response> => {
           hole_number: getRandomInt(1, 18),
           status: "ACTIVE",
           is_year_round: false,
-          archived: false
+          archived: false,
+          is_demo_data: true
         });
       }
     }
@@ -319,7 +341,8 @@ const handler = async (req: Request): Promise<Response> => {
         phone: generateUKPhone(),
         phone_e164: generateUKPhone(),
         consent_marketing: Math.random() > 0.5,
-        status: "active"
+        status: "active",
+        is_demo_data: true
       });
 
       if (i % 100 === 0) {
@@ -352,13 +375,14 @@ const handler = async (req: Request): Promise<Response> => {
     const { months: targetMonths } = getDateRange();
 
     for (const competition of createdCompetitions) {
-      // Generate entries for each month June-Sept 2025
+      // Generate entries for each month in past year
       for (const month of targetMonths) {
         const entriesThisMonth = getRandomInt(50, 60);
         
         for (let i = 0; i < entriesThisMonth; i++) {
           const randomPlayer = getRandomElement(createdPlayers);
-          const entryDate = getRandomDateInMonth(2025, month);
+          const pastYear = new Date().getFullYear() - 1;
+          const entryDate = getRandomDateInMonth(pastYear, month);
           
           entriesToCreate.push({
             competition_id: competition.id,
@@ -371,7 +395,9 @@ const handler = async (req: Request): Promise<Response> => {
             terms_version: "v1.0",
             status: "completed",
             outcome_self: "miss", // Will update winners later
-            outcome_reported_at: new Date(entryDate.getTime() + (2 * 60 * 60 * 1000)).toISOString() // 2 hours after entry
+            outcome_reported_at: new Date(entryDate.getTime() + (2 * 60 * 60 * 1000)).toISOString(), // 2 hours after entry
+            is_demo_data: true,
+            email: randomPlayer.email // Add player email for proper RLS
           });
         }
       }
@@ -531,6 +557,25 @@ const handler = async (req: Request): Promise<Response> => {
       samplePlayer: { email: createdPlayers[0]?.email || "player@demo.test", password: "Demo!2345" }
     };
 
+    // Create demo data session record
+    const sessionData = {
+      session_type: "seed",
+      created_by: null, // System created
+      entities_created: {
+        clubs: createdClubs.length,
+        competitions: createdCompetitions.length,
+        players: createdPlayers.length,
+        entries: createdEntries.length,
+        winners: winnersToUpdate.length,
+        pending_claims: pendingClaimsToCreate.length
+      },
+      notes: `Generated comprehensive demo data with realistic ${new Date().getFullYear() - 1} dates`
+    };
+
+    await supabaseAdmin
+      .from("demo_data_sessions")
+      .insert(sessionData);
+
     console.log("Comprehensive demo data seeding completed!");
     console.log(`Summary:`);
     console.log(`- Clubs: ${createdClubs.length}`);
@@ -550,9 +595,14 @@ const handler = async (req: Request): Promise<Response> => {
           players: createdPlayers.length,
           entries: createdEntries.length,
           winners: winnersToUpdate.length,
-          pendingClaims: pendingClaimsToCreate.length
+          pending_claims: pendingClaimsToCreate.length
         },
-        credentials 
+        credentials: {
+          admin: adminUser,
+          club1: { email: "club1@holein1demo.test", password: "Demo!2345" },
+          club2: { email: "club2@holein1demo.test", password: "Demo!2345" },
+          player: { email: createdPlayers[0]?.email || "demo.player@example.com", password: "Demo!2345" }
+        }
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
