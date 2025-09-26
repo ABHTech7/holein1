@@ -49,7 +49,7 @@ interface HeroTitleProps {
 const HeroTitle = ({ children, className }: HeroTitleProps) => {
   return (
     <h1 className={cn(
-      "font-display text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6",
+      "font-calder text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6",
       className
     )}>
       {children}
