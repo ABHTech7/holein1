@@ -15,6 +15,7 @@ export const ROUTES = {
   PLAYER: {
     LOGIN: '/players/login',
     ENTRIES: '/players/entries',
+    DASHBOARD: '/player/dashboard',
   },
   
   // Club Routes
@@ -111,7 +112,7 @@ export const ROLE_DASHBOARDS = {
   SUPER_ADMIN: ROUTES.ADMIN.DASHBOARD,
   ADMIN: ROUTES.ADMIN.DASHBOARD,
   CLUB: ROUTES.CLUB.DASHBOARD,
-  PLAYER: ROUTES.PLAYER.ENTRIES,
+  PLAYER: ROUTES.PLAYER.DASHBOARD,
   INSURANCE_PARTNER: ROUTES.INSURANCE.DASHBOARD,
 } as const;
 

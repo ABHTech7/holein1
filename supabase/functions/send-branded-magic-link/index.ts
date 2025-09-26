@@ -21,7 +21,7 @@ interface BrandedMagicLinkRequest {
   clubName?: string;
 }
 
-const createBrandedEmailTemplate = (data: BrandedMagicLinkRequest, magicLink: string) => {
+const createBrandedEmailTemplate = (data: BrandedMagicLinkRequest, magicLink: string, dashboardMagicLink?: string) => {
   const { firstName, lastName, ageYears, handicap, competitionName, clubName } = data;
   
   return `
@@ -70,6 +70,26 @@ const createBrandedEmailTemplate = (data: BrandedMagicLinkRequest, magicLink: st
                       box-shadow: 0 4px 12px rgba(199, 162, 76, 0.3);
                       transition: all 0.2s ease;">
               Complete My Entry →
+            </a>
+          </div>
+
+          <!-- Player Dashboard Link -->
+          <div style="text-align: center; margin: 20px 0 35px 0;">
+            <p style="color: #6b7280; font-size: 14px; margin: 0 0 10px 0;">
+              Already entered? View your entry history:
+            </p>
+            <a href="${dashboardMagicLink || magicLink.replace(encodeURIComponent(data.competitionUrl), encodeURIComponent('/player/dashboard'))}" 
+               style="background: #f3f4f6; 
+                      color: #374151; 
+                      text-decoration: none; 
+                      padding: 12px 24px; 
+                      border-radius: 6px; 
+                      font-size: 14px; 
+                      font-weight: 500; 
+                      display: inline-block;
+                      border: 1px solid #d1d5db;
+                      transition: all 0.2s ease;">
+              📊 View My Entries
             </a>
           </div>
 
@@ -218,9 +238,10 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Failed to create secure entry link");
     }
 
-    // Create magic link
+    // Create magic link for entry and dashboard
     const baseUrl = new URL(processedData.competitionUrl).origin;
     const magicLink = `${baseUrl}/auth/callback?token=${token}&redirect=${encodeURIComponent(processedData.competitionUrl)}`;
+    const dashboardMagicLink = `${baseUrl}/auth/callback?token=${token}&redirect=${encodeURIComponent('/player/dashboard')}`;
 
     // Send branded email
     const emailResponse = await resend.emails.send({
@@ -228,7 +249,7 @@ const handler = async (req: Request): Promise<Response> => {
       reply_to: "entry@demo.holein1challenge.co.uk",
       to: [processedData.email.toLowerCase().trim()],
       subject: `Complete Your Entry - ${processedData.competitionName || 'Official Hole in 1'}`,
-      html: createBrandedEmailTemplate(processedData, magicLink),
+      html: createBrandedEmailTemplate(processedData, magicLink, dashboardMagicLink),
     });
 
     if (emailResponse.error) {

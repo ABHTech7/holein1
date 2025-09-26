@@ -1486,6 +1486,31 @@ export type Database = {
           player_last_name: string
         }[]
       }
+      get_my_entries: {
+        Args: { p_filters?: Json; p_limit?: number; p_offset?: number }
+        Returns: {
+          attempt_number: number
+          club_name: string
+          competition_id: string
+          competition_name: string
+          created_at: string
+          entry_date: string
+          id: string
+          is_repeat_attempt: boolean
+          outcome_self: string
+          price_paid: number
+          status: string
+        }[]
+      }
+      get_my_entry_totals: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          competitions_played: number
+          last_played_at: string
+          total_entries: number
+          total_spend: number
+        }[]
+      }
       get_safe_club_info: {
         Args: { club_uuid: string }
         Returns: {

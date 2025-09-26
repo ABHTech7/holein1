@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import Home from "./pages/Home";
 import ClubSignup from "./pages/ClubSignup";
 import PlayerLogin from "./pages/PlayerLogin";
+import PlayerDashboardNew from "./pages/player/PlayerDashboardNew";
 import PlayerEntries from "./pages/PlayerEntries";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
@@ -129,6 +130,14 @@ const App = () => {
               element={
                 <EnhancedRoleGuard allowedRoles={['PLAYER']}>
                   <PlayerEntries />
+                </EnhancedRoleGuard>
+              } 
+            />
+            <Route 
+              path="/player/dashboard" 
+              element={
+                <EnhancedRoleGuard allowedRoles={['PLAYER']}>
+                  <PlayerDashboardNew />
                 </EnhancedRoleGuard>
               } 
             />
