@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Pagination, 
   PaginationContent, 
@@ -17,7 +18,7 @@ import {
   PaginationNext, 
   PaginationPrevious 
 } from "@/components/ui/pagination";
-import { Search, Mail, Calendar, Trophy, ArrowLeft, Phone, Plus, Trash2 } from "lucide-react";
+import { Search, Mail, Calendar, Trophy, ArrowLeft, Phone, Plus, Trash2, Eye, AlertCircle, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/formatters";
 import { showSupabaseError } from "@/lib/showSupabaseError";
@@ -26,6 +27,7 @@ import SiteFooter from "@/components/layout/SiteFooter";
 import Section from "@/components/layout/Section";
 import NewUserModal from "@/components/admin/NewUserModal";
 import IncompletePlayersModal from "@/components/admin/IncompletePlayersModal";
+import PlayerDetailModal from "@/components/admin/PlayerDetailModal";
 import { ROUTES } from "@/routes";
 
 interface Player {
@@ -49,6 +51,10 @@ const PlayersPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showNewUser, setShowNewUser] = useState(false);
   const [showIncompleteModal, setShowIncompleteModal] = useState(false);
+  const [showPlayerModal, setShowPlayerModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
 
   const ITEMS_PER_PAGE = 25;
@@ -88,6 +94,39 @@ const PlayersPage = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeletePlayer = async () => {
+    if (!selectedPlayer) return;
+
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.rpc('admin_delete_player', {
+        p_player_id: selectedPlayer.id,
+        p_reason: 'Manual deletion via admin interface'
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Player Deleted",
+        description: `${selectedPlayer.first_name} ${selectedPlayer.last_name} and all related data have been deleted.`,
+      });
+
+      // Refresh the players list
+      fetchPlayers();
+      setShowDeleteModal(false);
+      setSelectedPlayer(null);
+    } catch (error: any) {
+      console.error('Error deleting player:', error);
+      toast({
+        title: "Deletion Failed",
+        description: error.message || "Failed to delete player",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -278,9 +317,33 @@ const PlayersPage = () => {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={player.total_entries > 0 ? "default" : "outline"}>
-                              {player.total_entries > 0 ? "Active" : "Inactive"}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={player.total_entries > 0 ? "default" : "outline"}>
+                                {player.total_entries > 0 ? "Active" : "Inactive"}
+                              </Badge>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedPlayer(player);
+                                  setShowPlayerModal(true);
+                                }}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                View
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedPlayer(player);
+                                  setShowDeleteModal(true);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Delete
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))
@@ -372,6 +435,68 @@ const PlayersPage = () => {
         onClose={() => setShowIncompleteModal(false)}
         onPlayersDeleted={fetchPlayers}
       />
+
+      <PlayerDetailModal
+        isOpen={showPlayerModal}
+        onClose={() => setShowPlayerModal(false)}
+        playerId={selectedPlayer?.id}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-destructive" />
+              Delete Player
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete{" "}
+              <span className="font-medium">
+                {selectedPlayer?.first_name} {selectedPlayer?.last_name}
+              </span>
+              ?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-destructive">
+                  This action cannot be undone
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  This will permanently delete the player and all related data including:
+                </p>
+                <ul className="text-sm text-muted-foreground mt-2 space-y-1">
+                  <li>• All competition entries</li>
+                  <li>• Verification records</li>
+                  <li>• Claims and evidence</li>
+                  <li>• Uploaded files</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteModal(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeletePlayer}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : "Delete Player"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
