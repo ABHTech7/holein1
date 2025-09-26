@@ -45,16 +45,16 @@ const AudienceSelector = ({ onAudienceChange, selectedAudience }: AudienceSelect
                 : 'text-muted-foreground'
             }`} />
           </div>
-          <h3 className={`font-display text-lg font-semibold mb-2 transition-all duration-300 ${
+          <h3 className={`font-display text-lg font-light mb-2 transition-all duration-300 ${
             selectedAudience === 'clubs' 
-              ? 'text-primary font-bold text-xl' 
+              ? 'text-primary font-normal text-xl' 
               : 'text-foreground'
           }`}>
             Golf Clubs
           </h3>
           <p className={`text-sm transition-all duration-300 ${
             selectedAudience === 'clubs' 
-              ? 'text-primary/80 font-medium' 
+              ? 'text-primary/80 font-light' 
               : 'text-muted-foreground'
           }`}>
             Transform your course into a legendary destination
@@ -83,16 +83,16 @@ const AudienceSelector = ({ onAudienceChange, selectedAudience }: AudienceSelect
                 : 'text-muted-foreground'
             }`} />
           </div>
-          <h3 className={`font-display text-lg font-semibold mb-2 transition-all duration-300 ${
+          <h3 className={`font-display text-lg font-light mb-2 transition-all duration-300 ${
             selectedAudience === 'players' 
-              ? 'text-secondary font-bold text-xl' 
+              ? 'text-secondary font-normal text-xl' 
               : 'text-foreground'
           }`}>
             Golf Players
           </h3>
           <p className={`text-sm transition-all duration-300 ${
             selectedAudience === 'players' 
-              ? 'text-secondary/80 font-medium' 
+              ? 'text-secondary/80 font-light' 
               : 'text-muted-foreground'
           }`}>
             Experience the thrill of the perfect shot
