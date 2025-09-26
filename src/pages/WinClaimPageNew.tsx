@@ -142,8 +142,8 @@ const WinClaimPageNew: React.FC = () => {
 
         // Validate entry is eligible for win verification
         const { data: entryCheck, error: checkError } = await supabase.rpc('get_safe_competition_data', {
-          club_uuid: entry.competition?.club?.id,
-          competition_slug_param: ''
+          p_club_id: entry.competition?.club?.id,
+          p_competition_slug: ''
         });
 
         if (checkError) {

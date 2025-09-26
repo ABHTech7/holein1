@@ -7,9 +7,11 @@ import { supabase } from "@/integrations/supabase/client";
 export interface SafeClubData {
   id: string;
   name: string;
-  website: string | null;
-  logo_url: string | null;
-  created_at: string;
+  website: string;
+  logo_url: string;
+  address: string;
+  email: string;
+  phone: string;
 }
 
 /**
@@ -21,19 +23,21 @@ export interface SafeClubData {
 export interface SafeCompetitionData {
   id: string;
   name: string;
-  description: string | null;
-  entry_fee: number | null;
-  prize_pool: number | null;
+  description: string;
+  entry_fee: number;
+  prize_pool: number;
   hole_number: number;
-  status: string;
   start_date: string;
-  end_date: string | null;
+  end_date: string;
   is_year_round: boolean;
-  hero_image_url: string | null;
+  hero_image_url: string;
   club_id: string;
   club_name: string;
-  club_website: string | null;
-  club_logo_url: string | null;
+  club_website: string;
+  club_logo_url: string;
+  club_address: string;
+  club_email: string;
+  club_phone: string;
 }
 
 export class ClubService {
@@ -65,8 +69,8 @@ export class ClubService {
   static async getSafeCompetitionData(clubId: string, competitionSlug?: string): Promise<SafeCompetitionData[]> {
     try {
       const { data, error } = await supabase.rpc('get_safe_competition_data', {
-        club_uuid: clubId,
-        competition_slug_param: competitionSlug || ''
+        p_club_id: clubId,
+        p_competition_slug: competitionSlug || ''
       });
 
       if (error) {

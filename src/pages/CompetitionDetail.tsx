@@ -127,8 +127,8 @@ const CompetitionDetail = () => {
         for (const club of clubsData || []) {
           const { data: competitionsData, error: competitionsError } = await supabase
             .rpc('get_safe_competition_data', {
-              club_uuid: club.id,
-              competition_slug_param: ''
+              p_club_id: club.id,
+              p_competition_slug: ''
             });
 
           if (competitionsError) {
@@ -145,7 +145,7 @@ const CompetitionDetail = () => {
               name: found.name,
               description: found.description,
               hole_number: found.hole_number,
-              status: found.status,
+              status: 'ACTIVE', // Safe data only returns active competitions
               start_date: found.start_date,
               end_date: found.end_date,
               entry_fee: found.entry_fee,

@@ -59,8 +59,8 @@ const CompetitionsBrowse = () => {
       for (const club of clubsData || []) {
         const { data: competitionsData, error: competitionsError } = await supabase
           .rpc('get_safe_competition_data', {
-            club_uuid: club.id,
-            competition_slug_param: ''
+            p_club_id: club.id,
+            p_competition_slug: ''
           });
 
         if (competitionsError) {

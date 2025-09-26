@@ -125,7 +125,7 @@ const PlayerJourneyEntryPage = () => {
           entry_fee: selectedCompetition.entry_fee || 0,
           prize_pool: selectedCompetition.prize_pool || 0,
           hole_number: selectedCompetition.hole_number,
-          status: selectedCompetition.status,
+          status: 'ACTIVE', // Safe data only returns active competitions
           club_name: selectedCompetition.club_name,
           club_id: selectedCompetition.club_id,
           hero_image_url: selectedCompetition.hero_image_url,
