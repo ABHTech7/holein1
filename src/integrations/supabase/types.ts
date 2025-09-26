@@ -1454,6 +1454,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      admin_toggle_user_status: {
+        Args: { p_active: boolean; p_reason?: string; p_user_id: string }
+        Returns: Json
+      }
       admin_update_own_profile: {
         Args: { p_first_name?: string; p_last_name?: string; p_phone?: string }
         Returns: Json

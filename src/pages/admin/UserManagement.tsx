@@ -15,7 +15,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/formatters";
 import NewUserModal from "@/components/admin/NewUserModal";
+import { EnhancedUserManagement } from "@/components/admin/EnhancedUserManagement";
 import { PermissionManagement } from "@/components/admin/PermissionManagement";
+import { useAuth } from "@/hooks/useAuth";
 
 interface UserProfile {
   id: string;
@@ -26,6 +28,7 @@ interface UserProfile {
   role: 'SUPER_ADMIN' | 'ADMIN' | 'CLUB' | 'INSURANCE_PARTNER';
   club_id: string | null;
   created_at: string;
+  status?: string;
   clubs?: {
     name: string;
   };
@@ -38,6 +41,7 @@ interface Club {
 
 const UserManagement = () => {
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [clubs, setClubs] = useState<Club[]>([]);
@@ -55,58 +59,74 @@ const UserManagement = () => {
     clubId: ""
   });
 
+  // Get current user's role from profiles
+  const [currentUserRole, setCurrentUserRole] = useState<string>('ADMIN');
+
   // Fetch users and clubs
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
 
-        // Fetch non-player users with club information (exclude soft-deleted)
-        const { data: usersData, error: usersError } = await supabase
+      // Get current user role
+      if (currentUser) {
+        const { data: profileData } = await supabase
           .from('profiles')
-          .select(`
-            id, email, first_name, last_name, phone, role, club_id, created_at,
-            clubs(name)
-          `)
-          .in('role', ['SUPER_ADMIN', 'ADMIN', 'CLUB', 'INSURANCE_PARTNER'])
-          .neq('status', 'deleted')
-          .is('deleted_at', null)
-          .order('created_at', { ascending: false });
-
-        if (usersError) {
-          console.error('Error fetching users:', usersError);
-          toast({
-            title: "Error",
-            description: "Failed to load users",
-            variant: "destructive"
-          });
-        } else {
-          // Type assertion since we're filtering for only ADMIN and CLUB roles
-          setUsers((usersData || []) as UserProfile[]);
+          .select('role')
+          .eq('id', currentUser.id)
+          .single();
+        
+        if (profileData) {
+          setCurrentUserRole(profileData.role);
         }
-
-        // Fetch clubs for the dropdown
-        const { data: clubsData, error: clubsError } = await supabase
-          .from('clubs')
-          .select('id, name')
-          .eq('active', true)
-          .order('name');
-
-        if (clubsError) {
-          console.error('Error fetching clubs:', clubsError);
-        } else {
-          setClubs(clubsData || []);
-        }
-
-      } catch (error) {
-        console.error('Error in fetchData:', error);
-      } finally {
-        setLoading(false);
       }
-    };
 
+      // Fetch non-player users with club information (exclude soft-deleted)
+      const { data: usersData, error: usersError } = await supabase
+        .from('profiles')
+        .select(`
+          id, email, first_name, last_name, phone, role, club_id, created_at, status,
+          clubs(name)
+        `)
+        .in('role', ['SUPER_ADMIN', 'ADMIN', 'CLUB', 'INSURANCE_PARTNER'])
+        .neq('status', 'deleted')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+
+      if (usersError) {
+        console.error('Error fetching users:', usersError);
+        toast({
+          title: "Error",
+          description: "Failed to load users",
+          variant: "destructive"
+        });
+      } else {
+        // Type assertion since we're filtering for only ADMIN and CLUB roles
+        setUsers((usersData || []) as UserProfile[]);
+      }
+
+      // Fetch clubs for the dropdown
+      const { data: clubsData, error: clubsError } = await supabase
+        .from('clubs')
+        .select('id, name')
+        .eq('active', true)
+        .order('name');
+
+      if (clubsError) {
+        console.error('Error fetching clubs:', clubsError);
+      } else {
+        setClubs(clubsData || []);
+      }
+
+    } catch (error) {
+      console.error('Error in fetchData:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
-  }, []);
+  }, [currentUser]);
 
   const handleEditUser = (user: UserProfile) => {
     setEditingUser(user);
@@ -314,28 +334,13 @@ const UserManagement = () => {
                               <p>Created {formatDate(user.created_at)}</p>
                             </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleEditUser(user)}
-                              className="gap-2"
-                            >
-                              <Edit className="w-4 h-4" />
-                              Edit
-                            </Button>
-                            {user.role === 'ADMIN' && (
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleManagePermissions(user)}
-                                className="gap-2"
-                              >
-                                <Shield className="w-4 h-4" />
-                                Permissions
-                              </Button>
-                            )}
-                          </div>
+                          <EnhancedUserManagement
+                            user={user}
+                            onUserUpdated={fetchData}
+                            onUserDeleted={fetchData}
+                            onManagePermissions={() => handleManagePermissions(user)}
+                            currentUserRole={currentUserRole}
+                          />
                         </div>
                       ))
                     )}
@@ -401,28 +406,13 @@ const UserManagement = () => {
                               <p>Created {formatDate(user.created_at)}</p>
                             </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleEditUser(user)}
-                              className="gap-2"
-                            >
-                              <Edit className="w-4 h-4" />
-                              Edit
-                            </Button>
-                            {user.role === 'ADMIN' && (
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleManagePermissions(user)}
-                                className="gap-2"
-                              >
-                                <Shield className="w-4 h-4" />
-                                Permissions
-                              </Button>
-                            )}
-                          </div>
+                          <EnhancedUserManagement
+                            user={user}
+                            onUserUpdated={fetchData}
+                            onUserDeleted={fetchData}
+                            onManagePermissions={() => handleManagePermissions(user)}
+                            currentUserRole={currentUserRole}
+                          />
                         </div>
                       ))
                     )}
