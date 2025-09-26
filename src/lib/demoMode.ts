@@ -59,12 +59,12 @@ export const getDemoModeDisplayConfig = () => {
   return {
     environmentType,
     isDemoMode,
-    showDemoIndicators: isDemoMode,
+    showDemoIndicators: isDemoMode || environmentType === 'production',
     showDemoTools: isDemoMode,
     filterDemoData: !isDemoMode,
     environmentBadge: {
       demo: { text: 'Demo Environment', variant: 'secondary' as const },
-      production: { text: 'Production', variant: 'default' as const },
+      production: { text: 'Live Site', variant: 'default' as const },
       development: { text: 'Development', variant: 'outline' as const },
     }[environmentType]
   };
