@@ -54,6 +54,8 @@ const UserManagementModal = ({ isOpen, onClose }: UserManagementModalProps) => {
           id, email, first_name, last_name, role, club_id, created_at,
           clubs(name)
         `)
+        .neq('status', 'deleted')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

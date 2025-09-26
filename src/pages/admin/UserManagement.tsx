@@ -61,7 +61,7 @@ const UserManagement = () => {
       try {
         setLoading(true);
 
-        // Fetch non-player users with club information
+        // Fetch non-player users with club information (exclude soft-deleted)
         const { data: usersData, error: usersError } = await supabase
           .from('profiles')
           .select(`
@@ -69,6 +69,8 @@ const UserManagement = () => {
             clubs(name)
           `)
           .in('role', ['SUPER_ADMIN', 'ADMIN', 'CLUB', 'INSURANCE_PARTNER'])
+          .neq('status', 'deleted')
+          .is('deleted_at', null)
           .order('created_at', { ascending: false });
 
         if (usersError) {
