@@ -65,6 +65,7 @@ const handler = async (req: Request): Promise<Response> => {
     try {
       const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
       const demoUsers = authUsers.users?.filter(user => 
+        user.email?.includes("@demo-golfer.test") || 
         user.email?.includes("holein1demo.test") || 
         user.email?.includes("@holein1.test")
       ) || [];

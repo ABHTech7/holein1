@@ -185,8 +185,8 @@ async function handler(req: Request): Promise<Response> {
           start_date: new Date().toISOString(),
           end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year
           status: 'ACTIVE',
-          entry_fee: getRandomInt(10, 50),
-          prize_pool: getRandomInt(1000, 10000),
+          entry_fee: getRandomElement([1000, 2500, 5000]), // £10, £25, £50 in pence
+          prize_pool: getRandomElement([1000000, 2500000, 5000000]), // £10k, £25k, £50k in pence
           hole_number: getRandomInt(1, 18),
           is_year_round: true,
           is_demo_data: true
@@ -224,8 +224,8 @@ async function handler(req: Request): Promise<Response> {
             start_date: new Date().toISOString(),
             end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
             status: 'ACTIVE',
-            entry_fee: getRandomInt(10, 50),
-            prize_pool: getRandomInt(1000, 10000),
+            entry_fee: getRandomElement([1000, 2500, 5000]), // £10, £25, £50 in pence
+            prize_pool: getRandomElement([1000000, 2500000, 5000000]), // £10k, £25k, £50k in pence
             hole_number: getRandomInt(1, 18),
             is_year_round: true,
             is_demo_data: true

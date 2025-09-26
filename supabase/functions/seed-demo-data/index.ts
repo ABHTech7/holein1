@@ -272,8 +272,8 @@ const handler = async (req: Request): Promise<Response> => {
           club_id: club.id,
           start_date: startDate.toISOString(),
           end_date: endDate.toISOString(),
-          entry_fee: getRandomInt(1000, 10000), // £10-£100 in pence
-          prize_pool: getRandomInt(50000, 500000), // £500-£5000
+          entry_fee: getRandomElement([1000, 2500, 5000]), // £10, £25, £50 in pence
+          prize_pool: getRandomElement([1000000, 2500000, 5000000]), // £10k, £25k, £50k in pence
           hole_number: getRandomInt(1, 18),
           status: "ACTIVE",
           is_year_round: false,
