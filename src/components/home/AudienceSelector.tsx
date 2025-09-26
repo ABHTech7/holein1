@@ -68,7 +68,7 @@ const AudienceSelector = ({ onAudienceChange, selectedAudience }: AudienceSelect
       <Card 
         className={`flex-1 p-6 cursor-pointer transition-all duration-300 hover:shadow-medium transform hover:scale-105 ${
           selectedAudience === 'players' 
-            ? 'ring-4 ring-secondary shadow-gold bg-secondary/5 scale-105 border-secondary' 
+            ? 'ring-2 ring-secondary/50 shadow-gold bg-white/90 scale-105 border-secondary/30' 
             : 'hover:shadow-soft bg-card hover:bg-muted/20'
         } ${isTransitioning ? 'animate-pulse' : ''}`}
         onClick={() => handleAudienceChange('players')}
