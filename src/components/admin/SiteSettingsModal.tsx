@@ -5,11 +5,24 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useInsuranceCompanies } from '@/hooks/useInsuranceCompanies';
+import { getDemoModeDisplayConfig } from '@/lib/demoMode';
+import { AlertTriangle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface SiteSettingsModalProps {
   isOpen: boolean;
@@ -33,7 +46,9 @@ interface SiteSettings {
 
 const SiteSettingsModal = ({ isOpen, onClose }: SiteSettingsModalProps) => {
   const { company: currentInsuranceCompany } = useInsuranceCompanies();
+  const { environmentType } = getDemoModeDisplayConfig();
   const [loading, setLoading] = useState(false);
+  const [flushing, setFlushing] = useState(false);
   const [settings, setSettings] = useState<SiteSettings | null>(null);
 
   useEffect(() => {
@@ -126,6 +141,35 @@ const SiteSettingsModal = ({ isOpen, onClose }: SiteSettingsModalProps) => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFlushProduction = async (includeDemo: boolean = false) => {
+    setFlushing(true);
+    try {
+      const { data, error } = await supabase.rpc('flush_production_data', {
+        p_confirmation_text: 'FLUSH_PRODUCTION_DATA_CONFIRMED',
+        p_keep_super_admin: true,
+        p_include_demo_data: includeDemo
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Production data flushed",
+        description: includeDemo 
+          ? "All data including demo data has been removed from production" 
+          : "All non-demo data has been removed from production",
+      });
+    } catch (error) {
+      console.error('Error flushing production data:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to flush production data",
+        variant: "destructive",
+      });
+    } finally {
+      setFlushing(false);
     }
   };
 
@@ -224,6 +268,110 @@ const SiteSettingsModal = ({ isOpen, onClose }: SiteSettingsModalProps) => {
               )}
             </CardContent>
           </Card>
+
+          {/* Production Data Management - Only show in production */}
+          {environmentType === 'production' && (
+            <Card className="border-red-200 bg-red-50/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-red-700">
+                  <AlertTriangle className="h-5 w-5" />
+                  Production Data Management
+                </CardTitle>
+                <CardDescription>
+                  Dangerous operations: Remove data from production environment
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent className="space-y-4">
+                <div className="p-4 bg-red-100 rounded-lg">
+                  <h4 className="font-semibold text-red-800 mb-2">⚠️ WARNING</h4>
+                  <p className="text-sm text-red-700 mb-2">
+                    These operations will permanently delete data from production:
+                  </p>
+                  <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
+                    <li>All real clubs, players, entries, and competitions</li>
+                    <li>All verifications and claims</li>
+                    <li>All uploaded files and user data</li>
+                  </ul>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="destructive" 
+                        disabled={flushing}
+                        className="w-full"
+                      >
+                        {flushing ? "Flushing..." : "Flush Production Data (Keep Demo)"}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                          <AlertTriangle className="h-5 w-5" />
+                          Flush Production Data (Keep Demo)
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will delete all real customer data but keep demo data and super admin account.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleFlushProduction(false)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Flush (Keep Demo)
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="destructive" 
+                        disabled={flushing}
+                        className="w-full bg-red-800 hover:bg-red-900"
+                      >
+                        {flushing ? "Flushing..." : "Flush ALL Data (Including Demo)"}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                          <AlertTriangle className="h-5 w-5" />
+                          Flush ALL Production Data
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-2">
+                          <p className="font-semibold text-red-600">EXTREME CAUTION REQUIRED!</p>
+                          <p>This will delete:</p>
+                          <ul className="list-disc list-inside space-y-1 text-sm">
+                            <li>All real customer data</li>
+                            <li>All demo data</li>
+                            <li>Everything except the Super Admin account</li>
+                          </ul>
+                          <p className="font-semibold text-red-600 mt-4">
+                            This action cannot be undone!
+                          </p>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleFlushProduction(true)}
+                          className="bg-red-800 hover:bg-red-900"
+                        >
+                          Yes, Delete Everything
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-3">

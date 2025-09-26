@@ -60,6 +60,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showSiteSettings, setShowSiteSettings] = useState(false);
   const [showNewUser, setShowNewUser] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [isEditingActions, setIsEditingActions] = useState(false);
   // Dashboard state - Updated to use monthToDateEntries (v2.1)
   const [stats, setStats] = useState<DashboardStats>({
