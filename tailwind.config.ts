@@ -21,6 +21,7 @@ export default {
 			fontFamily: {
 				'display': ['Oswald', 'sans-serif'],
 				'sans': ['Montserrat', 'system-ui', 'sans-serif'],
+				'calder': ['adobe-calder', 'serif'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',
