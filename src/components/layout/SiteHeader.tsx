@@ -6,12 +6,14 @@ import { Trophy, Menu, User, LogOut, BarChart3 } from "lucide-react";
 import { useState } from "react";
 import useAuth from "@/hooks/useAuth";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { SuperAdminProfileModal } from "@/components/admin/SuperAdminProfileModal";
 import { ROUTES, getDashboardRoute } from "@/routes";
 
 const SiteHeader = () => {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, profile, signOut } = useAuth();
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const { user, profile, signOut, refreshProfile } = useAuth();
 
   const navigation = [
     // Only show Home for non-admin/super-admin roles and non-insurance pages
@@ -75,6 +77,12 @@ const SiteHeader = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {profile?.role === 'SUPER_ADMIN' && (
+                    <DropdownMenuItem onClick={() => setShowProfileModal(true)}>
+                      <User className="w-4 h-4 mr-2" />
+                      My Profile
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={() => signOut()}>
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign Out
@@ -153,6 +161,24 @@ const SiteHeader = () => {
           </div>
         )}
       </Container>
+      
+      {/* Super Admin Profile Modal */}
+      {showProfileModal && profile && profile.role === 'SUPER_ADMIN' && (
+        <SuperAdminProfileModal
+          isOpen={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+          currentUser={{
+            id: profile.id,
+            email: profile.email,
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+            phone: undefined,
+          }}
+          onProfileUpdated={() => {
+            refreshProfile();
+          }}
+        />
+      )}
     </header>
   );
 };

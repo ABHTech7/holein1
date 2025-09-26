@@ -49,7 +49,8 @@ interface Competition {
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const {
-    profile
+    profile,
+    refreshProfile
   } = useAuth();
   const {
     newLeads,
@@ -498,6 +499,12 @@ const AdminDashboard = () => {
                   <Settings className="w-4 h-4" />
                   <span className="hidden sm:inline">Settings</span>
                 </Button>
+                {profile?.role === 'SUPER_ADMIN' && (
+                  <Button variant="outline" className="gap-2" onClick={() => setShowProfileModal(true)}>
+                    <User className="w-4 h-4" />
+                    <span className="hidden sm:inline">My Profile</span>
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -653,8 +660,7 @@ const AdminDashboard = () => {
               phone: (profile as any).phone || undefined
             }}
             onProfileUpdated={() => {
-              // Could refresh profile here if needed
-              console.log('Profile updated');
+              refreshProfile();
             }}
           />
         )}
