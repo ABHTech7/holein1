@@ -1442,9 +1442,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_delete_admin_user: {
+        Args: { p_reason?: string; p_user_id: string }
+        Returns: Json
+      }
+      admin_delete_player: {
+        Args: { p_player_id: string; p_reason?: string }
+        Returns: Json
+      }
       admin_mark_all_unpaid_entries_paid: {
         Args: Record<PropertyKey, never>
         Returns: number
+      }
+      admin_update_own_profile: {
+        Args: { p_first_name?: string; p_last_name?: string; p_phone?: string }
+        Returns: Json
       }
       calculate_attempt_number: {
         Args: { p_competition_id: string; p_email: string }
@@ -1647,6 +1659,10 @@ export type Database = {
       get_user_role_safe: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      is_production_environment: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       is_role_change_authorized: {
         Args: {
