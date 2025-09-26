@@ -15,15 +15,16 @@ const Home = () => {
       <SiteHeader />
       
       <main>
-        {/* Audience Selection */}
-        <Section spacing="lg" className="bg-muted/20">
-          <Container>
-            <div className="text-center mb-8">
-              <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-4">
-                Welcome to Official Hole in 1
+        {/* Main Hero Section */}
+        <section className="relative bg-cover bg-center bg-no-repeat py-24 lg:py-32" style={{backgroundImage: 'url(/img/golf-course-1.jpg)'}}>
+          <div className="absolute inset-0 bg-primary/60"></div>
+          <Container className="relative z-10">
+            <div className="text-center">
+              <h1 className="font-calder text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6">
+                Welcome to OHIO Golf
               </h1>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Choose your path to discover how we're transforming golf experiences
+              <p className="text-lg md:text-xl text-primary-foreground/90 max-w-3xl mx-auto mb-8">
+                Choose your path to discover premium golf experiences
               </p>
             </div>
             <AudienceSelector 
@@ -31,7 +32,7 @@ const Home = () => {
               onAudienceChange={setSelectedAudience}
             />
           </Container>
-        </Section>
+        </section>
 
         {/* Dynamic Content Based on Selection */}
         {selectedAudience === 'clubs' ? (

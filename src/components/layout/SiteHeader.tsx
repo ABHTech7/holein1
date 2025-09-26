@@ -36,15 +36,14 @@ const SiteHeader = () => {
           {/* Logo */}
           <Link 
             to={ROUTES.HOME} 
-            className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+            className="flex items-center hover:opacity-80 transition-opacity"
             data-testid="site-logo"
           >
-            <div className="flex items-center justify-center w-8 h-8 bg-gradient-primary rounded-lg">
-              <Trophy className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="font-calder text-xl font-semibold text-foreground">
-              Official Hole in 1
-            </span>
+            <img 
+              src="/brand/ohio-logo-black.svg" 
+              alt="OHIO Golf" 
+              className="h-8 w-auto"
+            />
           </Link>
 
           {/* Desktop Navigation */}
