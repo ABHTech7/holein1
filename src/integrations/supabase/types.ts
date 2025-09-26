@@ -1487,6 +1487,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      flush_production_data: {
+        Args: { p_confirmation_text?: string; p_keep_super_admin?: boolean }
+        Returns: Json
+      }
       get_admin_players_with_stats: {
         Args: { p_limit?: number; p_offset?: number; p_search?: string }
         Returns: {
@@ -1706,7 +1710,11 @@ export type Database = {
         Returns: Json
       }
       top_up_demo_entries: {
-        Args: { p_target_count?: number }
+        Args: {
+          p_target_clubs?: number
+          p_target_entries?: number
+          p_target_players?: number
+        }
         Returns: Json
       }
       update_club_contract_status: {

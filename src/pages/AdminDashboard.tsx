@@ -14,6 +14,7 @@ import SiteSettingsModal from "@/components/admin/SiteSettingsModal";
 import NewUserModal from "@/components/admin/NewUserModal";
 import AdminQuickActions from "@/components/admin/AdminQuickActions";
 import { DemoDataStatusCard } from "@/components/admin/DemoDataStatusCard";
+import { ProductionDataFlushCard } from "@/components/admin/ProductionDataFlushCard";
 import SecurityMonitor from "@/components/security/SecurityMonitor";
 import { SuperAdminProfileModal } from "@/components/admin/SuperAdminProfileModal";
 import { Users, Calendar, Trophy, TrendingUp, Plus, Settings, PoundSterling, UserPlus, Edit3, User } from "lucide-react";
@@ -585,7 +586,12 @@ const AdminDashboard = () => {
             }} insurancePremiums={insurancePremiums} onAddUser={handleAddUser} isEditing={isEditingActions} />
             
             {/* Demo Data Status Card - Only show in demo mode */}
-            {showDemoTools && <DemoDataStatusCard />}
+            {showDemoTools && (
+              <div className="space-y-4">
+                <DemoDataStatusCard />
+                <ProductionDataFlushCard />
+              </div>
+            )}
             </div>
 
             {/* Stats Overview */}

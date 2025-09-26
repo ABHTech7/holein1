@@ -47,27 +47,28 @@ export function DemoDataStatusCard() {
     }
   };
 
-  const handleTopUp = async (targetCount: number = 1322) => {
+  const handleTopUp = async () => {
     setToppingUp(true);
     try {
-      const { data, error } = await supabase.rpc('top_up_demo_entries', { 
-        p_target_count: targetCount 
+      const { data, error } = await supabase.rpc('top_up_demo_entries', {
+        p_target_clubs: 20,
+        p_target_players: 500,
+        p_target_entries: 1200
       });
-      
+
       if (error) throw error;
-      
+
       const result = data as any;
       toast({
-        title: "Demo entries topped up",
-        description: `Added ${result.inserted_count} entries. Total demo entries: ${result.new_total}/${result.target_count}`
+        title: "Enhanced demo data created",
+        description: result?.message || "Demo clubs, players, and entries have been created successfully"
       });
-      
-      // Refresh stats after top-up
+
       fetchStats();
     } catch (error: any) {
-      console.error("Error topping up demo entries:", error);
+      console.error('Error creating enhanced demo data:', error);
       toast({
-        title: "Top-up failed", 
+        title: "Error", 
         description: error.message,
         variant: "destructive"
       });
@@ -233,18 +234,16 @@ export function DemoDataStatusCard() {
         {/* Demo Data Actions */}
         <div className="space-y-3 pt-2 border-t">
           {/* Top up entries if count is low */}
-          {stats && stats.demo_entries < 1000 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleTopUp(1322)}
-              disabled={toppingUp}
-              className="w-full"
-            >
-              <TrendingUp className="w-3 h-3 mr-2" />
-              {toppingUp ? "Adding entries..." : `Top up to 1,322 entries`}
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleTopUp}
+            disabled={toppingUp}
+            className="w-full"
+          >
+            <TrendingUp className="w-3 h-3 mr-2" />
+            {toppingUp ? "Creating demo data..." : "Enhanced Top Up (20 clubs, 500 players, 1200 entries)"}
+          </Button>
 
           {/* Cleanup Actions */}
           {hasDemoData && (

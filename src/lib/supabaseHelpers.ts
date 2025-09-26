@@ -7,11 +7,11 @@ export const addDemoFilter = <T extends any>(query: T): T => {
   const shouldFilterDemo = !isDemoModeEnabled();
   
   if (shouldFilterDemo) {
-    // Filter out demo data in production mode
+    // Filter out demo data in production mode - only show non-demo data
     return (query as any).neq('is_demo_data', true);
   }
   
-  // In demo mode, show all data (including demo data)
+  // In demo mode, show all data (both demo and real data)
   return query;
 };
 
@@ -46,15 +46,17 @@ export const getAdminStats = async () => {
   
   // Build base queries
   let playersQuery = supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'PLAYER').neq('status', 'deleted').is('deleted_at', null);
-  let clubsQuery = supabase.from('clubs').select('id', { count: 'exact', head: true });
+  let clubsQuery = supabase.from('clubs').select('id', { count: 'exact', head: true }).eq('active', true);
   let entriesQuery = supabase.from('entries').select('id', { count: 'exact', head: true });
   
   // Apply demo filtering if needed
   if (shouldFilterDemo) {
+    // Production mode: only show non-demo data
     playersQuery = playersQuery.neq('is_demo_data', true);
     clubsQuery = clubsQuery.neq('is_demo_data', true);
     entriesQuery = entriesQuery.neq('is_demo_data', true);
   }
+  // Demo mode: show all data (no additional filtering needed)
   
   return {
     playersQuery,
