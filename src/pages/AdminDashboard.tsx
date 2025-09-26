@@ -23,6 +23,9 @@ import { showSupabaseError } from "@/lib/showSupabaseError";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotificationCounts } from "@/hooks/useNotificationCounts";
 import { ROUTES } from "@/routes";
+import { getDemoModeDisplayConfig } from "@/lib/demoMode";
+import { EnvironmentBadge } from "@/components/ui/environment-badge";
+import { addDemoFilter } from "@/lib/supabaseHelpers";
 interface DashboardStats {
   totalPlayers: number;
   newPlayersThisMonth: number;
@@ -51,6 +54,7 @@ const AdminDashboard = () => {
     newLeads,
     pendingClaims
   } = useNotificationCounts();
+  const { showDemoIndicators, showDemoTools, filterDemoData } = getDemoModeDisplayConfig();
   const [loading, setLoading] = useState(true);
   const [showSiteSettings, setShowSiteSettings] = useState(false);
   const [showNewUser, setShowNewUser] = useState(false);
@@ -109,21 +113,48 @@ const AdminDashboard = () => {
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const yearStart = new Date(now.getFullYear(), 0, 1).toISOString();
 
-        // Fetch basic stats with proper error handling
+        // Fetch basic stats with proper error handling and demo filtering
         console.log('Fetching admin dashboard stats...');
-        const [playersRes, newPlayersRes, clubsRes, activeCompsRes, monthToDateEntriesRes] = await Promise.all([supabase.from('profiles').select('id', {
+        
+        // Build queries with demo filtering
+        let playersQuery = supabase.from('profiles').select('id', {
           count: 'exact',
           head: true
-        }).eq('role', 'PLAYER').neq('status', 'deleted').is('deleted_at', null), supabase.from('profiles').select('id', {
+        }).eq('role', 'PLAYER').neq('status', 'deleted').is('deleted_at', null);
+        
+        let newPlayersQuery = supabase.from('profiles').select('id', {
           count: 'exact',
           head: true
-        }).eq('role', 'PLAYER').neq('status', 'deleted').is('deleted_at', null).gte('created_at', monthStart), supabase.from('clubs').select('id', {
+        }).eq('role', 'PLAYER').neq('status', 'deleted').is('deleted_at', null).gte('created_at', monthStart);
+        
+        let clubsQuery = supabase.from('clubs').select('id', {
           count: 'exact',
           head: true
-        }), supabase.from('competitions').select('id, name, status').eq('status', 'ACTIVE'), supabase.from('entries').select('id', {
+        });
+        
+        let competitionsQuery = supabase.from('competitions').select('id, name, status').eq('status', 'ACTIVE');
+        
+        let entriesQuery = supabase.from('entries').select('id', {
           count: 'exact',
           head: true
-        }).gte('entry_date', monthStart)]);
+        }).gte('entry_date', monthStart);
+        
+        // Apply demo filtering if needed
+        if (filterDemoData) {
+          playersQuery = playersQuery.neq('is_demo_data', true);
+          newPlayersQuery = newPlayersQuery.neq('is_demo_data', true);
+          clubsQuery = clubsQuery.neq('is_demo_data', true);
+          competitionsQuery = competitionsQuery.neq('is_demo_data', true);
+          entriesQuery = entriesQuery.neq('is_demo_data', true);
+        }
+        
+        const [playersRes, newPlayersRes, clubsRes, activeCompsRes, monthToDateEntriesRes] = await Promise.all([
+          playersQuery,
+          newPlayersQuery, 
+          clubsQuery,
+          competitionsQuery,
+          entriesQuery
+        ]);
 
         // Fetch revenue data for different periods
         const [todayEntriesRes, monthlyEntriesRes, yearlyEntriesRes] = await Promise.all([
@@ -239,16 +270,23 @@ const AdminDashboard = () => {
         });
 
         // Fetch recent competitions with entry counts and club info
-        const {
-          data: recentComps,
-          error: compsError
-        } = await supabase.from('competitions').select(`
+        let recentCompsQuery = supabase.from('competitions').select(`
             id, name, start_date, end_date, status, entry_fee,
             clubs(name),
             entries(id)
           `).order('created_at', {
           ascending: false
         }).limit(5);
+        
+        // Apply demo filtering if needed
+        if (filterDemoData) {
+          recentCompsQuery = recentCompsQuery.neq('is_demo_data', true);
+        }
+        
+        const {
+          data: recentComps,
+          error: compsError
+        } = await recentCompsQuery;
         if (compsError && process.env.NODE_ENV !== 'production') {
           console.error("ADMIN PAGE ERROR:", {
             location: "AdminDashboard.fetchDashboardData.recentCompetitions",
@@ -443,7 +481,10 @@ const AdminDashboard = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">The Clubhouse HQ</h1>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">The Clubhouse HQ</h1>
+                  <EnvironmentBadge />
+                </div>
                 {/* Personal greeting for admin user */}
                 {profile?.first_name && <p className="text-lg text-primary mt-1">
                     Hi {profile.first_name}, welcome back!
@@ -542,8 +583,8 @@ const AdminDashboard = () => {
               totalClubs: stats.totalClubs
             }} insurancePremiums={insurancePremiums} onAddUser={handleAddUser} isEditing={isEditingActions} />
             
-            {/* Demo Data Status Card */}
-            <DemoDataStatusCard />
+            {/* Demo Data Status Card - Only show in demo mode */}
+            {showDemoTools && <DemoDataStatusCard />}
             </div>
 
             {/* Stats Overview */}

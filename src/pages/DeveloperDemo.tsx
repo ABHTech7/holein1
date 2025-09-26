@@ -11,6 +11,8 @@ import Section from "@/components/layout/Section";
 import Container from "@/components/layout/Container";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { getDemoModeDisplayConfig } from "@/lib/demoMode";
+import { EnvironmentBadge } from "@/components/ui/environment-badge";
 
 interface Credentials {
   admin: { email: string; password: string };
@@ -27,11 +29,13 @@ const DeveloperDemo = () => {
   const [showPasswords, setShowPasswords] = useState(false);
   const [flushMode, setFlushMode] = useState<'recent' | 'all'>('recent');
 
+  const { environmentType, isDemoMode, showDemoTools } = getDemoModeDisplayConfig();
+  
   // Check if we're in development mode (this is a heuristic since we can't access NODE_ENV directly)
   const isDevelopment = window.location.hostname === 'localhost' || 
                        window.location.hostname.includes('lovable.app');
 
-  const needsSecret = !isDevelopment;
+  const needsSecret = !isDevelopment && environmentType !== 'demo';
 
   const handleUnlock = () => {
     if (demoSecret.trim()) {
@@ -134,11 +138,14 @@ const DeveloperDemo = () => {
                 <div className="flex items-center justify-center gap-2 mb-4">
                   <Database className="w-6 h-6 text-primary" />
                   <Badge variant="secondary">Developer Tools</Badge>
+                  <EnvironmentBadge />
                 </div>
                 <h1 className="text-3xl font-bold mb-4">Demo Data Management</h1>
                 <p className="text-muted-foreground max-w-2xl mx-auto">
-                  Seed and flush demo data for Official Hole in 1. Use these tools to quickly 
-                  set up test accounts, clubs, competitions, and entries.
+                  {environmentType === 'demo' ? 
+                    'Manage demo data for the demo environment. Add or remove demo data as needed.' :
+                    'Seed and flush demo data for Official Hole in 1. Use these tools to quickly set up test accounts, clubs, competitions, and entries.'
+                  }
                 </p>
               </div>
 
