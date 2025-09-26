@@ -24,6 +24,7 @@ export function DemoDataStatusCard() {
   const [loading, setLoading] = useState(false);
   const [cleaning, setCleaning] = useState(false);
   const [toppingUp, setToppingUp] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
 
   const fetchStats = async () => {
     setLoading(true);
@@ -80,6 +81,34 @@ export function DemoDataStatusCard() {
       });
     } finally {
       setToppingUp(false);
+    }
+  };
+
+  const handleBackfill = async () => {
+    setBackfilling(true);
+    try {
+      const { data, error } = await supabase.rpc('backfill_demo_data_flags');
+      
+      if (error) throw error;
+      
+      const result = data as any;
+      
+      toast({
+        title: "Demo data flags backfilled",
+        description: `Updated ${result.updated_profiles} profiles, ${result.updated_clubs} clubs, ${result.updated_competitions} competitions, and ${result.updated_entries} entries.`
+      });
+      
+      // Refresh stats after backfill
+      fetchStats();
+    } catch (error: any) {
+      console.error("Error backfilling demo data flags:", error);
+      toast({
+        title: "Backfill failed", 
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setBackfilling(false);
     }
   };
 
@@ -239,6 +268,18 @@ export function DemoDataStatusCard() {
 
         {/* Demo Data Actions */}
         <div className="space-y-3 pt-2 border-t">
+          {/* Backfill flags for existing demo data */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleBackfill}
+            disabled={backfilling}
+            className="w-full"
+          >
+            <RefreshCw className="w-3 h-3 mr-2" />
+            {backfilling ? "Backfilling flags..." : "Backfill Demo Data Flags"}
+          </Button>
+
           {/* Top up entries if count is low */}
           <Button
             variant="outline"
@@ -258,7 +299,7 @@ export function DemoDataStatusCard() {
                 variant="outline"
                 size="sm"
                 onClick={() => handleCleanup(false)}
-                disabled={cleaning || toppingUp}
+                disabled={cleaning || toppingUp || backfilling}
                 className="flex-1"
               >
                 <Trash2 className="w-3 h-3 mr-1" />
@@ -268,7 +309,7 @@ export function DemoDataStatusCard() {
                 variant="destructive"
                 size="sm"
                 onClick={() => handleCleanup(true)}
-                disabled={cleaning || toppingUp}
+                disabled={cleaning || toppingUp || backfilling}
                 className="flex-1"
               >
                 <Trash2 className="w-3 h-3 mr-1" />

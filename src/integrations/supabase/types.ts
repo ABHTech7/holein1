@@ -1462,6 +1462,10 @@ export type Database = {
         Args: { p_first_name?: string; p_last_name?: string; p_phone?: string }
         Returns: Json
       }
+      backfill_demo_data_flags: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       calculate_attempt_number: {
         Args: { p_competition_id: string; p_email: string }
         Returns: number
