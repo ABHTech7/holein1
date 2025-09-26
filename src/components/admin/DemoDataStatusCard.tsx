@@ -50,25 +50,31 @@ export function DemoDataStatusCard() {
   const handleTopUp = async () => {
     setToppingUp(true);
     try {
-      const { data, error } = await supabase.rpc('top_up_demo_entries', {
-        p_target_clubs: 20,
-        p_target_players: 500,
-        p_target_entries: 1200
+      const { data, error } = await supabase.functions.invoke('top-up-demo-data', {
+        body: {
+          targetClubs: 20,
+          targetPlayers: 500,
+          targetEntries: 1200
+        }
       });
-
+      
       if (error) throw error;
-
-      const result = data as any;
+      
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+      
       toast({
-        title: "Enhanced demo data created",
-        description: result?.message || "Demo clubs, players, and entries have been created successfully"
+        title: "Demo data topped up",
+        description: data?.message || "Successfully topped up demo data"
       });
-
+      
+      // Refresh stats after top up
       fetchStats();
     } catch (error: any) {
-      console.error('Error creating enhanced demo data:', error);
+      console.error("Error topping up demo data:", error);
       toast({
-        title: "Error", 
+        title: "Top up failed", 
         description: error.message,
         variant: "destructive"
       });
