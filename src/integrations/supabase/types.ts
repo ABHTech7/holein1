@@ -1628,19 +1628,24 @@ export type Database = {
       get_safe_clubs_data: {
         Args: Record<PropertyKey, never>
         Returns: {
-          created_at: string
+          address: string
+          email: string
           id: string
           logo_url: string
           name: string
+          phone: string
           website: string
         }[]
       }
       get_safe_competition_data: {
-        Args: { club_uuid: string; competition_slug_param: string }
+        Args: { p_club_id?: string; p_competition_slug?: string }
         Returns: {
+          club_address: string
+          club_email: string
           club_id: string
           club_logo_url: string
           club_name: string
+          club_phone: string
           club_website: string
           description: string
           end_date: string
@@ -1652,7 +1657,6 @@ export type Database = {
           name: string
           prize_pool: number
           start_date: string
-          status: Database["public"]["Enums"]["competition_status"]
         }[]
       }
       get_site_settings: {
