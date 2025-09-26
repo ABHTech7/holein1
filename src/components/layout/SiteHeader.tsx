@@ -41,8 +41,8 @@ const SiteHeader = () => {
           >
             <img 
               src="/brand/ohio-logo-black.svg" 
-              alt="OHIO Golf" 
-              className="h-8 w-auto"
+              alt="Official Hole in One" 
+              className="h-12 w-auto"
             />
           </Link>
 
