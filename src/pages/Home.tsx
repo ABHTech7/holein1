@@ -20,8 +20,13 @@ const Home = () => {
           <div className="absolute inset-0 bg-black/50"></div>
           <Container className="relative z-10">
             <div className="text-center">
-              <h1 className="font-calder text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 drop-shadow-lg">
-                Welcome to Official Hole in One
+              <h1 className="font-calder text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 drop-shadow-lg flex flex-col items-center gap-4">
+                <span>Welcome to</span>
+                <img 
+                  src="/brand/ohio-logo-black.svg" 
+                  alt="Official Hole in One" 
+                  className="h-16 md:h-20 lg:h-24 filter invert"
+                />
               </h1>
               <p className="text-lg md:text-xl text-white/95 max-w-3xl mx-auto mb-8 drop-shadow-md">
                 Choose your path to discover premium golf experiences
