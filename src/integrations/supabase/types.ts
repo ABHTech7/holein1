@@ -1713,14 +1713,6 @@ export type Database = {
         Args: { p_email: string; p_first_name?: string; p_last_name?: string }
         Returns: Json
       }
-      top_up_demo_entries: {
-        Args: {
-          p_target_clubs?: number
-          p_target_entries?: number
-          p_target_players?: number
-        }
-        Returns: Json
-      }
       update_club_contract_status: {
         Args: {
           p_club_id: string
