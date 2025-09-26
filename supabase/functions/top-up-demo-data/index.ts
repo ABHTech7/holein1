@@ -191,65 +191,127 @@ async function handler(req: Request): Promise<Response> {
       }
     }
 
-    // Create additional players if needed
+// Create additional players if needed with batch processing
     if (playersNeeded > 0) {
-      const playersToCreate: any[] = [];
-      const authUsersToCreate = [];
+      console.log(`Starting to create ${playersNeeded} demo players in batches...`);
+      
+      // Process in batches of 25 to avoid timeouts
+      const batchSize = 25;
+      const totalBatches = Math.ceil(playersNeeded / batchSize);
+      const allCreatedPlayers: any[] = [];
 
-      for (let i = 0; i < playersNeeded; i++) {
-        const player = generatePlayerName();
-        const email = `demo.player.${Date.now()}.${i}@demo-golfer.test`;
+      for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+        const start = batchIndex * batchSize;
+        const end = Math.min(start + batchSize, playersNeeded);
+        const batchPlayersCount = end - start;
         
-        authUsersToCreate.push({
-          email,
-          password: 'DemoPlayer123!',
-          email_confirm: true
-        });
+        console.log(`Processing batch ${batchIndex + 1}/${totalBatches} (${batchPlayersCount} players)...`);
 
-        playersToCreate.push({
-          email,
-          first_name: player.firstName,
-          last_name: player.lastName,
-          phone: generateUKPhone(),
-          phone_e164: `+44${Math.floor(Math.random() * 1000000000)}`,
-          role: 'PLAYER',
-          age_years: getRandomInt(18, 75),
-          handicap: getRandomInt(0, 36),
-          gender: Math.random() > 0.5 ? 'male' : 'female',
-          is_demo_data: true
-        });
-      }
+        const batchPlayersToCreate: any[] = [];
+        const batchAuthUsersToCreate: any[] = [];
 
-      // Create auth users first
-      for (let i = 0; i < authUsersToCreate.length; i++) {
-        const authUser = authUsersToCreate[i];
-        const { data: newUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-          email: authUser.email,
-          password: authUser.password,
-          email_confirm: authUser.email_confirm
-        });
+        // Generate data for this batch
+        for (let i = 0; i < batchPlayersCount; i++) {
+          const player = generatePlayerName();
+          const email = `demo.player.${Date.now()}.${start + i}@demo-golfer.test`;
+          
+          batchAuthUsersToCreate.push({
+            email,
+            password: 'DemoPlayer123!',
+            email_confirm: true
+          });
 
-        if (authError || !newUser.user) {
-          console.error(`Failed to create auth user ${authUser.email}:`, authError);
-          continue;
+          batchPlayersToCreate.push({
+            email,
+            first_name: player.firstName,
+            last_name: player.lastName,
+            phone: generateUKPhone(),
+            phone_e164: `+44${Math.floor(Math.random() * 1000000000)}`,
+            role: 'PLAYER',
+            age_years: getRandomInt(18, 75),
+            handicap: getRandomInt(0, 36),
+            gender: Math.random() > 0.5 ? 'male' : 'female',
+            is_demo_data: true
+          });
         }
 
-        // Update the corresponding profile with the real auth user ID
-        playersToCreate[i].id = newUser.user.id;
+        // Create auth users for this batch with retry logic
+        const batchCreatedUsers: any[] = [];
+        
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            // Create auth users in parallel for better performance
+            const authPromises = batchAuthUsersToCreate.map(async (authUser, index) => {
+              try {
+                const { data: newUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+                  email: authUser.email,
+                  password: authUser.password,
+                  email_confirm: authUser.email_confirm
+                });
+
+                if (authError || !newUser.user) {
+                  console.error(`Failed to create auth user ${authUser.email}:`, authError);
+                  return null;
+                }
+
+                return { user: newUser.user, index };
+              } catch (error) {
+                console.error(`Error creating auth user ${authUser.email}:`, error);
+                return null;
+              }
+            });
+
+            const authResults = await Promise.all(authPromises);
+            
+            // Process successful auth user creations
+            authResults.forEach(result => {
+              if (result && result.user) {
+                batchPlayersToCreate[result.index].id = result.user.id;
+                batchCreatedUsers.push(batchPlayersToCreate[result.index]);
+              }
+            });
+
+            console.log(`Batch ${batchIndex + 1}: Successfully created ${batchCreatedUsers.length}/${batchPlayersCount} auth users`);
+            break; // Success, exit retry loop
+            
+          } catch (error) {
+            console.error(`Batch ${batchIndex + 1} attempt ${attempt + 1} failed:`, error);
+            if (attempt === 2) {
+              console.error(`Batch ${batchIndex + 1}: All retry attempts failed`);
+            } else {
+              // Wait before retry
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
+        }
+
+        // Create profiles for successful auth users
+        if (batchCreatedUsers.length > 0) {
+          try {
+            const { data: newPlayers, error: playerError } = await supabaseAdmin
+              .from('profiles')
+              .insert(batchCreatedUsers)
+              .select();
+
+            if (playerError) {
+              console.error(`Failed to create profiles for batch ${batchIndex + 1}:`, playerError);
+            } else {
+              allCreatedPlayers.push(...(newPlayers || []));
+              console.log(`Batch ${batchIndex + 1}: Successfully created ${newPlayers?.length || 0} profiles`);
+            }
+          } catch (error) {
+            console.error(`Error creating profiles for batch ${batchIndex + 1}:`, error);
+          }
+        }
+
+        // Small delay between batches to avoid rate limits
+        if (batchIndex < totalBatches - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
       }
 
-      // Filter out players without valid auth IDs
-      const validPlayers = playersToCreate.filter(p => p.id);
-
-      if (validPlayers.length > 0) {
-        const { data: newPlayers, error: playerError } = await supabaseAdmin
-          .from('profiles')
-          .insert(validPlayers)
-          .select();
-
-        if (playerError) throw playerError;
-        createdPlayers = newPlayers?.length || 0;
-      }
+      createdPlayers = allCreatedPlayers.length;
+      console.log(`Completed player creation: ${createdPlayers}/${playersNeeded} players created successfully`);
     }
 
     // Create additional entries if needed
