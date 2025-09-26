@@ -500,13 +500,18 @@ export type Database = {
       entries: {
         Row: {
           amount_minor: number | null
+          attempt_number: number | null
           attempt_window_end: string | null
           attempt_window_start: string | null
           competition_id: string
           completed_at: string | null
           created_at: string
+          device: Json | null
+          email: string | null
           entry_date: string
           id: string
+          ip_hash: string | null
+          is_repeat_attempt: boolean | null
           location_accuracy: number | null
           location_latitude: number | null
           location_longitude: number | null
@@ -516,24 +521,33 @@ export type Database = {
           outcome_self: string | null
           paid: boolean
           payment_date: string | null
+          payment_id: string | null
           payment_provider: string | null
           player_id: string
+          price_paid: number | null
+          referrer: string | null
           score: number | null
           status: string | null
           terms_accepted_at: string | null
           terms_version: string | null
           updated_at: string
+          utm: Json | null
           video_evidence_url: string | null
         }
         Insert: {
           amount_minor?: number | null
+          attempt_number?: number | null
           attempt_window_end?: string | null
           attempt_window_start?: string | null
           competition_id: string
           completed_at?: string | null
           created_at?: string
+          device?: Json | null
+          email?: string | null
           entry_date?: string
           id?: string
+          ip_hash?: string | null
+          is_repeat_attempt?: boolean | null
           location_accuracy?: number | null
           location_latitude?: number | null
           location_longitude?: number | null
@@ -543,24 +557,33 @@ export type Database = {
           outcome_self?: string | null
           paid?: boolean
           payment_date?: string | null
+          payment_id?: string | null
           payment_provider?: string | null
           player_id: string
+          price_paid?: number | null
+          referrer?: string | null
           score?: number | null
           status?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string
+          utm?: Json | null
           video_evidence_url?: string | null
         }
         Update: {
           amount_minor?: number | null
+          attempt_number?: number | null
           attempt_window_end?: string | null
           attempt_window_start?: string | null
           competition_id?: string
           completed_at?: string | null
           created_at?: string
+          device?: Json | null
+          email?: string | null
           entry_date?: string
           id?: string
+          ip_hash?: string | null
+          is_repeat_attempt?: boolean | null
           location_accuracy?: number | null
           location_latitude?: number | null
           location_longitude?: number | null
@@ -570,13 +593,17 @@ export type Database = {
           outcome_self?: string | null
           paid?: boolean
           payment_date?: string | null
+          payment_id?: string | null
           payment_provider?: string | null
           player_id?: string
+          price_paid?: number | null
+          referrer?: string | null
           score?: number | null
           status?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
           updated_at?: string
+          utm?: Json | null
           video_evidence_url?: string | null
         }
         Relationships: [
@@ -1375,6 +1402,10 @@ export type Database = {
     Functions: {
       admin_mark_all_unpaid_entries_paid: {
         Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      calculate_attempt_number: {
+        Args: { p_competition_id: string; p_email: string }
         Returns: number
       }
       calculate_monthly_premiums: {
