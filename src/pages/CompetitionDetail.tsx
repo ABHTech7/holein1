@@ -113,53 +113,44 @@ const CompetitionDetail = () => {
       console.log('🔍 Fetching competition with ID:', id);
 
       try {
-        // Try to get competition using safe functions first (for public access)
+        // Use new RPC to get competition data with demo filtering
         let competitionData = null;
         
-        // First get all clubs to find the one with this competition
-        const { data: clubsData, error: clubsError } = await supabase
-          .rpc('get_safe_clubs_data');
+        const { data: competitionsData, error: competitionsError } = await supabase
+          .rpc('get_public_competition_data', {
+            p_club_id: null,
+            p_competition_slug: null,
+            include_demo: false // Always false for public pages - live site won't show demo data
+          });
 
-        if (clubsError) throw clubsError;
-        console.log('📋 Found clubs:', clubsData?.length || 0);
+        if (competitionsError) throw competitionsError;
+        console.log('📋 Found competitions:', competitionsData?.length || 0);
 
-        // Search for the competition across all clubs
-        for (const club of clubsData || []) {
-          const { data: competitionsData, error: competitionsError } = await supabase
-            .rpc('get_safe_competition_data', {
-              p_club_id: club.id,
-              p_competition_slug: ''
-            });
-
-          if (competitionsError) {
-            console.warn(`Error fetching competitions for club ${club.name}:`, competitionsError);
-            continue;
-          }
-
-          // Find the competition by ID
-          const found = (competitionsData || []).find(comp => comp.id === id);
-          if (found) {
-            console.log('🎯 Found competition:', found.name);
-            competitionData = {
-              id: found.id,
-              name: found.name,
-              description: found.description,
-              hole_number: found.hole_number,
-              status: 'ACTIVE', // Safe data only returns active competitions
-              start_date: found.start_date,
-              end_date: found.end_date,
-              entry_fee: found.entry_fee,
-              prize_pool: found.prize_pool,
-              archived: false, // Safe data doesn't include archived competitions
-              hero_image_url: found.hero_image_url,
-              club_id: found.club_id,
-              clubs: {
-                id: found.club_id,
-                name: found.club_name
-              }
-            };
-            break;
-          }
+        // Find the competition by ID and apply client-side safety filter
+        const found = (competitionsData || [])
+          .filter(comp => !comp.name.toLowerCase().includes('demo')) // Client-side safety filter
+          .find(comp => comp.id === id);
+          
+        if (found) {
+          console.log('🎯 Found competition:', found.name);
+          competitionData = {
+            id: found.id,
+            name: found.name,
+            description: found.description,
+            hole_number: found.hole_number,
+            status: 'ACTIVE', // Safe data only returns active competitions
+            start_date: found.start_date,
+            end_date: found.end_date,
+            entry_fee: found.entry_fee,
+            prize_pool: found.prize_pool,
+            archived: false, // Safe data doesn't include archived competitions
+            hero_image_url: found.hero_image_url,
+            club_id: found.club_id,
+            clubs: {
+              id: found.club_id,
+              name: found.club_name
+            }
+          };
         }
 
         if (!competitionData) {

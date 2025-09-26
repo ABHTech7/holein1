@@ -36,6 +36,7 @@ export const SuperAdminProfileModal = ({
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
+    email: currentUser.email || "",
     first_name: currentUser.first_name || "",
     last_name: currentUser.last_name || "",
     phone: currentUser.phone || "",
@@ -46,6 +47,22 @@ export const SuperAdminProfileModal = ({
     setLoading(true);
 
     try {
+      // Check if email changed
+      const emailChanged = formData.email.trim() !== currentUser.email;
+      
+      if (emailChanged) {
+        // Use Supabase Edge Function to update email
+        const { data: emailUpdateData, error: emailUpdateError } = await supabase.functions.invoke('update-user-email', {
+          body: {
+            userId: currentUser.id,
+            newEmail: formData.email.trim()
+          }
+        });
+        
+        if (emailUpdateError) throw emailUpdateError;
+      }
+      
+      // Update profile data
       const { data, error } = await supabase.rpc('admin_update_own_profile', {
         p_first_name: formData.first_name.trim() || null,
         p_last_name: formData.last_name.trim() || null,
@@ -99,12 +116,12 @@ export const SuperAdminProfileModal = ({
             <Input
               id="email"
               type="email"
-              value={currentUser.email}
-              disabled
-              className="bg-muted"
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              placeholder="Enter email address"
             />
             <p className="text-sm text-muted-foreground">
-              Contact support to change your email address
+              Super Admin can update email address
             </p>
           </div>
 

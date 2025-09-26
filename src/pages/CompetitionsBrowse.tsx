@@ -46,30 +46,20 @@ const CompetitionsBrowse = () => {
 
   const fetchCompetitions = async () => {
     try {
-      // First get safe clubs data
-      const { data: clubsData, error: clubsError } = await supabase
-        .rpc('get_safe_clubs_data');
+      // Use new RPC with demo filtering based on domain
+      const { data: competitionsData, error: competitionsError } = await supabase
+        .rpc('get_public_competition_data', {
+          p_club_id: null,
+          p_competition_slug: null,
+          include_demo: false // Always false for public pages - live site won't show demo data
+        });
 
-      if (clubsError) throw clubsError;
+      if (competitionsError) throw competitionsError;
 
-      // Get all active competitions using safe function
-      const allCompetitions: Competition[] = [];
-      
-      // Fetch competitions for each club
-      for (const club of clubsData || []) {
-        const { data: competitionsData, error: competitionsError } = await supabase
-          .rpc('get_safe_competition_data', {
-            p_club_id: club.id,
-            p_competition_slug: ''
-          });
-
-        if (competitionsError) {
-          console.warn(`Error fetching competitions for club ${club.name}:`, competitionsError);
-          continue;
-        }
-
-        // Transform data to match our interface
-        const transformedCompetitions = (competitionsData || []).map(comp => ({
+      // Transform data to match our interface and add client-side safety filter
+      const transformedCompetitions = (competitionsData || [])
+        .filter(comp => !comp.name.toLowerCase().includes('demo')) // Client-side safety filter
+        .map(comp => ({
           id: comp.id,
           name: comp.name,
           description: comp.description,
@@ -83,15 +73,12 @@ const CompetitionsBrowse = () => {
           clubs: {
             id: comp.club_id,
             name: comp.club_name,
-            website: comp.club_website
+            website: null // Not returned by the new RPC
           }
         }));
 
-        allCompetitions.push(...transformedCompetitions);
-      }
-
       // Sort by start date
-      const sortedCompetitions = allCompetitions
+      const sortedCompetitions = transformedCompetitions
         .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
 
       setCompetitions(sortedCompetitions);

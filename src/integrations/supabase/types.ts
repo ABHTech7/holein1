@@ -1615,6 +1615,44 @@ export type Database = {
           total_spend: number
         }[]
       }
+      get_public_clubs_data: {
+        Args: { include_demo?: boolean }
+        Returns: {
+          active: boolean
+          address: string
+          created_at: string
+          email: string
+          id: string
+          logo_url: string
+          name: string
+          phone: string
+          website: string
+        }[]
+      }
+      get_public_competition_data: {
+        Args: {
+          include_demo?: boolean
+          p_club_id?: string
+          p_competition_slug?: string
+        }
+        Returns: {
+          club_id: string
+          club_name: string
+          club_slug: string
+          description: string
+          end_date: string
+          entry_fee: number
+          hero_image_url: string
+          hole_number: number
+          id: string
+          is_year_round: boolean
+          name: string
+          prize_pool: number
+          slug: string
+          start_date: string
+          status: Database["public"]["Enums"]["competition_status"]
+        }[]
+      }
       get_safe_club_info: {
         Args: { club_uuid: string }
         Returns: {
