@@ -349,6 +349,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          is_demo_data: boolean | null
           logo_url: string | null
           name: string
           phone: string | null
@@ -367,6 +368,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_demo_data?: boolean | null
           logo_url?: string | null
           name: string
           phone?: string | null
@@ -385,6 +387,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_demo_data?: boolean | null
           logo_url?: string | null
           name?: string
           phone?: string | null
@@ -405,6 +408,7 @@ export type Database = {
           hero_image_url: string | null
           hole_number: number
           id: string
+          is_demo_data: boolean | null
           is_year_round: boolean
           name: string
           prize_pool: number | null
@@ -424,6 +428,7 @@ export type Database = {
           hero_image_url?: string | null
           hole_number?: number
           id?: string
+          is_demo_data?: boolean | null
           is_year_round?: boolean
           name: string
           prize_pool?: number | null
@@ -443,6 +448,7 @@ export type Database = {
           hero_image_url?: string | null
           hole_number?: number
           id?: string
+          is_demo_data?: boolean | null
           is_year_round?: boolean
           name?: string
           prize_pool?: number | null
@@ -497,6 +503,36 @@ export type Database = {
         }
         Relationships: []
       }
+      demo_data_sessions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          entities_created: Json | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          session_type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          entities_created?: Json | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          session_type?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          entities_created?: Json | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          session_type?: string
+        }
+        Relationships: []
+      }
       entries: {
         Row: {
           amount_minor: number | null
@@ -511,6 +547,7 @@ export type Database = {
           entry_date: string
           id: string
           ip_hash: string | null
+          is_demo_data: boolean | null
           is_repeat_attempt: boolean | null
           location_accuracy: number | null
           location_latitude: number | null
@@ -547,6 +584,7 @@ export type Database = {
           entry_date?: string
           id?: string
           ip_hash?: string | null
+          is_demo_data?: boolean | null
           is_repeat_attempt?: boolean | null
           location_accuracy?: number | null
           location_latitude?: number | null
@@ -583,6 +621,7 @@ export type Database = {
           entry_date?: string
           id?: string
           ip_hash?: string | null
+          is_demo_data?: boolean | null
           is_repeat_attempt?: boolean | null
           location_accuracy?: number | null
           location_latitude?: number | null
@@ -910,6 +949,7 @@ export type Database = {
           gender: string | null
           handicap: number | null
           id: string
+          is_demo_data: boolean | null
           last_name: string | null
           location_accuracy: number | null
           location_latitude: number | null
@@ -933,6 +973,7 @@ export type Database = {
           gender?: string | null
           handicap?: number | null
           id: string
+          is_demo_data?: boolean | null
           last_name?: string | null
           location_accuracy?: number | null
           location_latitude?: number | null
@@ -956,6 +997,7 @@ export type Database = {
           gender?: string | null
           handicap?: number | null
           id?: string
+          is_demo_data?: boolean | null
           last_name?: string | null
           location_accuracy?: number | null
           location_latitude?: number | null
@@ -1416,6 +1458,10 @@ export type Database = {
           total_premium: number
         }[]
       }
+      cleanup_demo_data: {
+        Args: { cleanup_all?: boolean }
+        Returns: Json
+      }
       convert_partnership_lead_to_club: {
         Args: {
           p_admin_email?: string
@@ -1463,6 +1509,20 @@ export type Database = {
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      get_demo_data_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          demo_clubs: number
+          demo_competitions: number
+          demo_entries: number
+          demo_profiles: number
+          latest_demo_session: string
+          total_clubs: number
+          total_competitions: number
+          total_entries: number
+          total_profiles: number
+        }[]
       }
       get_incomplete_players: {
         Args: Record<PropertyKey, never>
