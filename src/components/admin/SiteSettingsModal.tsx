@@ -147,11 +147,12 @@ const SiteSettingsModal = ({ isOpen, onClose }: SiteSettingsModalProps) => {
   const handleFlushProduction = async (includeDemo: boolean = false) => {
     setFlushing(true);
     try {
+      // Use raw SQL call until types are updated
       const { data, error } = await supabase.rpc('flush_production_data', {
         p_confirmation_text: 'FLUSH_PRODUCTION_DATA_CONFIRMED',
         p_keep_super_admin: true,
         p_include_demo_data: includeDemo
-      });
+      } as any);
 
       if (error) throw error;
 

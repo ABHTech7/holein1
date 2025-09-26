@@ -14,7 +14,6 @@ import SiteSettingsModal from "@/components/admin/SiteSettingsModal";
 import NewUserModal from "@/components/admin/NewUserModal";
 import AdminQuickActions from "@/components/admin/AdminQuickActions";
 import { DemoDataStatusCard } from "@/components/admin/DemoDataStatusCard";
-import { ProductionDataFlushCard } from "@/components/admin/ProductionDataFlushCard";
 import SecurityMonitor from "@/components/security/SecurityMonitor";
 import { SuperAdminProfileModal } from "@/components/admin/SuperAdminProfileModal";
 import { Users, Calendar, Trophy, TrendingUp, Plus, Settings, PoundSterling, UserPlus, Edit3, User } from "lucide-react";
@@ -594,11 +593,7 @@ const AdminDashboard = () => {
             )}
             
             {/* Production Data Management - Only show in production environment */}
-            {environmentType === 'production' && (
-              <div className="space-y-4">
-                <ProductionDataFlushCard />
-              </div>
-            )}
+            {/* Moved to Site Settings Modal */}
             </div>
 
             {/* Stats Overview */}
@@ -645,6 +640,24 @@ const AdminDashboard = () => {
         <SiteSettingsModal isOpen={showSiteSettings} onClose={() => setShowSiteSettings(false)} />
 
         <NewUserModal isOpen={showNewUser} onClose={() => setShowNewUser(false)} />
+
+        {profile && (
+          <SuperAdminProfileModal 
+            isOpen={showProfileModal} 
+            onClose={() => setShowProfileModal(false)}
+            currentUser={{
+              id: profile.id,
+              email: profile.email,
+              first_name: profile.first_name || undefined,
+              last_name: profile.last_name || undefined,
+              phone: (profile as any).phone || undefined
+            }}
+            onProfileUpdated={() => {
+              // Could refresh profile here if needed
+              console.log('Profile updated');
+            }}
+          />
+        )}
       </div>;
 };
 export default AdminDashboard;

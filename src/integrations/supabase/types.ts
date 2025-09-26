@@ -1496,7 +1496,13 @@ export type Database = {
         Returns: number
       }
       flush_production_data: {
-        Args: { p_confirmation_text?: string; p_keep_super_admin?: boolean }
+        Args:
+          | {
+              p_confirmation_text?: string
+              p_include_demo_data?: boolean
+              p_keep_super_admin?: boolean
+            }
+          | { p_confirmation_text?: string; p_keep_super_admin?: boolean }
         Returns: Json
       }
       get_admin_players_with_stats: {
