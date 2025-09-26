@@ -16,7 +16,7 @@ const Home = () => {
       
       <main>
         {/* Main Hero Section */}
-        <section className="relative bg-cover bg-center bg-no-repeat py-24 lg:py-32" style={{backgroundImage: `url(/img/${selectedAudience === 'clubs' ? 'golf-course-1.jpg' : 'golf-course-2.jpg'})`}}>
+        <section className="relative bg-cover bg-center bg-no-repeat py-24 lg:py-32" style={{backgroundImage: `url(/img/${selectedAudience === 'clubs' ? 'golf-course-2.jpg' : 'golf-course-1.jpg'})`}}>
           <div className="absolute inset-0 bg-black/50"></div>
           <Container className="relative z-10">
             <div className="text-center">
