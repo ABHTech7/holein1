@@ -42,7 +42,7 @@ const SiteHeader = () => {
             <img 
               src="/brand/ohio-logo-black.svg" 
               alt="Official Hole in One" 
-              className="h-12 w-auto"
+              className="h-16 w-auto"
             />
           </Link>
 
