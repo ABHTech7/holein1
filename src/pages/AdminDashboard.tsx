@@ -56,7 +56,7 @@ const AdminDashboard = () => {
     newLeads,
     pendingClaims
   } = useNotificationCounts();
-  const { showDemoIndicators, showDemoTools, filterDemoData } = getDemoModeDisplayConfig();
+  const { showDemoIndicators, showDemoTools, filterDemoData, environmentType } = getDemoModeDisplayConfig();
   const [loading, setLoading] = useState(true);
   const [showSiteSettings, setShowSiteSettings] = useState(false);
   const [showNewUser, setShowNewUser] = useState(false);
@@ -585,10 +585,16 @@ const AdminDashboard = () => {
               totalClubs: stats.totalClubs
             }} insurancePremiums={insurancePremiums} onAddUser={handleAddUser} isEditing={isEditingActions} />
             
-            {/* Demo Data Status Card - Only show in demo mode */}
+            {/* Demo Data Management - Only show in demo/development mode */}
             {showDemoTools && (
               <div className="space-y-4">
                 <DemoDataStatusCard />
+              </div>
+            )}
+            
+            {/* Production Data Management - Only show in production environment */}
+            {environmentType === 'production' && (
+              <div className="space-y-4">
                 <ProductionDataFlushCard />
               </div>
             )}
