@@ -121,14 +121,20 @@ async function handler(req: Request): Promise<Response> {
       }
     });
 
-    // Get current demo stats
-    const { data: statsData } = await supabaseAdmin.rpc('get_demo_data_stats');
-    
-    if (!statsData || statsData.length === 0) {
-      throw new Error('Failed to get current demo data stats');
-    }
+    // Get current counts directly without relying on RPC
+    const [clubsResult, playersResult, entriesResult, competitionsResult] = await Promise.all([
+      supabaseAdmin.from('clubs').select('id', { count: 'exact', head: true }).eq('is_demo_data', true),
+      supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true })
+        .eq('is_demo_data', true).eq('role', 'PLAYER').eq('status', 'active'),
+      supabaseAdmin.from('entries').select('id', { count: 'exact', head: true }).eq('is_demo_data', true),
+      supabaseAdmin.from('competitions').select('id', { count: 'exact', head: true }).eq('is_demo_data', true).eq('status', 'ACTIVE')
+    ]);
 
-    const stats = statsData[0];
+    const currentClubs = clubsResult.count || 0;
+    const currentPlayers = playersResult.count || 0;
+    const currentEntries = entriesResult.count || 0;
+    const currentCompetitions = competitionsResult.count || 0;
+
     const targetClubs = body.targetClubs || 20;
     const targetPlayers = body.targetPlayers || 500;
     const targetEntries = body.targetEntries || 1200;
@@ -138,10 +144,11 @@ async function handler(req: Request): Promise<Response> {
     let createdEntries = 0;
 
     // Calculate what we need to create
-    const clubsNeeded = Math.max(0, targetClubs - (stats.demo_clubs || 0));
-    const playersNeeded = Math.max(0, targetPlayers - (stats.demo_profiles || 0));
-    const entriesNeeded = Math.max(0, targetEntries - (stats.demo_entries || 0));
+    const clubsNeeded = Math.max(0, targetClubs - currentClubs);
+    const playersNeeded = Math.max(0, targetPlayers - currentPlayers);
+    const entriesNeeded = Math.max(0, targetEntries - currentEntries);
 
+    console.log('Current counts:', { currentClubs, currentPlayers, currentEntries, currentCompetitions });
     console.log('Top-up needed:', { clubsNeeded, playersNeeded, entriesNeeded });
 
     // Create additional clubs if needed
@@ -185,9 +192,51 @@ async function handler(req: Request): Promise<Response> {
           is_demo_data: true
         }));
 
-        await supabaseAdmin
+        const { error: compError } = await supabaseAdmin
           .from('competitions')
           .insert(competitionsToCreate);
+          
+        if (compError) {
+          console.error('Failed to create competitions:', compError);
+        } else {
+          console.log(`Created ${competitionsToCreate.length} competitions for new clubs`);
+        }
+      }
+      
+      // Also ensure existing demo clubs have competitions
+      if (currentClubs > 0 && currentCompetitions < currentClubs) {
+        console.log('Creating competitions for existing demo clubs without competitions...');
+        
+        const { data: clubsWithoutCompetitions } = await supabaseAdmin
+          .from('clubs')
+          .select(`
+            id, name,
+            competitions!inner(id)
+          `)
+          .eq('is_demo_data', true)
+          .is('competitions.id', null);
+          
+        if (clubsWithoutCompetitions && clubsWithoutCompetitions.length > 0) {
+          const competitionsForExistingClubs = clubsWithoutCompetitions.map(club => ({
+            club_id: club.id,
+            name: `${club.name} Hole-in-One Challenge`,
+            description: 'Professional hole-in-one competition with insurance coverage',
+            start_date: new Date().toISOString(),
+            end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+            status: 'ACTIVE',
+            entry_fee: getRandomInt(10, 50),
+            prize_pool: getRandomInt(1000, 10000),
+            hole_number: getRandomInt(1, 18),
+            is_year_round: true,
+            is_demo_data: true
+          }));
+          
+          await supabaseAdmin
+            .from('competitions')
+            .insert(competitionsForExistingClubs);
+            
+          console.log(`Created ${competitionsForExistingClubs.length} competitions for existing clubs`);
+        }
       }
     }
 
@@ -296,6 +345,15 @@ async function handler(req: Request): Promise<Response> {
             if (playerError) {
               console.error(`Failed to create profiles for batch ${batchIndex + 1}:`, playerError);
             } else {
+              // Force update is_demo_data to true for newly created profiles
+              const playerIds = newPlayers?.map(p => p.id) || [];
+              if (playerIds.length > 0) {
+                await supabaseAdmin
+                  .from('profiles')
+                  .update({ is_demo_data: true })
+                  .in('id', playerIds);
+              }
+              
               allCreatedPlayers.push(...(newPlayers || []));
               console.log(`Batch ${batchIndex + 1}: Successfully created ${newPlayers?.length || 0} profiles`);
             }
@@ -316,51 +374,92 @@ async function handler(req: Request): Promise<Response> {
 
     // Create additional entries if needed
     if (entriesNeeded > 0) {
-      // Get all active competitions and demo players
+      console.log(`Creating ${entriesNeeded} demo entries...`);
+      
+      // Get demo competitions and players with proper demo flag detection
       const { data: competitions } = await supabaseAdmin
         .from('competitions')
         .select('*')
         .eq('status', 'ACTIVE')
-        .eq('archived', false);
+        .eq('archived', false)
+        .eq('is_demo_data', true);
 
       const { data: players } = await supabaseAdmin
         .from('profiles')
         .select('*')
         .eq('role', 'PLAYER')
-        .eq('is_demo_data', true);
+        .eq('status', 'active')
+        .or('is_demo_data.eq.true,email.like.%@demo-golfer.test,email.like.%@demo.holein1.test');
+
+      console.log(`Found ${competitions?.length || 0} demo competitions and ${players?.length || 0} demo players`);
 
       if (competitions && players && competitions.length > 0 && players.length > 0) {
-        const entriesToCreate = [];
+        // Create entries in batches to avoid timeout
+        const batchSize = 100;
+        const totalBatches = Math.ceil(entriesNeeded / batchSize);
         
-        for (let i = 0; i < entriesNeeded; i++) {
-          const competition = getRandomElement(competitions);
-          const player = getRandomElement(players);
+        for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+          const start = batchIndex * batchSize;
+          const end = Math.min(start + batchSize, entriesNeeded);
+          const batchSize_actual = end - start;
           
-          // Create entry within the last 3 months
-          const entryDate = new Date();
-          entryDate.setDate(entryDate.getDate() - getRandomInt(0, 90));
+          const entriesToCreate = [];
+          
+          for (let i = 0; i < batchSize_actual; i++) {
+            const competition = getRandomElement(competitions);
+            const player = getRandomElement(players);
+            
+            // Skip if entry already exists for this player-competition combination
+            const existingEntry = await supabaseAdmin
+              .from('entries')
+              .select('id')
+              .eq('player_id', player.id)
+              .eq('competition_id', competition.id)
+              .single();
+              
+            if (existingEntry.data) {
+              continue; // Skip duplicate
+            }
+            
+            // Create entry within the last 3 months
+            const entryDate = new Date();
+            entryDate.setDate(entryDate.getDate() - getRandomInt(0, 90));
 
-          entriesToCreate.push({
-            competition_id: competition.id,
-            player_id: player.id,
-            email: player.email,
-            entry_date: entryDate.toISOString(),
-            paid: true,
-            payment_date: entryDate.toISOString(),
-            price_paid: competition.entry_fee || 25,
-            status: getRandomElement(['completed', 'pending', 'verification_pending']),
-            outcome_self: getRandomElement(['miss', 'miss', 'miss', 'win']), // 25% win rate
-            is_demo_data: true
-          });
+            entriesToCreate.push({
+              competition_id: competition.id,
+              player_id: player.id,
+              email: player.email,
+              entry_date: entryDate.toISOString(),
+              paid: true,
+              payment_date: entryDate.toISOString(),
+              price_paid: competition.entry_fee || 25,
+              status: getRandomElement(['completed', 'pending', 'verification_pending']),
+              outcome_self: getRandomElement(['miss', 'miss', 'miss', 'win']), // 25% win rate
+              is_demo_data: true
+            });
+          }
+
+          if (entriesToCreate.length > 0) {
+            const { data: newEntries, error: entryError } = await supabaseAdmin
+              .from('entries')
+              .insert(entriesToCreate)
+              .select();
+
+            if (entryError) {
+              console.error(`Failed to create entries batch ${batchIndex + 1}:`, entryError);
+            } else {
+              createdEntries += newEntries?.length || 0;
+              console.log(`Batch ${batchIndex + 1}: Created ${newEntries?.length || 0} entries`);
+            }
+          }
+          
+          // Break if we've created enough entries
+          if (createdEntries >= entriesNeeded) {
+            break;
+          }
         }
-
-        const { data: newEntries, error: entryError } = await supabaseAdmin
-          .from('entries')
-          .insert(entriesToCreate)
-          .select();
-
-        if (entryError) throw entryError;
-        createdEntries = newEntries?.length || 0;
+      } else {
+        console.warn('No competitions or players available for creating entries');
       }
     }
 
