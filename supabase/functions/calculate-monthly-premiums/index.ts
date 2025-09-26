@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || 'Failed to calculate premiums'
+        error: (error as Error)?.message || 'Failed to calculate premiums'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

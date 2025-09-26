@@ -132,7 +132,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        details: error.message 
+        details: (error as Error)?.message 
       }),
       {
         status: 500,

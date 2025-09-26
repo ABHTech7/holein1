@@ -189,13 +189,13 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Convert-to-Club ERROR:', error.message);
+    console.error('Convert-to-Club ERROR:', (error as Error)?.message);
     console.log('Convert-to-Club finished', { elapsedMs: Date.now() - startTime });
     
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        details: error.message 
+        details: (error as Error)?.message 
       }),
       {
         status: 500,
