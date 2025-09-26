@@ -31,9 +31,7 @@ const ClubBankDetailsSection: React.FC<BankDetailsSectionProps> = ({ clubId }) =
       setBankDetails(details);
       setFormData(details || {});
       
-      // Load access log for transparency
-      const log = await SecureBankingService.getBankingAccessLog(clubId);
-      setAccessLog(log);
+      // Access log functionality removed for simplification
     } catch (error) {
       console.error('Error fetching bank details:', error);
       toast.error('Failed to load banking details');

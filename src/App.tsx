@@ -21,7 +21,7 @@ import EntrySuccess from "./pages/EntrySuccess";
 import WinClaimPage from "./pages/WinClaimPage";
 import WinClaimPageNew from "./pages/WinClaimPageNew";
 
-import DeveloperDemo from "./pages/DeveloperDemo";
+
 import AdminDashboard from "./pages/AdminDashboard";
 import ClubDashboard from "./pages/ClubDashboard";
 import ClubDashboardNew from "./pages/ClubDashboardNew";
@@ -146,7 +146,7 @@ const App = () => {
             <Route path="/auth/expired-link" element={<ExpiredLinkPage />} />
             <Route path="/auth/expired" element={<Navigate to="/auth/expired-link" replace />} />
             <Route path="/competitions" element={<CompetitionsBrowse />} />
-            <Route path="/dev/demo" element={<DeveloperDemo />} />
+            
             {/* New competition entry route with clear structure */}
             <Route 
               path="/competition/:clubSlug/:competitionSlug" 

@@ -175,7 +175,10 @@ const EntryConfirmation = () => {
             competitions!inner (
               name,
               hole_number,
-              club_id
+              club_id,
+              clubs!inner (
+                name
+              )
             )
           `)
           .eq('id', entryId)
@@ -200,19 +203,14 @@ const EntryConfirmation = () => {
           return;
         }
 
-        // Get venue name from club
-        console.log('🔄 fetchEntry: Fetching venue details...', { clubId: data.competitions.club_id });
-        const { data: venue } = await supabase
-          .from('venues')
-          .select('name')
-          .eq('club_id', data.competitions.club_id)
-          .single();
+        // Use club name directly since clubs are the venues now
+        console.log('🔄 fetchEntry: Using club as venue...', { clubId: data.competitions.club_id });
 
         const entryData = {
           id: data.id,
           competition_name: data.competitions.name,
           hole_number: data.competitions.hole_number,
-          venue_name: venue?.name || 'Unknown Venue',
+          venue_name: data.competitions.clubs?.name || 'Unknown Club',
           attempt_window_start: data.attempt_window_start,
           attempt_window_end: data.attempt_window_end,
           status: data.status,

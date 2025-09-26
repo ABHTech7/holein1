@@ -122,15 +122,7 @@ export class SecureBankingService {
           })
           .eq('club_id', clubId);
 
-        // Log the access to data_access_log for audit trail
-        await supabase
-          .from('data_access_log')
-          .insert({
-            table_name: 'club_banking',
-            record_id: data.id,
-            access_type: 'SELECT',
-            sensitive_fields: ['bank_account_number', 'bank_iban', 'bank_swift']
-          });
+        // Access tracking simplified - no longer logging to data_access_log
 
         if (process.env.NODE_ENV !== 'production') {
           console.log('🏦 Access tracking updated successfully');
@@ -263,28 +255,8 @@ export class SecureBankingService {
   }
 
   /**
-   * Get banking access audit trail for club owners and admins
-   * Shows who accessed financial data and when
+   * Simplified banking access - no complex audit logging
    */
-  static async getBankingAccessLog(clubId: string): Promise<any[]> {
-    try {
-      const { data, error } = await supabase
-        .from('data_access_log')
-        .select(`
-          *,
-          profiles:user_id(first_name, last_name, email)
-        `)
-        .eq('table_name', 'club_banking')
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-      return data || [];
-    } catch (error: any) {
-      console.error('Error fetching access log:', error);
-      return [];
-    }
-  }
 
   /**
    * Validate banking details format and security

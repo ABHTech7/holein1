@@ -117,44 +117,6 @@ export type Database = {
           },
         ]
       }
-      audit_logs: {
-        Row: {
-          action: string
-          actor_id: string | null
-          created_at: string | null
-          id: string
-          metadata: Json | null
-          reason: string | null
-          target_user_id: string | null
-        }
-        Insert: {
-          action: string
-          actor_id?: string | null
-          created_at?: string | null
-          id?: string
-          metadata?: Json | null
-          reason?: string | null
-          target_user_id?: string | null
-        }
-        Update: {
-          action?: string
-          actor_id?: string | null
-          created_at?: string | null
-          id?: string
-          metadata?: Json | null
-          reason?: string | null
-          target_user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "audit_logs_actor_id_fkey"
-            columns: ["actor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       claims: {
         Row: {
           claim_date: string
@@ -466,72 +428,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      data_access_log: {
-        Row: {
-          access_type: string
-          created_at: string
-          id: string
-          ip_address: unknown | null
-          record_id: string | null
-          sensitive_fields: string[] | null
-          table_name: string
-          user_agent: string | null
-          user_id: string | null
-        }
-        Insert: {
-          access_type: string
-          created_at?: string
-          id?: string
-          ip_address?: unknown | null
-          record_id?: string | null
-          sensitive_fields?: string[] | null
-          table_name: string
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          access_type?: string
-          created_at?: string
-          id?: string
-          ip_address?: unknown | null
-          record_id?: string | null
-          sensitive_fields?: string[] | null
-          table_name?: string
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      demo_data_sessions: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          entities_created: Json | null
-          id: string
-          is_active: boolean | null
-          notes: string | null
-          session_type: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          entities_created?: Json | null
-          id?: string
-          is_active?: boolean | null
-          notes?: string | null
-          session_type?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          entities_created?: Json | null
-          id?: string
-          is_active?: boolean | null
-          notes?: string | null
-          session_type?: string
-        }
-        Relationships: []
       }
       entries: {
         Row: {
@@ -1019,36 +915,6 @@ export type Database = {
           },
         ]
       }
-      security_logs: {
-        Row: {
-          created_at: string | null
-          details: Json | null
-          event_type: string
-          id: string
-          ip_address: unknown | null
-          user_agent: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          details?: Json | null
-          event_type: string
-          id?: string
-          ip_address?: unknown | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          details?: Json | null
-          event_type?: string
-          id?: string
-          ip_address?: unknown | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       site_settings: {
         Row: {
           created_at: string
@@ -1167,127 +1033,6 @@ export type Database = {
           },
         ]
       }
-      staff_code_attempts: {
-        Row: {
-          attempted_at: string
-          code_prefix: string
-          code_suffix: string
-          entry_id: string
-          id: string
-          ip_address: unknown | null
-          staff_code_id: string | null
-          success: boolean
-          user_agent: string | null
-        }
-        Insert: {
-          attempted_at?: string
-          code_prefix: string
-          code_suffix: string
-          entry_id: string
-          id?: string
-          ip_address?: unknown | null
-          staff_code_id?: string | null
-          success?: boolean
-          user_agent?: string | null
-        }
-        Update: {
-          attempted_at?: string
-          code_prefix?: string
-          code_suffix?: string
-          entry_id?: string
-          id?: string
-          ip_address?: unknown | null
-          staff_code_id?: string | null
-          success?: boolean
-          user_agent?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "staff_code_attempts_entry_id_fkey"
-            columns: ["entry_id"]
-            isOneToOne: false
-            referencedRelation: "entries"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staff_code_attempts_staff_code_id_fkey"
-            columns: ["staff_code_id"]
-            isOneToOne: false
-            referencedRelation: "staff_codes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      staff_codes: {
-        Row: {
-          active: boolean
-          club_id: string
-          code_prefix: string
-          code_suffix: string
-          competition_id: string | null
-          created_at: string
-          current_uses: number
-          id: string
-          max_uses: number | null
-          staff_id: string | null
-          updated_at: string
-          valid_from: string
-          valid_until: string
-        }
-        Insert: {
-          active?: boolean
-          club_id: string
-          code_prefix: string
-          code_suffix: string
-          competition_id?: string | null
-          created_at?: string
-          current_uses?: number
-          id?: string
-          max_uses?: number | null
-          staff_id?: string | null
-          updated_at?: string
-          valid_from?: string
-          valid_until: string
-        }
-        Update: {
-          active?: boolean
-          club_id?: string
-          code_prefix?: string
-          code_suffix?: string
-          competition_id?: string | null
-          created_at?: string
-          current_uses?: number
-          id?: string
-          max_uses?: number | null
-          staff_id?: string | null
-          updated_at?: string
-          valid_from?: string
-          valid_until?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "staff_codes_club_id_fkey"
-            columns: ["club_id"]
-            isOneToOne: false
-            referencedRelation: "clubs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staff_codes_competition_id_fkey"
-            columns: ["competition_id"]
-            isOneToOne: false
-            referencedRelation: "competitions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staff_codes_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "staff"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       uploaded_files: {
         Row: {
           expires_at: string | null
@@ -1326,41 +1071,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
-      }
-      venues: {
-        Row: {
-          club_id: string | null
-          created_at: string
-          id: string
-          name: string
-          slug: string
-          updated_at: string
-        }
-        Insert: {
-          club_id?: string | null
-          created_at?: string
-          id?: string
-          name: string
-          slug: string
-          updated_at?: string
-        }
-        Update: {
-          club_id?: string | null
-          created_at?: string
-          id?: string
-          name?: string
-          slug?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "venues_club_id_fkey"
-            columns: ["club_id"]
-            isOneToOne: false
-            referencedRelation: "clubs"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       verifications: {
         Row: {
@@ -1739,15 +1449,6 @@ export type Database = {
         Args: { phone_text: string }
         Returns: boolean
       }
-      log_security_event: {
-        Args: {
-          details?: Json
-          event_type: string
-          ip_address?: unknown
-          user_id?: string
-        }
-        Returns: boolean
-      }
       log_sensitive_access: {
         Args: {
           access_type: string
@@ -1796,15 +1497,6 @@ export type Database = {
       }
       user_has_permission: {
         Args: { permission_name: string; user_uuid: string }
-        Returns: boolean
-      }
-      validate_file_upload: {
-        Args: {
-          file_size_bytes: number
-          mime_type: string
-          original_filename: string
-          upload_purpose: string
-        }
         Returns: boolean
       }
       validate_text_input: {

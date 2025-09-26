@@ -3,8 +3,6 @@ import { User, Session } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { EnhancedAuthSecurity } from '@/lib/enhancedAuth';
-import { SecurityMonitoring } from '@/lib/securityMonitoring';
 
 export interface Profile {
   id: string;
@@ -98,14 +96,7 @@ export const useAuth = () => {
           user: session?.user ?? null 
         }));
         
-        // Track authentication events
-        if (event === 'SIGNED_IN' && session?.user?.email) {
-          SecurityMonitoring.monitorAuthEvent('LOGIN_SUCCESS', session.user.email);
-          EnhancedAuthSecurity.initializeSession();
-        } else if (event === 'SIGNED_OUT') {
-          SecurityMonitoring.monitorAuthEvent('LOGOUT');
-          EnhancedAuthSecurity.clearSession();
-        }
+        // Basic auth event logging removed for simplification
         
         if (session?.user) {
           // Defer profile fetching to avoid blocking auth state changes
@@ -203,34 +194,7 @@ export const useAuth = () => {
       });
       
       if (error) {
-        // Log failed OTP attempts for security monitoring
-        try {
-          await supabase.rpc('log_security_event', {
-            event_type: 'OTP_SEND_FAILURE',
-            details: {
-              email: email,
-              error_message: error.message,
-              user_agent: navigator.userAgent.substring(0, 500)
-            }
-          });
-        } catch (logError) {
-          console.warn('Failed to log security event:', logError);
-        }
-        
         return { error: error.message };
-      }
-      
-      // Log successful OTP sends for security monitoring
-      try {
-        await supabase.rpc('log_security_event', {
-          event_type: 'OTP_SEND_SUCCESS',
-          details: {
-            email: email,
-            user_agent: navigator.userAgent.substring(0, 500)
-          }
-        });
-      } catch (logError) {
-        console.warn('Failed to log security event:', logError);
       }
       
       return {};
@@ -279,10 +243,7 @@ export const useAuth = () => {
         
         sessionStorage.clear();
         
-        // Clear our secure auth storage (async import)
-        import('@/lib/secureStorage').then(({ SecureStorage }) => {
-          SecureStorage.clearAuthData();
-        }).catch(console.warn);
+        // Clear basic auth storage
       } catch (storageError) {
         console.log('Storage clear error (non-critical):', storageError);
       }

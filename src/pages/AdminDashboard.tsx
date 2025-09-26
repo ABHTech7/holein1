@@ -13,8 +13,7 @@ import ChartWrapper from "@/components/ui/chart-wrapper";
 import SiteSettingsModal from "@/components/admin/SiteSettingsModal";
 import NewUserModal from "@/components/admin/NewUserModal";
 import AdminQuickActions from "@/components/admin/AdminQuickActions";
-import { DemoDataStatusCard } from "@/components/admin/DemoDataStatusCard";
-import SecurityMonitor from "@/components/security/SecurityMonitor";
+import { SimpleResetDemoButton } from "@/components/admin/SimpleResetDemoButton";
 import { SuperAdminProfileModal } from "@/components/admin/SuperAdminProfileModal";
 import { Users, Calendar, Trophy, TrendingUp, Plus, Settings, PoundSterling, UserPlus, Edit3, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -592,10 +591,10 @@ const AdminDashboard = () => {
               totalClubs: stats.totalClubs
             }} insurancePremiums={insurancePremiums} onAddUser={handleAddUser} isEditing={isEditingActions} />
             
-            {/* Demo Data Management - Only show in demo/development mode */}
+            {/* Simple Demo Reset - Only show in demo/development mode */}
             {showDemoTools && (
               <div className="space-y-4">
-                <DemoDataStatusCard />
+                <SimpleResetDemoButton />
               </div>
             )}
             
