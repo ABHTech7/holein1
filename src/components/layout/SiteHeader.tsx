@@ -42,7 +42,7 @@ const SiteHeader = () => {
             <div className="flex items-center justify-center w-8 h-8 bg-gradient-primary rounded-lg">
               <Trophy className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-xl font-semibold text-foreground">
+            <span className="font-calder text-xl font-semibold text-foreground">
               Official Hole in 1
             </span>
           </Link>
