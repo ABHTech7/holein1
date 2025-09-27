@@ -45,7 +45,7 @@ const AudienceSelector = ({ onAudienceChange, selectedAudience }: AudienceSelect
                 : 'text-muted-foreground'
             }`} />
           </div>
-          <h3 className={`font-display text-lg font-light mb-2 transition-all duration-300 ${
+          <h3 className={`font-calder text-lg font-light mb-2 transition-all duration-300 ${
             selectedAudience === 'clubs' 
               ? 'text-primary font-normal text-xl' 
               : 'text-foreground'
@@ -83,7 +83,7 @@ const AudienceSelector = ({ onAudienceChange, selectedAudience }: AudienceSelect
                 : 'text-muted-foreground'
             }`} />
           </div>
-          <h3 className={`font-display text-lg font-light mb-2 transition-all duration-300 ${
+          <h3 className={`font-calder text-lg font-light mb-2 transition-all duration-300 ${
             selectedAudience === 'players' 
               ? 'text-secondary font-normal text-xl' 
               : 'text-foreground'
