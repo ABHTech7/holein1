@@ -245,8 +245,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send branded email
     const emailResponse = await resend.emails.send({
-      from: "Official Hole in 1 <entry@demo.holein1challenge.co.uk>",
-      reply_to: "entry@demo.holein1challenge.co.uk",
+      from: "Official Hole in 1 <entry@officialholein1.com>",
+      reply_to: "entry@officialholein1.com",
       to: [processedData.email.toLowerCase().trim()],
       subject: `Complete Your Entry - ${processedData.competitionName || 'Official Hole in 1'}`,
       html: createBrandedEmailTemplate(processedData, magicLink, dashboardMagicLink),
