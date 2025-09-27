@@ -30,7 +30,7 @@ const FeatureItem = ({
         <Icon className="w-6 h-6 text-primary-foreground" />
       </div>
       
-      <h3 className="font-display text-lg font-semibold text-foreground mb-3 group-hover:text-primary transition-colors">
+      <h3 className="font-calder text-lg font-semibold text-foreground mb-3 group-hover:text-primary transition-colors">
         {title}
       </h3>
       
