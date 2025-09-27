@@ -35,16 +35,24 @@ const SecureAdminCreation = ({ isOpen, onClose, onSuccess }: SecureAdminCreation
           firstName: formData.firstName,
           lastName: formData.lastName,
           password: formData.password,
-          adminSecretKey: formData.adminSecretKey
+          role: 'ADMIN' // Default to ADMIN role
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function invoke error:', error);
+        throw new Error(error.message || 'Failed to call admin creation service');
+      }
 
-      if (data?.success) {
+      if (!data) {
+        throw new Error('No response received from admin creation service');
+      }
+
+      if (data.success) {
+        const isUpdate = data.isUpdate;
         toast({
-          title: "Admin Created Successfully",
-          description: `Admin account for ${formData.firstName} ${formData.lastName} has been created securely.`,
+          title: isUpdate ? "Admin Updated Successfully" : "Admin Created Successfully",
+          description: data.message || `Admin account for ${formData.firstName} ${formData.lastName} has been ${isUpdate ? 'updated' : 'created'} securely.`,
         });
 
         // Reset form
@@ -59,13 +67,25 @@ const SecureAdminCreation = ({ isOpen, onClose, onSuccess }: SecureAdminCreation
         onSuccess?.();
         onClose();
       } else {
-        throw new Error(data?.error || 'Failed to create admin account');
+        // Handle structured error response
+        const errorMessage = data.error || 'Failed to create admin account';
+        const errorDetails = data.details ? ` Details: ${data.details}` : '';
+        throw new Error(errorMessage + errorDetails);
       }
     } catch (error: any) {
       console.error('Error creating admin:', error);
+      
+      // Show user-friendly error message
+      let displayMessage = error.message || 'Failed to create admin account';
+      
+      // Handle specific error cases
+      if (displayMessage.includes('already exists') || displayMessage.includes('already been registered')) {
+        displayMessage = 'A user with this email address already exists. The existing user has been updated with admin permissions.';
+      }
+      
       toast({
         title: "Admin Creation Failed",
-        description: error.message || "Failed to create admin account. Check your credentials and try again.",
+        description: displayMessage,
         variant: "destructive"
       });
     } finally {
@@ -77,8 +97,7 @@ const SecureAdminCreation = ({ isOpen, onClose, onSuccess }: SecureAdminCreation
     return formData.email && 
            formData.firstName && 
            formData.lastName && 
-           formData.password && 
-           formData.adminSecretKey;
+           formData.password;
   };
 
   return (
@@ -144,23 +163,6 @@ const SecureAdminCreation = ({ isOpen, onClose, onSuccess }: SecureAdminCreation
                 onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                 placeholder="Enter secure password"
               />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="secretKey" className="flex items-center gap-2">
-                <Lock className="w-4 h-4" />
-                Admin Secret Key
-              </Label>
-              <Input
-                id="secretKey"
-                type="password"
-                value={formData.adminSecretKey}
-                onChange={(e) => setFormData(prev => ({ ...prev, adminSecretKey: e.target.value }))}
-                placeholder="Enter admin creation secret"
-              />
-              <p className="text-xs text-muted-foreground">
-                This secret key was provided to you by the system administrator
-              </p>
             </div>
           </CardContent>
         </Card>

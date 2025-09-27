@@ -115,10 +115,12 @@ const handler = async (req: Request): Promise<Response> => {
     const existingUser = existingUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
     
     let userData: any;
+    let isUpdate = false;
     
     if (existingUser) {
       console.log("User already exists, updating their profile:", existingUser.id);
       userData = { user: existingUser };
+      isUpdate = true;
       
       // Update the existing user's metadata
       const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
@@ -134,7 +136,14 @@ const handler = async (req: Request): Promise<Response> => {
       
       if (updateError) {
         console.error("Error updating existing user:", updateError);
-        throw new Error("Failed to update existing user account");
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: "Failed to update existing user account",
+          details: updateError.message
+        }), {
+          status: 200, // Return 200 but with success: false
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
       }
     } else {
       // Create new user
@@ -149,9 +158,39 @@ const handler = async (req: Request): Promise<Response> => {
         }
       });
 
-      if (createError || !newUserData.user) {
+      if (createError) {
         console.error("Error creating admin user:", createError);
-        throw new Error("Failed to create admin account");
+        
+        // Handle specific error cases
+        if (createError.message?.includes('already been registered')) {
+          return new Response(JSON.stringify({ 
+            success: false,
+            error: "A user with this email address already exists",
+            details: createError.message
+          }), {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
+        
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: "Failed to create admin account",
+          details: createError.message
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      
+      if (!newUserData.user) {
+        return new Response(JSON.stringify({ 
+          success: false,
+          error: "Failed to create admin account - no user data returned"
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
       }
       
       userData = newUserData;
@@ -215,13 +254,15 @@ const handler = async (req: Request): Promise<Response> => {
 
     return new Response(JSON.stringify({ 
       success: true,
+      isUpdate: isUpdate,
       user: {
         id: userData.user.id,
         email: userData.user.email,
         first_name: firstName,
         last_name: lastName,
         role: role
-      }
+      },
+      message: isUpdate ? "User updated successfully" : "User created successfully"
     }), {
       status: 200,
       headers: {
@@ -235,10 +276,11 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error.message || "Failed to create admin user" 
+        error: error.message || "Failed to create admin user",
+        details: error.details || null
       }),
       {
-        status: 500,
+        status: 200, // Always return 200 with success flag
         headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );

@@ -80,155 +80,44 @@ const ClubsPage = () => {
 
       // Development diagnostic logging
       if (process.env.NODE_ENV !== 'production') {
-        console.log('🔍 [ClubsPage.fetchClubs] Starting clubs data fetch', {
+        console.log('🔍 [ClubsPage.fetchClubs] Using admin Edge Function', {
           userProfile: { 
             role: profile?.role, 
             id: profile?.id, 
             club_id: profile?.club_id 
           },
-          operation: 'Fetching clubs with competitions, entries, and manager statistics',
-          queryParams: { 
-            tables: ['clubs', 'competitions', 'entries', 'profiles'],
-            filters: { archived: showArchived },
-            joins: ['competitions -> entries (revenue calc)', 'profiles (managers)']
-          }
+          operation: 'Fetching clubs via admin-get-clubs Edge Function',
+          params: { archived: showArchived }
         });
       }
 
-      const { data: clubsData, error } = await supabase
-        .from('clubs')
-        .select(`
-          id, name, address, email, phone, website, logo_url,
-          active, created_at, updated_at, archived, contract_signed, contract_url
-        `)
-        .eq('archived', showArchived)
-        .order('created_at', { ascending: false });
+      // Use the admin Edge Function to fetch clubs with archived parameter
+      const { data: response, error } = await supabase.functions.invoke('admin-get-clubs', {
+        body: { archived: showArchived }
+      });
 
       if (error) throw error;
 
-      const clubsWithStats = await Promise.all(
-        (clubsData || []).map(async (club) => {
-          // Get competitions with their commission amounts
-          const { data: competitions, error: competitionsError } = await supabase
-            .from('competitions')
-            .select('id, entry_fee, commission_amount')
-            .eq('club_id', club.id);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch clubs');
+      }
 
-          if (competitionsError && process.env.NODE_ENV !== 'production') {
-            console.error("ADMIN PAGE ERROR:", {
-              location: "ClubsPage.fetchClubs.competitions",
-              userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
-              operation: `Fetching competitions for club: ${club.name}`,
-              queryParams: { table: 'competitions', filters: { club_id: club.id } },
-              code: competitionsError.code,
-              message: competitionsError.message,
-              details: competitionsError.details,
-              hint: competitionsError.hint,
-              fullError: competitionsError
-            });
-          }
-
-          // Get manager details (first club member)
-          const { data: managers, error: managersError } = await supabase
-            .from('profiles')
-            .select('first_name, last_name, email')
-            .eq('club_id', club.id)
-            .eq('role', 'CLUB')
-            .limit(1);
-
-          if (managersError && process.env.NODE_ENV !== 'production') {
-            console.error("ADMIN PAGE ERROR:", {
-              location: "ClubsPage.fetchClubs.managers",
-              userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
-              operation: `Fetching managers for club: ${club.name}`,
-              queryParams: { table: 'profiles', filters: { club_id: club.id, role: 'CLUB' } },
-              code: managersError.code,
-              message: managersError.message,
-              details: managersError.details,
-              hint: managersError.hint,
-              fullError: managersError
-            });
-          }
-
-          // Calculate total revenue and commission from actual paid entries
-          let totalRevenue = 0;
-          let totalCommission = 0;
-
-          if (competitions) {
-            const revenuePromises = competitions.map(async (competition) => {
-              const { data: entries, error: entriesError } = await supabase
-                .from('entries')
-                .select('id, paid')
-                .eq('competition_id', competition.id);
-
-              if (entriesError && process.env.NODE_ENV !== 'production') {
-                console.error("ADMIN PAGE ERROR:", {
-                  location: "ClubsPage.fetchClubs.entries",
-                  userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
-                  operation: `Fetching entries for competition: ${competition.id}`,
-                  queryParams: { table: 'entries', filters: { competition_id: competition.id } },
-                  code: entriesError.code,
-                  message: entriesError.message,
-                  details: entriesError.details,
-                  hint: entriesError.hint,
-                  fullError: entriesError
-                });
-                return { revenue: 0, commission: 0 };
-              }
-
-              const paidEntries = entries?.filter(entry => entry.paid).length || 0;
-              const entryFee = parseFloat(competition.entry_fee?.toString() || '0');
-              const commissionAmount = parseFloat(competition.commission_amount?.toString() || '0');
-
-              const competitionRevenue = paidEntries * entryFee;
-              const competitionCommission = paidEntries * commissionAmount;
-
-              return {
-                revenue: competitionRevenue,
-                commission: competitionCommission
-              };
-            });
-
-            const results = await Promise.all(revenuePromises);
-            totalRevenue = results.reduce((sum, result) => sum + result.revenue, 0);
-            totalCommission = results.reduce((sum, result) => sum + result.commission, 0);
-          }
-
-          const manager = managers?.[0];
-          const managerName = manager ? `${manager.first_name || ''} ${manager.last_name || ''}`.trim() : null;
-
-          return {
-            ...club,
-            total_competitions: competitions?.length || 0,
-            total_revenue: totalRevenue,
-            total_commission: totalCommission,
-            manager_name: managerName || null,
-            manager_email: manager?.email || null
-          };
-        })
-      );
-
-      setClubs(clubsWithStats);
-    } catch (error) {
-      // Enhanced error handling with comprehensive logging
+      setClubs(response.clubs || []);
+    } catch (error: any) {
+      // Enhanced error handling
       if (process.env.NODE_ENV !== 'production') {
         console.error("ADMIN PAGE ERROR:", {
-          location: "ClubsPage.fetchClubs.general",
+          location: "ClubsPage.fetchClubs.edgeFunction",
           userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
-          operation: "General clubs data fetching operation",
-          queryParams: { tables: 'clubs with nested joins', operation: 'comprehensive clubs fetch' },
-          code: (error as any)?.code,
-          message: (error as any)?.message,
-          details: (error as any)?.details,
-          hint: (error as any)?.hint,
+          operation: "Fetching clubs via Edge Function",
+          error: error.message,
           fullError: error
         });
       }
 
-      const msg = showSupabaseError(error, 'ClubsPage.fetchClubs');
       toast({ 
         title: "Failed to load clubs data", 
-        description: `${msg}${(error as any)?.code ? ` (Code: ${(error as any).code})` : ''}`, 
+        description: error.message || "Unable to fetch clubs. Please try again.", 
         variant: "destructive" 
       });
     } finally {

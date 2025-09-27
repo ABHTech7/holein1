@@ -54,57 +54,41 @@ const NewClubModal = ({ isOpen, onClose, onSuccess }: NewClubModalProps) => {
     setIsSubmitting(true);
     
     try {
-      // First create the club
-      const { data: clubData, error: clubError } = await supabase
-        .from('clubs')
-        .insert({
-          name: data.clubName,
-          address: data.clubAddress,
-          email: data.clubEmail,
-          phone: data.clubPhone || null,
-          website: data.clubWebsite || null,
-          active: false, // Start inactive until contract is signed
-          archived: false,
-          contract_signed: false
-        })
-        .select()
-        .single();
-
-      if (clubError) throw clubError;
-
-      // Send OTP invitation to the manager
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: data.managerEmail,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?continue=/dashboard/club`,
-          data: {
-            first_name: data.managerFirstName,
-            last_name: data.managerLastName,
-            phone: data.managerPhone || '',
-            role: 'CLUB',
-            club_id: clubData.id
-          }
+      // Use the admin Edge Function to create the club
+      const { data: response, error } = await supabase.functions.invoke('admin-upsert-club', {
+        body: {
+          clubName: data.clubName,
+          clubAddress: data.clubAddress,
+          clubEmail: data.clubEmail,
+          clubPhone: data.clubPhone,
+          clubWebsite: data.clubWebsite,
+          managerFirstName: data.managerFirstName,
+          managerLastName: data.managerLastName,
+          managerEmail: data.managerEmail,
+          managerPhone: data.managerPhone
         }
       });
 
-      if (otpError) {
-        throw new Error(`Failed to send invitation email: ${otpError.message}`);
+      if (error) throw error;
+
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create club');
       }
 
       toast({
         title: "Club created successfully!",
-        description: `Invitation sent to ${data.managerEmail}. They will receive a secure entry link to complete setup.`,
+        description: response.message || `Club ${data.clubName} has been created.`,
       });
 
       form.reset();
       onSuccess();
       onClose();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating club:', error);
       toast({
         title: "Error",
-        description: "Failed to create club. Please try again.",
+        description: error.message || "Failed to create club. Please try again.",
         variant: "destructive"
       });
     } finally {
