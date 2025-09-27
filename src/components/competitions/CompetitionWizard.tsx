@@ -284,8 +284,8 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
 
       // Convert entry fee to cents
       const entry_fee_cents = Math.round(data.entry_fee * 100);
-      // Convert commission rate from pounds to pence for storage
-      const commission_rate_pence = Math.round(data.commission_rate * 100);
+      // Store commission amount directly in pounds (as entered by user)
+      const commission_amount_pounds = data.commission_rate;
 
       const { data: competition, error } = await supabase
         .from('competitions')
@@ -298,13 +298,16 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
           end_date: data.is_year_round ? null : data.end_date?.toISOString() || null,
           is_year_round: data.is_year_round,
           entry_fee: entry_fee_cents,
-          commission_rate: commission_rate_pence,
+          commission_amount: commission_amount_pounds,
           status,
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error details:', error);
+        throw error;
+      }
 
       toast({
         title: 'Challenge Created!',
@@ -319,9 +322,10 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
       }
     } catch (error) {
       console.error('Error creating competition:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
         title: 'Error',
-        description: 'Failed to create competition. Please try again.',
+        description: `Failed to create competition: ${errorMessage}`,
         variant: 'destructive',
       });
     } finally {
@@ -574,12 +578,12 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
                   </p>
                 </div>
                 {(userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') && (
-                  <div>
-                    <p className="text-muted-foreground">Commission Rate</p>
-                    <p className="font-medium">
-                      {formatCurrency(watchedValues.commission_rate)} per entry
-                    </p>
-                  </div>
+                 <div>
+                   <p className="text-muted-foreground">Commission Rate</p>
+                   <p className="font-medium">
+                     £{watchedValues.commission_rate.toFixed(2)} per entry
+                   </p>
+                 </div>
                 )}
                 <div>
                   <p className="text-muted-foreground">Start</p>
