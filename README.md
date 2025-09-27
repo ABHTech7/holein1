@@ -17,8 +17,7 @@ This platform includes comprehensive security measures:
 
 Add these redirect URLs in **Authentication → URL Configuration**:
 - `http://localhost:5173/auth/callback`
-- `https://demo.holein1challenge.co.uk/auth/callback` 
-- `https://officialholein1.com/auth/callback`
+- `https://demo.holein1challenge.co.uk/auth/callback`
 
 ### Manual Security Actions Needed:
 1. Enable "Check for leaked passwords" in Supabase Auth settings
@@ -76,14 +75,12 @@ Navigate to Supabase Dashboard → Authentication → URL Configuration and add:
 
 **Site URL**: Set to your application URL
 - Development: `http://localhost:5173`
-- Staging: `https://demo.holein1challenge.co.uk`  
-- Production: `https://officialholein1.com`
+- Staging: `https://demo.holein1challenge.co.uk`
 
 **Redirect URLs**: Add all environments where auth callbacks need to work
 ```
 http://localhost:5173/auth/callback
 https://demo.holein1challenge.co.uk/auth/callback
-https://officialholein1.com/auth/callback
 ```
 
 ### Optional Branding Improvements
