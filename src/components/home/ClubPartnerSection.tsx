@@ -15,7 +15,7 @@ const ClubPartnerSection = () => {
           boosting member engagement, and building lasting prestige.
         </HeroSubtitle>
         <HeroActions>
-          <Button asChild size="lg" className="bg-gradient-primary hover:opacity-90 text-primary-foreground font-semibold btn-glow">
+          <Button asChild size="lg" className="bg-gradient-primary hover:opacity-90 text-primary-foreground font-calder font-semibold btn-glow">
             <Link to="/partnership">Partner with Us</Link>
           </Button>
         </HeroActions>
@@ -73,7 +73,7 @@ const ClubPartnerSection = () => {
                 </div>
               </div>
 
-              <Button asChild size="lg" className="bg-gradient-primary hover:opacity-90 text-primary-foreground font-semibold">
+              <Button asChild size="lg" className="bg-gradient-primary hover:opacity-90 text-primary-foreground font-calder font-semibold">
                 <Link to="/partnership">Find Out More</Link>
               </Button>
             </div>
@@ -92,8 +92,8 @@ const ClubPartnerSection = () => {
                 <div className="space-y-4">
                   <div className="bg-background/80 backdrop-blur-sm rounded-lg p-4 border border-border/50">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">Member Participation</span>
-                      <span className="text-sm text-success font-semibold">+47% increase</span>
+                      <span className="text-sm font-calder font-medium text-foreground">Member Participation</span>
+                      <span className="text-sm text-success font-calder font-semibold">+47% increase</span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-2 mt-2">
                       <div className="bg-gradient-primary h-2 rounded-full" style={{
@@ -104,8 +104,8 @@ const ClubPartnerSection = () => {
                   
                   <div className="bg-background/80 backdrop-blur-sm rounded-lg p-4 border border-border/50">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">Competition Management</span>
-                      <span className="text-sm text-primary font-semibold">Automated</span>
+                      <span className="text-sm font-calder font-medium text-foreground">Competition Management</span>
+                      <span className="text-sm text-primary font-calder font-semibold">Automated</span>
                     </div>
                     <div className="flex items-center mt-2 gap-2">
                       <Trophy className="w-4 h-4 text-secondary" />
@@ -115,8 +115,8 @@ const ClubPartnerSection = () => {
                   
                   <div className="bg-background/80 backdrop-blur-sm rounded-lg p-4 border border-border/50">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">Marketing Support</span>
-                      <span className="text-sm text-accent font-semibold">Included</span>
+                      <span className="text-sm font-calder font-medium text-foreground">Marketing Support</span>
+                      <span className="text-sm text-accent font-calder font-semibold">Included</span>
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
                       Social media assets, promotional materials, and event marketing
@@ -142,15 +142,15 @@ const ClubPartnerSection = () => {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
               <div className="text-center">
-                <div className="text-3xl font-bold text-primary mb-2">✓</div>
+                <div className="text-3xl font-calder font-bold text-primary mb-2">✓</div>
                 <div className="text-sm text-muted-foreground">Fully Insured Platform</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-secondary mb-2">✓</div>
+                <div className="text-3xl font-calder font-bold text-secondary mb-2">✓</div>
                 <div className="text-sm text-muted-foreground">Professional Verification</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-accent mb-2">✓</div>
+                <div className="text-3xl font-calder font-bold text-accent mb-2">✓</div>
                 <div className="text-sm text-muted-foreground">Complete Support</div>
               </div>
             </div>
