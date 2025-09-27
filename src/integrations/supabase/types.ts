@@ -315,6 +315,7 @@ export type Database = {
           logo_url: string | null
           name: string
           phone: string | null
+          slug: string | null
           updated_at: string
           website: string | null
         }
@@ -334,6 +335,7 @@ export type Database = {
           logo_url?: string | null
           name: string
           phone?: string | null
+          slug?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -353,6 +355,7 @@ export type Database = {
           logo_url?: string | null
           name?: string
           phone?: string | null
+          slug?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -375,6 +378,7 @@ export type Database = {
           name: string
           prize_pool: number | null
           rules: Json | null
+          slug: string | null
           start_date: string
           status: Database["public"]["Enums"]["competition_status"]
           updated_at: string
@@ -395,6 +399,7 @@ export type Database = {
           name: string
           prize_pool?: number | null
           rules?: Json | null
+          slug?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["competition_status"]
           updated_at?: string
@@ -415,6 +420,7 @@ export type Database = {
           name?: string
           prize_pool?: number | null
           rules?: Json | null
+          slug?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["competition_status"]
           updated_at?: string
@@ -1072,6 +1078,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       venues: {
         Row: {
           active: boolean
@@ -1556,7 +1586,7 @@ export type Database = {
     }
     Enums: {
       claim_status: "PENDING" | "VERIFIED" | "REJECTED"
-      competition_status: "SCHEDULED" | "ACTIVE" | "ENDED"
+      competition_status: "SCHEDULED" | "ACTIVE" | "ENDED" | "active"
       lead_status:
         | "NEW"
         | "CONTACTED"
@@ -1698,7 +1728,7 @@ export const Constants = {
   public: {
     Enums: {
       claim_status: ["PENDING", "VERIFIED", "REJECTED"],
-      competition_status: ["SCHEDULED", "ACTIVE", "ENDED"],
+      competition_status: ["SCHEDULED", "ACTIVE", "ENDED", "active"],
       lead_status: [
         "NEW",
         "CONTACTED",
