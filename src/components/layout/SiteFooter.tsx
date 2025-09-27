@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import Container from "./Container";
-import { Trophy } from "lucide-react";
+import { Trophy, Instagram, Linkedin, Music } from "lucide-react";
 
 const SiteFooter = () => {
   const currentYear = new Date().getFullYear();
@@ -75,9 +75,41 @@ const SiteFooter = () => {
 
           {/* Bottom Bar */}
           <div className="mt-8 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center">
-            <p className="text-sm text-muted-foreground">
-              © {currentYear} OHIO Golf. All rights reserved.
-            </p>
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+              <p className="text-sm text-muted-foreground">
+                © {currentYear} OHIO Golf. All rights reserved.
+              </p>
+              {/* Social Media Links */}
+              <div className="flex items-center gap-4">
+                <a
+                  href="https://instagram.com/officialholein1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                  aria-label="Follow us on Instagram"
+                >
+                  <Instagram size={20} />
+                </a>
+                <a
+                  href="https://linkedin.com/company/official-hole-in-1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                  aria-label="Follow us on LinkedIn"
+                >
+                  <Linkedin size={20} />
+                </a>
+                <a
+                  href="https://tiktok.com/@officialholein1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                  aria-label="Follow us on TikTok"
+                >
+                  <Music size={20} />
+                </a>
+              </div>
+            </div>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <Link 
                 to="/policies/privacy" 
