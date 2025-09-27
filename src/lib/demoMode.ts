@@ -3,7 +3,7 @@ export const getDemoModeConfig = () => ({
   // Demo domains that should enable demo mode
   demoDomains: ['demo.holein1challenge.co.uk'],
   // Production domains that should disable demo mode  
-  productionDomains: [],
+  productionDomains: ['officialholein1.com'],
   // Environment variable fallback
   envOverride: import.meta.env.VITE_DEMO_MODE_ENABLED,
 });
