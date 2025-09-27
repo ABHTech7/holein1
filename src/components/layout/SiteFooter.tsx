@@ -21,10 +21,10 @@ const SiteFooter = () => {
   return (
     <footer className="bg-muted border-t border-border">
       <Container size="xl">
-        <div className="py-12">
+        <div className="py-12 text-center">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {/* Brand Section */}
-            <div className="md:col-span-2">
+            <div className="md:col-span-2 flex flex-col items-center md:items-start">
               <Link to="/" className="flex items-center mb-4">
                 <img 
                   src="/brand/ohio-logo-black.svg" 
@@ -39,7 +39,7 @@ const SiteFooter = () => {
             </div>
 
             {/* Quick Links */}
-            <div>
+            <div className="flex flex-col items-center md:items-start">
               <h3 className="font-calder font-semibold text-foreground mb-4">Quick Links</h3>
               <ul className="space-y-3">
                 {quickLinks.map((link) => (
@@ -56,7 +56,7 @@ const SiteFooter = () => {
             </div>
 
             {/* Policies */}
-            <div>
+            <div className="flex flex-col items-center md:items-start">
               <h3 className="font-calder font-semibold text-foreground mb-4">Legal</h3>
               <ul className="space-y-3">
                 {policyLinks.map((link) => (
@@ -74,8 +74,8 @@ const SiteFooter = () => {
           </div>
 
           {/* Bottom Bar */}
-          <div className="mt-8 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center">
-            <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <div className="mt-8 pt-8 border-t border-border flex flex-col items-center gap-4">
+            <div className="flex flex-col md:flex-row items-center gap-4">
               <p className="text-sm text-muted-foreground">
                 © {currentYear} OHIO Golf. All rights reserved.
               </p>
@@ -110,7 +110,7 @@ const SiteFooter = () => {
                 </a>
               </div>
             </div>
-            <div className="flex space-x-6 mt-4 md:mt-0">
+            <div className="flex space-x-6">
               <Link 
                 to="/policies/privacy" 
                 className="text-sm text-muted-foreground hover:text-primary transition-colors"
