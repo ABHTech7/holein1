@@ -47,7 +47,7 @@ const ClubPartnerSection = () => {
         <Container>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-6">Professional-grade technology that works seamlessly</h2>
+              <h2 className="font-calder text-3xl md:text-4xl font-bold text-foreground mb-6">Professional-grade technology that works seamlessly</h2>
               <p className="text-lg text-muted-foreground mb-8">
                 Our platform integrates effortlessly with your existing operations, 
                 providing powerful tools for member management, competition tracking, 
