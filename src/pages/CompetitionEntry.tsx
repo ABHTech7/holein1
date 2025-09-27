@@ -84,7 +84,11 @@ const CompetitionEntry = () => {
           variant: "destructive"
         });
       } else {
-        setCompetition(data);
+        const normalizedCompetition = {
+          ...data,
+          status: (data.status === 'active' ? 'ACTIVE' : data.status.toUpperCase()) as 'ACTIVE' | 'ENDED' | 'SCHEDULED'
+        };
+        setCompetition(normalizedCompetition);
         setShareUrl(`${window.location.origin}/enter/${competitionId}`);
       }
       

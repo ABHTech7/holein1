@@ -189,7 +189,11 @@ const CompetitionDetailEnhanced = () => {
           return;
         }
 
-        setCompetition(competitionData);
+        const normalizedCompetition = {
+          ...competitionData,
+          status: (competitionData.status === 'active' ? 'ACTIVE' : competitionData.status.toUpperCase()) as 'ACTIVE' | 'ENDED' | 'SCHEDULED'
+        };
+        setCompetition(normalizedCompetition);
         
         // Initialize edit form with current data
         editForm.reset({

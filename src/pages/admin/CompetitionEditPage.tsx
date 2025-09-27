@@ -113,7 +113,11 @@ const CompetitionEditPage = () => {
 
         if (error) throw error;
 
-        setCompetition(data);
+        const normalizedCompetition = {
+          ...data,
+          status: (data.status === 'active' ? 'ACTIVE' : data.status.toUpperCase()) as 'ACTIVE' | 'ENDED' | 'SCHEDULED'
+        };
+        setCompetition(normalizedCompetition);
         
         // Set hero image preview if exists
         if (data.hero_image_url) {

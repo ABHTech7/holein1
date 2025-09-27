@@ -264,7 +264,11 @@ const ClubDashboardNew = () => {
         }
         
         // Set state even if some queries failed - show available data
-        setCompetitions(processedCompetitions);
+        const normalizedCompetitions = processedCompetitions.map(comp => ({
+          ...comp,
+          status: (comp.status === 'active' ? 'ACTIVE' : comp.status.toUpperCase()) as 'ACTIVE' | 'ENDED' | 'SCHEDULED'
+        }));
+        setCompetitions(normalizedCompetitions);
         setStats({
           entriesToday,
           entriesThisWeek: 0, // Not calculated in this version

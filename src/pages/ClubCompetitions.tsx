@@ -117,6 +117,7 @@ const ClubCompetitions = () => {
         // Process competitions data with entry counts and commission
         const processedCompetitions = competitionsData?.map(comp => ({
           ...comp,
+          status: (comp.status === 'active' ? 'ACTIVE' : comp.status.toUpperCase()) as 'ACTIVE' | 'ENDED' | 'SCHEDULED',
           entries_count: comp.entries[0]?.count || 0,
           commission_revenue: (comp.entries[0]?.count || 0) * (comp.commission_amount || 0)
         })) || [];
