@@ -66,6 +66,9 @@ verify_jwt = true
 
 [functions.admin-upsert-club] 
 verify_jwt = true
-
+ 
 [functions.admin-get-clubs]
+verify_jwt = true
+
+[functions.admin-find-user]
 verify_jwt = true

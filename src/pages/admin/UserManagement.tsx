@@ -17,6 +17,7 @@ import { formatDate } from "@/lib/formatters";
 import NewUserModal from "@/components/admin/NewUserModal";
 import { EnhancedUserManagement } from "@/components/admin/EnhancedUserManagement";
 import { PermissionManagement } from "@/components/admin/PermissionManagement";
+import UserDiagnosticsModal from "@/components/admin/UserDiagnosticsModal";
 import { useAuth } from "@/hooks/useAuth";
 
 interface UserProfile {
@@ -59,9 +60,11 @@ const UserManagement = () => {
     clubId: ""
   });
 
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+
   // Get current user's role from profiles
   const [currentUserRole, setCurrentUserRole] = useState<string>('ADMIN');
-
+ 
   // Fetch users and clubs
   const fetchData = async () => {
     try {
@@ -252,13 +255,23 @@ const UserManagement = () => {
                   <p className="text-muted-foreground mt-1">Manage administrators, club managers, and insurance partners</p>
                 </div>
               </div>
-              <Button 
-                className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2"
-                onClick={() => setShowAddUser(true)}
-              >
-                <Plus className="w-4 h-4" />
-                Add User
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => setShowDiagnostics(true)}
+                >
+                  <Search className="w-4 h-4" />
+                  Diagnose User
+                </Button>
+                <Button 
+                  className="bg-gradient-primary hover:opacity-90 text-primary-foreground gap-2"
+                  onClick={() => setShowAddUser(true)}
+                >
+                  <Plus className="w-4 h-4" />
+                  Add User
+                </Button>
+              </div>
             </div>
 
             {/* Search and Filters */}
