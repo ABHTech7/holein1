@@ -327,7 +327,8 @@ const AdminDashboard = () => {
         for (let i = 3; i >= 0; i--) {
           const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
           const monthName = monthDate.toLocaleDateString('en-GB', {
-            month: 'short'
+            month: 'short',
+            timeZone: 'UTC'
           });
           const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1).toISOString();
           const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59).toISOString();
@@ -613,7 +614,8 @@ const AdminDashboard = () => {
                 </> : <>
                   <StatsCard title="Total Players" value={stats.totalPlayers.toString()} description="Registered players" icon={Users} onClick={handlePlayersClick} />
                   <StatsCard title="New Players This Month" value={stats.newPlayersThisMonth.toString()} description={`Since ${new Date().toLocaleDateString('en-GB', {
-                month: 'long'
+                month: 'long',
+                timeZone: 'UTC'
               })} 1st`} icon={Users} />
                   <StatsCard title="Active Clubs" value={stats.totalClubs.toString()} description="Golf clubs using platform" icon={Calendar} onClick={handleClubsClick} />
                   <StatsCard title="Active Competitions" value={stats.activeCompetitions.toString()} description="Currently running" icon={Trophy} onClick={handleCompetitionsClick} />

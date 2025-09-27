@@ -325,7 +325,7 @@ const ClubBankingSection: React.FC<ClubBankingSectionProps> = ({ clubId }) => {
         {bankingDetails?.updated_at && (
           <div className="mt-6 pt-4 border-t">
             <div className="flex items-center justify-start text-sm text-muted-foreground">
-              <span>Last updated: {new Date(bankingDetails.updated_at).toLocaleDateString()}</span>
+              <span>Last updated: {new Date(bankingDetails.updated_at).toLocaleDateString('en-GB', { timeZone: 'UTC' })}</span>
             </div>
           </div>
         )}

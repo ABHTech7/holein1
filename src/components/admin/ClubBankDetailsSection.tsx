@@ -236,7 +236,7 @@ const ClubBankDetailsSection: React.FC<BankDetailsSectionProps> = ({ clubId }) =
               {accessLog.slice(0, 10).map((log) => (
                 <div key={log.id} className="text-xs text-muted-foreground flex justify-between">
                   <span>{log.profiles?.email || 'System'} - {log.access_type}</span>
-                  <span>{new Date(log.created_at).toLocaleString()}</span>
+                  <span>{new Date(log.created_at).toLocaleString('en-GB', { timeZone: 'UTC' })}</span>
                 </div>
               ))}
             </div>

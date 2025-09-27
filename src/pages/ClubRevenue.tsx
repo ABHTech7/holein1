@@ -146,7 +146,7 @@ const ClubRevenue = () => {
           console.log(`Chart Data - ${date.toDateString()}: ${dayEntries.length} entries, £${dayRevenue.toFixed(2)} revenue`);
           
           chartEntries.push({
-            date: date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }),
+            date: date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
             revenue: dayRevenue,
             entries: dayEntries.length,
             fullDate: date.toDateString() // for debugging
@@ -234,7 +234,7 @@ const ClubRevenue = () => {
         console.log(`Period Change Chart Data - ${date.toDateString()}: ${dayEntries.length} entries, £${dayRevenue.toFixed(2)} revenue`);
         
         chartEntries.push({
-          date: date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }),
+          date: date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
           revenue: dayRevenue,
           entries: dayEntries.length,
           fullDate: date.toDateString() // for debugging

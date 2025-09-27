@@ -38,7 +38,7 @@ export function PlayerSummaryCards({ data, loading }: PlayerSummaryCardsProps) {
     if (diffInDays === 0) return "Today";
     if (diffInDays === 1) return "Yesterday";
     if (diffInDays < 7) return `${diffInDays} days ago`;
-    return date.toLocaleDateString();
+    return date.toLocaleDateString('en-GB', { timeZone: 'UTC' });
   };
 
   return (

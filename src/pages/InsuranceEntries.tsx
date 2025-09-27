@@ -220,7 +220,7 @@ const InsuranceEntries = () => {
                           const date = new Date();
                           date.setMonth(date.getMonth() - i);
                           const value = date.toISOString().slice(0, 7);
-                          const label = date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+                          const label = date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
                           return (
                             <SelectItem key={value} value={value}>
                               {label}

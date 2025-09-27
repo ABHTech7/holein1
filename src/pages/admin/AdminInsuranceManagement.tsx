@@ -120,7 +120,7 @@ const AdminInsuranceManagement = () => {
 
         if (error) throw error;
 
-        const monthName = monthStart.toLocaleDateString('en-US', { month: 'short' });
+        const monthName = monthStart.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
         const premiums = (entries || 0) * currentCompany.premium_rate_per_entry;
 
         months.push({
@@ -576,7 +576,7 @@ const AdminInsuranceManagement = () => {
                           <strong>Premium Rate:</strong> {formatCurrency(Math.round(currentCompany.premium_rate_per_entry * 100))} per entry
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Partner since {new Date(currentCompany.created_at).toLocaleDateString()}
+                          Partner since {new Date(currentCompany.created_at).toLocaleDateString('en-GB', { timeZone: 'UTC' })}
                         </p>
                       </div>
                     </div>
