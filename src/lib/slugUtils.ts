@@ -6,7 +6,7 @@
  * Create slug from text with consistent rules
  */
 export const createSlug = (text: string): string => {
-  if (!text) return '';
+  if (!text || typeof text !== 'string') return '';
   
   return text
     .toLowerCase()
@@ -14,7 +14,8 @@ export const createSlug = (text: string): string => {
     .replace(/'/g, '') // Remove apostrophes
     .replace(/&/g, 'and') // Replace & with 'and'
     .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
-    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+    .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+    .replace(/-{2,}/g, '-'); // Replace multiple consecutive hyphens with single hyphen
 };
 
 /**

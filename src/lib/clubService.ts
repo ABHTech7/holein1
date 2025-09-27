@@ -21,23 +21,22 @@ export interface SafeClubData {
  * Safe competition data interface for public consumption
  */
 export interface SafeCompetitionData {
-  id: string;
-  name: string;
-  description: string;
-  entry_fee: number;
-  prize_pool: number;
-  hole_number: number;
-  start_date: string;
-  end_date: string;
-  is_year_round: boolean;
-  hero_image_url: string;
+  competition_id: string;
+  competition_name: string;
+  competition_description: string;
+  competition_status: string;
+  competition_start_date: string;
+  competition_end_date: string;
+  competition_entry_fee: number;
+  competition_hole_number: number;
+  competition_slug: string;
   club_id: string;
   club_name: string;
+  club_address: string;
+  club_phone: string;
+  club_email: string;
   club_website: string;
   club_logo_url: string;
-  club_address: string;
-  club_email: string;
-  club_phone: string;
 }
 
 export class ClubService {

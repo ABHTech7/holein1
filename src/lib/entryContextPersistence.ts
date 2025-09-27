@@ -61,16 +61,24 @@ export const getPendingEntryContext = (): PendingEntryContext | null => {
     
     const context: PendingEntryContext = JSON.parse(stored);
     
+    // Validate context structure
+    if (!context.email || !context.formData || typeof context.expiresAt !== 'number') {
+      console.warn('[EntryContext] Invalid context structure, clearing');
+      clearPendingEntryContext();
+      return null;
+    }
+    
     // Check if expired
     if (Date.now() > context.expiresAt) {
-      localStorage.removeItem(PENDING_ENTRY_KEY);
+      console.log('[EntryContext] Context expired, clearing');
+      clearPendingEntryContext();
       return null;
     }
     
     return context;
   } catch (error) {
     console.error('[EntryContext] Error retrieving pending context:', error);
-    localStorage.removeItem(PENDING_ENTRY_KEY);
+    clearPendingEntryContext();
     return null;
   }
 };

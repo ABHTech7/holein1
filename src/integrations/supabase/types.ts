@@ -1466,7 +1466,9 @@ export type Database = {
         }[]
       }
       get_safe_competition_data: {
-        Args: { p_club_id?: string; p_competition_slug?: string }
+        Args:
+          | { p_club_id?: string; p_competition_slug?: string }
+          | { p_club_id?: string; p_competition_slug?: string }
         Returns: {
           club_address: string
           club_email: string
@@ -1475,16 +1477,15 @@ export type Database = {
           club_name: string
           club_phone: string
           club_website: string
-          description: string
-          end_date: string
-          entry_fee: number
-          hero_image_url: string
-          hole_number: number
-          id: string
-          is_year_round: boolean
-          name: string
-          prize_pool: number
-          start_date: string
+          competition_description: string
+          competition_end_date: string
+          competition_entry_fee: number
+          competition_hole_number: number
+          competition_id: string
+          competition_name: string
+          competition_slug: string
+          competition_start_date: string
+          competition_status: string
         }[]
       }
       get_site_settings: {
