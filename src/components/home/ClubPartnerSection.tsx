@@ -5,10 +5,8 @@ import Section from "@/components/layout/Section";
 import { Hero, HeroTitle, HeroSubtitle, HeroActions } from "@/components/ui/hero";
 import FeatureItem from "@/components/ui/feature-item";
 import { Trophy, TrendingUp, Users, Shield, BarChart3, Zap } from "lucide-react";
-
 const ClubPartnerSection = () => {
-  return (
-    <div className="animate-fade-in">
+  return <div className="animate-fade-in">
       {/* Club-Focused Hero */}
       <Hero variant="image" backgroundImage="/img/hero-club.jpg">
         <HeroTitle>Transform Your Golf Course Into a Legendary Destination</HeroTitle>
@@ -17,11 +15,7 @@ const ClubPartnerSection = () => {
           boosting member engagement, and building lasting prestige.
         </HeroSubtitle>
         <HeroActions>
-          <Button 
-            asChild 
-            size="lg"
-            className="bg-gradient-primary hover:opacity-90 text-primary-foreground font-semibold btn-glow"
-          >
+          <Button asChild size="lg" className="bg-gradient-primary hover:opacity-90 text-primary-foreground font-semibold btn-glow">
             <Link to="/partnership">Partner with Us</Link>
           </Button>
         </HeroActions>
@@ -40,26 +34,10 @@ const ClubPartnerSection = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <FeatureItem
-              icon={Trophy}
-              title="Build Prestige"
-              description="Create legendary moments that members will talk about for years."
-            />
-            <FeatureItem
-              icon={TrendingUp}
-              title="New Revenue Streams"
-              description="Generate additional income with every entry and competition."
-            />
-            <FeatureItem
-              icon={Users}
-              title="Boost Engagement"
-              description="Give members compelling reasons to visit and stay active."
-            />
-            <FeatureItem
-              icon={BarChart3}
-              title="Smart Technology"
-              description="Real-time insights, automated reporting, and member analytics."
-            />
+            <FeatureItem icon={Trophy} title="Build Prestige" description="Create legendary moments that members will talk about for years." />
+            <FeatureItem icon={TrendingUp} title="New Revenue Streams" description="Generate additional income with every entry and competition." />
+            <FeatureItem icon={Users} title="Boost Engagement" description="Give members compelling reasons to visit and stay active." />
+            <FeatureItem icon={BarChart3} title="Smart Technology" description="Real-time insights, automated reporting, and member analytics." />
           </div>
         </Container>
       </Section>
@@ -69,9 +47,7 @@ const ClubPartnerSection = () => {
         <Container>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-6">
-                Professional-grade technology that works seamlessly
-              </h2>
+              <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-6">Professional-grade technology that works seamlessly</h2>
               <p className="text-lg text-muted-foreground mb-8">
                 Our platform integrates effortlessly with your existing operations, 
                 providing powerful tools for member management, competition tracking, 
@@ -97,12 +73,8 @@ const ClubPartnerSection = () => {
                 </div>
               </div>
 
-              <Button 
-                asChild 
-                size="lg"
-                className="bg-gradient-primary hover:opacity-90 text-primary-foreground font-semibold"
-              >
-                <Link to="/partnership">Schedule a Demo</Link>
+              <Button asChild size="lg" className="bg-gradient-primary hover:opacity-90 text-primary-foreground font-semibold">
+                <Link to="/partnership">Find Out More</Link>
               </Button>
             </div>
 
@@ -124,7 +96,9 @@ const ClubPartnerSection = () => {
                       <span className="text-sm text-success font-semibold">+47% increase</span>
                     </div>
                     <div className="w-full bg-muted rounded-full h-2 mt-2">
-                      <div className="bg-gradient-primary h-2 rounded-full" style={{ width: '85%' }}></div>
+                      <div className="bg-gradient-primary h-2 rounded-full" style={{
+                      width: '85%'
+                    }}></div>
                     </div>
                   </div>
                   
@@ -180,12 +154,7 @@ const ClubPartnerSection = () => {
                 <div className="text-sm text-muted-foreground">Complete Support</div>
               </div>
             </div>
-            <Button 
-              asChild 
-              size="lg"
-              variant="outline"
-              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-            >
+            <Button asChild size="lg" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground">
               <Link to="/partnership">Learn More</Link>
             </Button>
           </div>
@@ -203,20 +172,13 @@ const ClubPartnerSection = () => {
               Join the network of forward-thinking golf clubs creating legendary experiences for their members.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                asChild 
-                size="lg"
-                variant="secondary"
-                className="bg-background text-foreground hover:bg-background/90"
-              >
+              <Button asChild size="lg" variant="secondary" className="bg-background text-foreground hover:bg-background/90">
                 <Link to="/partnership">Start Partnership Application</Link>
               </Button>
             </div>
           </div>
         </Container>
       </Section>
-    </div>
-  );
+    </div>;
 };
-
 export default ClubPartnerSection;
