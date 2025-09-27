@@ -540,6 +540,9 @@ const UserManagement = () => {
         }}
       />
 
+      {/* Diagnostics Modal */}
+      <UserDiagnosticsModal isOpen={showDiagnostics} onClose={() => setShowDiagnostics(false)} initialEmail={searchTerm} />
+
       {/* Edit User Modal */}
       {editingUser && (
         <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
