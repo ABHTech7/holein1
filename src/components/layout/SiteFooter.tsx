@@ -77,7 +77,7 @@ const SiteFooter = () => {
           <div className="mt-8 pt-8 border-t border-border flex flex-col items-center gap-4">
             <div className="flex flex-col md:flex-row items-center gap-4">
               <p className="text-sm text-muted-foreground">
-                © {currentYear} OHIO Golf. All rights reserved.
+                © 2025 Official Hole in 1.
               </p>
               {/* Social Media Links */}
               <div className="flex items-center gap-4">
