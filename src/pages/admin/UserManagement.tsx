@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import SiteHeader from "@/components/layout/SiteHeader";
 import Section from "@/components/layout/Section";
-import { ArrowLeft, Plus, Search, Edit, MoreHorizontal, Shield, Building, FileBarChart, Mail, KeyRound, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Search, Edit, MoreHorizontal, Shield, Building, FileBarChart, Mail, KeyRound, Trash2, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/formatters";
@@ -256,6 +256,15 @@ const UserManagement = () => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline"
+                  className="gap-2"
+                  onClick={fetchData}
+                  disabled={loading}
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
                 <Button 
                   variant="outline"
                   className="gap-2"
