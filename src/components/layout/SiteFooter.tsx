@@ -57,7 +57,7 @@ const SiteFooter = () => {
 
             {/* Policies */}
             <div>
-              <h3 className="font-semibold text-foreground mb-4">Legal</h3>
+              <h3 className="font-calder font-semibold text-foreground mb-4">Legal</h3>
               <ul className="space-y-3">
                 {policyLinks.map((link) => (
                   <li key={link.name}>
