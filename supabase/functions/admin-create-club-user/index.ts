@@ -15,6 +15,8 @@ interface CreateClubUserRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log('admin-create-club-user: Request received', { method: req.method, timestamp: new Date().toISOString() });
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -83,15 +85,46 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Parse request body
     const { email, password, firstName, lastName, clubId }: CreateClubUserRequest = await req.json();
+    const normalizedEmail = email.toLowerCase().trim();
+
+    console.log('admin-create-club-user: Processing request', { 
+      email: normalizedEmail, 
+      firstName, 
+      lastName, 
+      clubId, 
+      hasPassword: !!password 
+    });
 
     if (!email || !password || !firstName || !clubId) {
+      console.error('admin-create-club-user: Missing required fields', { email: !!email, password: !!password, firstName: !!firstName, clubId: !!clubId });
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
+    // Check if user already exists in auth.users
+    console.log('admin-create-club-user: Checking if user exists in auth.users');
+    const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+    
+    if (listError) {
+      console.error('admin-create-club-user: Failed to list existing users:', listError);
+    } else {
+      const existingUser = existingUsers.users?.find(u => (u.email || '').toLowerCase() === normalizedEmail);
+      if (existingUser) {
+        console.warn('admin-create-club-user: User already exists in auth.users:', { id: existingUser.id, email: existingUser.email });
+        return new Response(JSON.stringify({ 
+          error: 'User already exists in authentication system',
+          details: `A user with email ${normalizedEmail} already exists. Use the User Diagnostics tool to repair if needed.`
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
     // Verify the club exists
+    console.log('admin-create-club-user: Verifying club exists:', clubId);
     const { data: club, error: clubError } = await supabaseAdmin
       .from('clubs')
       .select('id, name')
@@ -99,16 +132,19 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (clubError || !club) {
-      console.error('Club not found:', clubError);
+      console.error('admin-create-club-user: Club not found:', clubError);
       return new Response(JSON.stringify({ error: 'Club not found' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+    
+    console.log('admin-create-club-user: Club verified:', { id: club.id, name: club.name });
 
     // Create the user using admin client
+    console.log('admin-create-club-user: Creating user in auth.users');
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email: email.toLowerCase().trim(),
+      email: normalizedEmail,
       password,
       user_metadata: {
         first_name: firstName,
@@ -117,6 +153,12 @@ const handler = async (req: Request): Promise<Response> => {
         club_id: clubId
       },
       email_confirm: true // Auto-confirm email
+    });
+
+    console.log('admin-create-club-user: User creation result', { 
+      success: !!newUser?.user, 
+      userId: newUser?.user?.id,
+      error: createError?.message 
     });
 
     if (createError) {
@@ -137,6 +179,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Update the profile with club_id and role (redundant but safe)
+    console.log('admin-create-club-user: Updating profile for user:', newUser.user.id);
     const { error: profileUpdateError } = await supabaseAdmin
       .from('profiles')
       .update({ 
@@ -144,16 +187,18 @@ const handler = async (req: Request): Promise<Response> => {
         role: 'CLUB',
         first_name: firstName,
         last_name: lastName || '',
-        email: email.toLowerCase().trim()
+        email: normalizedEmail
       })
       .eq('id', newUser.user.id);
 
     if (profileUpdateError) {
-      console.error('Profile update error:', profileUpdateError);
+      console.error('admin-create-club-user: Profile update error:', profileUpdateError);
       // Don't fail the request, just log the error
+    } else {
+      console.log('admin-create-club-user: Profile updated successfully');
     }
 
-    console.log(`Successfully created club user: ${email} for club: ${club.name}`);
+    console.log(`admin-create-club-user: Successfully created club user: ${normalizedEmail} for club: ${club.name}`);
 
     return new Response(JSON.stringify({
       success: true,

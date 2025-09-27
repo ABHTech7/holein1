@@ -15,6 +15,8 @@ interface FindUserRequest {
 }
 
 serve(async (req) => {
+  console.log('admin-find-user: Request received', { method: req.method, timestamp: new Date().toISOString() });
+  
   try {
     if (req.method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders });
@@ -26,6 +28,14 @@ serve(async (req) => {
 
     const { email, repair, defaultRole = 'ADMIN', firstName, lastName }: FindUserRequest = await req.json();
     const normalizedEmail = (email || '').trim().toLowerCase();
+    
+    console.log('admin-find-user: Processing request', { 
+      email: normalizedEmail, 
+      repair: !!repair, 
+      defaultRole,
+      hasFirstName: !!firstName,
+      hasLastName: !!lastName 
+    });
 
     if (!normalizedEmail || !normalizedEmail.includes('@')) {
       return new Response(JSON.stringify({ success: false, error: 'Valid email is required' }), {
@@ -74,14 +84,19 @@ serve(async (req) => {
 
     // Look up in Auth (fallback to list + match by email for broader SDK compatibility)
     let authUser: any = null;
+    console.log('admin-find-user: Querying auth.users for email:', normalizedEmail);
+    
     const { data: listRes, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
     if (listErr) {
       console.warn('admin-find-user: listUsers error', listErr);
     } else {
       authUser = listRes?.users?.find((u: any) => (u.email || '').toLowerCase() === normalizedEmail) ?? null;
+      console.log('admin-find-user: Auth user found:', !!authUser, authUser ? { id: authUser.id, email: authUser.email } : null);
     }
 
     // Look up in Profiles (case-insensitive)
+    console.log('admin-find-user: Querying profiles for email:', normalizedEmail);
+    
     const { data: profilesMatch, error: profilesErr } = await supabaseAdmin
       .from('profiles')
       .select('*')
@@ -90,6 +105,9 @@ serve(async (req) => {
 
     if (profilesErr) {
       console.error('admin-find-user: profiles query error', profilesErr);
+    } else {
+      console.log('admin-find-user: Profiles found:', profilesMatch?.length || 0, 
+        profilesMatch?.map(p => ({ id: p.id, email: p.email, role: p.role, status: p.status })) || []);
     }
 
     // Choose best profile candidate
@@ -111,6 +129,10 @@ serve(async (req) => {
     let recommendedAction: 'none' | 'create_profile' | 'reactivate_profile' = 'none';
     if (existsInAuth && !existsInProfiles) recommendedAction = 'create_profile';
     else if (existsInAuth && existsInProfiles && isDeleted) recommendedAction = 'reactivate_profile';
+
+    console.log('admin-find-user: Diagnostics computed', {
+      existsInAuth, existsInProfiles, profileStatus, profileRole, isDeleted, recommendedAction
+    });
 
     let actionTaken: string | null = null;
 
