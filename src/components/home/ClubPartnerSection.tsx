@@ -25,7 +25,7 @@ const ClubPartnerSection = () => {
       <Section spacing="xl">
         <Container>
           <div className="text-center mb-12">
-            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">
+            <h2 className="font-calder text-3xl md:text-4xl font-bold text-foreground mb-4">
               Why Top Golf Clubs Choose Our Platform
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -81,7 +81,7 @@ const ClubPartnerSection = () => {
             <div className="relative">
               <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl p-8 shadow-medium">
                 <div className="text-center mb-6">
-                  <h3 className="font-display text-xl font-bold text-foreground mb-2">
+                  <h3 className="font-calder text-xl font-bold text-foreground mb-2">
                     Comprehensive Club Management
                   </h3>
                   <p className="text-sm text-muted-foreground">
@@ -133,7 +133,7 @@ const ClubPartnerSection = () => {
       <Section spacing="xl">
         <Container>
           <div className="text-center">
-            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-6">
+            <h2 className="font-calder text-3xl md:text-4xl font-bold text-foreground mb-6">
               Be Part of Golf's Next Evolution
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-3xl mx-auto">
@@ -165,7 +165,7 @@ const ClubPartnerSection = () => {
       <Section spacing="xl" className="bg-gradient-primary">
         <Container>
           <div className="text-center">
-            <h2 className="font-display text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
+            <h2 className="font-calder text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
               Ready to Transform Your Club?
             </h2>
             <p className="text-lg text-primary-foreground/90 mb-8 max-w-2xl mx-auto">
