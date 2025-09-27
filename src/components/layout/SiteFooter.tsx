@@ -40,7 +40,7 @@ const SiteFooter = () => {
 
             {/* Quick Links */}
             <div>
-              <h3 className="font-semibold text-foreground mb-4">Quick Links</h3>
+              <h3 className="font-calder font-semibold text-foreground mb-4">Quick Links</h3>
               <ul className="space-y-3">
                 {quickLinks.map((link) => (
                   <li key={link.name}>
