@@ -29,35 +29,26 @@ const NewClubUserModal = ({ isOpen, onClose, clubId, clubName, onSuccess }: NewC
     try {
       setLoading(true);
       
-      // Create the user with CLUB role and club_id
-      const { data, error } = await supabase.auth.admin.createUser({
-        email: userData.email,
-        password: userData.password,
-        user_metadata: {
-          first_name: userData.firstName,
-          last_name: userData.lastName,
-          role: 'CLUB',
-          club_id: clubId
+      // Call the secure edge function to create the club user
+      const { data, error } = await supabase.functions.invoke('admin-create-club-user', {
+        body: {
+          email: userData.email,
+          password: userData.password,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          clubId: clubId
         }
       });
       
       if (error) throw error;
-
-      // Update the profile with club_id to ensure it's set correctly
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ club_id: clubId, role: 'CLUB' })
-          .eq('id', data.user.id);
-        
-        if (profileError) {
-          console.error('Error updating profile with club_id:', profileError);
-        }
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to create club user');
       }
 
       toast({
         title: "Success",
-        description: `Club manager created successfully for ${clubName}.`,
+        description: data.message || `Club manager created successfully for ${clubName}.`,
       });
 
       // Reset form
