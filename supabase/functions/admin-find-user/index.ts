@@ -72,13 +72,14 @@ serve(async (req) => {
       });
     }
 
-    // Look up in Auth
-    const { data: userByEmail, error: getByEmailErr } = await supabaseAdmin.auth.admin.getUserByEmail(normalizedEmail);
-    if (getByEmailErr && getByEmailErr.message && !getByEmailErr.message.includes('No user found')) {
-      console.warn('admin-find-user: getUserByEmail warning', getByEmailErr);
+    // Look up in Auth (fallback to list + match by email for broader SDK compatibility)
+    let authUser: any = null;
+    const { data: listRes, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    if (listErr) {
+      console.warn('admin-find-user: listUsers error', listErr);
+    } else {
+      authUser = listRes?.users?.find((u: any) => (u.email || '').toLowerCase() === normalizedEmail) ?? null;
     }
-
-    const authUser = userByEmail?.user ?? null;
 
     // Look up in Profiles (case-insensitive)
     const { data: profilesMatch, error: profilesErr } = await supabaseAdmin

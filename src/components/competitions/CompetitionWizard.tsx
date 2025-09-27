@@ -129,7 +129,7 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
           setUserRole(profile.role);
           
           // If admin and no club provided, fetch all clubs
-          if (profile.role === 'ADMIN' && !clubId) {
+          if ((profile.role === 'ADMIN' || profile.role === 'SUPER_ADMIN') && !clubId) {
             const { data: clubsData } = await supabase
               .from('clubs')
               .select('id, name')
@@ -510,7 +510,7 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
               )}
             </div>
 
-            {userRole === 'ADMIN' && (
+            {(userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') && (
               <div>
                 <Label htmlFor="commission_rate">Commission Rate (£ per entry)</Label>
                 <Input
@@ -573,7 +573,7 @@ const CompetitionWizard = ({ clubId, isAdmin = false, prefillData }: Competition
                     {watchedValues.entry_fee === 0 ? 'Free' : formatCurrency(watchedValues.entry_fee * 100)}
                   </p>
                 </div>
-                {userRole === 'ADMIN' && (
+                {(userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') && (
                   <div>
                     <p className="text-muted-foreground">Commission Rate</p>
                     <p className="font-medium">

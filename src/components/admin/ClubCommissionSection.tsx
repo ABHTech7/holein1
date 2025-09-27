@@ -312,7 +312,7 @@ const ClubCommissionSection = ({ clubId }: CommissionSectionProps) => {
     }
   };
 
-  const isAdmin = profile?.role === 'ADMIN';
+  const isAdmin = profile?.role === 'ADMIN' || profile?.role === 'SUPER_ADMIN';
 
   if (loading) {
     return (

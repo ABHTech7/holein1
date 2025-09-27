@@ -94,7 +94,7 @@ const CompetitionWizardPage = () => {
 
   // ADMIN users don't need to be associated with a club - they can select one
   // Only check club association for non-ADMIN users (though CLUB users no longer have access anyway)
-  if (profile.role !== 'ADMIN' && !profile.club_id) {
+  if (profile.role !== 'ADMIN' && profile.role !== 'SUPER_ADMIN' && !profile.club_id) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center max-w-md">
@@ -128,7 +128,7 @@ const CompetitionWizardPage = () => {
 
             <CompetitionWizard 
               clubId={profile.club_id}
-              isAdmin={profile.role === 'ADMIN'}
+              isAdmin={profile.role === 'ADMIN' || profile.role === 'SUPER_ADMIN'}
               prefillData={prefillData}
             />
           </div>

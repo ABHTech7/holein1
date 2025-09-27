@@ -26,7 +26,12 @@ const RoleGuard = ({ children, allowedRoles, fallbackPath = '/' }: RoleGuardProp
     return <Navigate to="/auth" replace />;
   }
 
-  if (!profile || !allowedRoles.includes(profile.role)) {
+  // Treat SUPER_ADMIN as ADMIN for access checks
+  const effectiveAllowed = allowedRoles.includes('ADMIN')
+    ? Array.from(new Set([...allowedRoles, 'SUPER_ADMIN']))
+    : allowedRoles;
+
+  if (!profile || !effectiveAllowed.includes(profile.role)) {
     return <Navigate to={fallbackPath} replace />;
   }
 

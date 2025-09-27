@@ -59,7 +59,7 @@ const ClubEntries = () => {
   }, [searchParams]);
 
   useEffect(() => {
-    if (profile && (profile?.club_id || profile?.role === 'ADMIN')) {
+    if (profile && (profile?.club_id || profile?.role === 'ADMIN' || profile?.role === 'SUPER_ADMIN')) {
       fetchEntries();
     }
   }, [profile?.club_id, profile?.role]);
@@ -93,7 +93,7 @@ const ClubEntries = () => {
   }, [entries, searchTerm, statusFilter, competitionFilter]);
 
   const fetchEntries = async () => {
-    if (!profile?.club_id && profile?.role !== 'ADMIN') return;
+    if (!profile?.club_id && !(profile?.role === 'ADMIN' || profile?.role === 'SUPER_ADMIN')) return;
 
     try {
       setLoading(true);

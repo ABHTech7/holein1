@@ -172,7 +172,7 @@ const CompetitionDetail = () => {
         setCompetition(competitionData);
 
         // Fetch entries for this competition (only if authenticated and authorized)
-        if (user && profile && (profile.role === 'ADMIN' || 
+        if (user && profile && (profile.role === 'ADMIN' || profile.role === 'SUPER_ADMIN' || 
            (profile.role === 'CLUB' && competitionData.club_id === profile.club_id))) {
           const { data: entriesData, error: entriesError } = await supabase
             .from('entries')
@@ -273,7 +273,7 @@ const CompetitionDetail = () => {
             <div className="flex items-center gap-4">
               <Button 
                 variant="outline" 
-                onClick={() => navigate(profile?.role === 'ADMIN' ? '/dashboard/admin/competitions' : '/dashboard/club/competitions')}
+                onClick={() => navigate((profile?.role === 'ADMIN' || profile?.role === 'SUPER_ADMIN') ? '/dashboard/admin/competitions' : '/dashboard/club/competitions')}
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
