@@ -76,47 +76,65 @@ const RevenueBreakdown = () => {
         });
       }
 
-      // Fetch all entries with related data
-      const { data: entriesData, error } = await supabase
-        .from('entries')
-        .select(`
-          id,
-          entry_date,
-          paid,
-          payment_date,
-          competition_id,
-          player_id
-        `)
-        .order('entry_date', { ascending: false });
+      // Fetch all entries with pagination to get complete dataset
+      let allEntries: any[] = [];
+      let offset = 0;
+      const pageSize = 1000;
+      
+      while (true) {
+        const { data: entriesPage, error } = await supabase
+          .from('entries')
+          .select(`
+            id,
+            entry_date,
+            paid,
+            payment_date,
+            price_paid,
+            competition_id,
+            player_id
+          `)
+          .order('entry_date', { ascending: false })
+          .range(offset, offset + pageSize - 1);
 
-      if (error) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.error("ADMIN REVENUE BREAKDOWN ERROR:", {
-            location: "RevenueBreakdown.fetchData - entries",
-            userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
-            operation: "Fetching all entries",
-            queryParams: { table: "entries", order: "entry_date desc" },
-            code: error.code,
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            fullError: error
+        if (error) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.error("ADMIN REVENUE BREAKDOWN ERROR:", {
+              location: "RevenueBreakdown.fetchData - entries page",
+              userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+              operation: "Fetching entries page",
+              offset,
+              pageSize,
+              code: error.code,
+              message: error.message,
+              details: error.details,
+              hint: error.hint,
+              fullError: error
+            });
+          }
+          
+          const errorMessage = showSupabaseError(error, "Revenue Breakdown - Entries");
+          toast({
+            title: "Error",
+            description: "Failed to load revenue data",
+            variant: "destructive"
           });
+          toast({
+            title: "Technical Details",
+            description: errorMessage,
+            variant: "destructive"
+          });
+          return;
         }
         
-        const errorMessage = showSupabaseError(error, "Revenue Breakdown - Entries");
-        toast({
-          title: "Error",
-          description: "Failed to load revenue data",
-          variant: "destructive"
-        });
-        toast({
-          title: "Technical Details",
-          description: errorMessage,
-          variant: "destructive"
-        });
-        return;
+        if (!entriesPage || entriesPage.length === 0) break;
+        
+        allEntries = [...allEntries, ...entriesPage];
+        
+        if (entriesPage.length < pageSize) break;
+        offset += pageSize;
       }
+
+      const entriesData = allEntries;
 
       if (process.env.NODE_ENV !== 'production') {
         console.log("ADMIN REVENUE BREAKDOWN SUCCESS - Entries fetched:", {
@@ -216,6 +234,9 @@ const RevenueBreakdown = () => {
         const competition = competitionsData?.find(c => c.id === entry.competition_id);
         const profile = profilesData?.find(p => p.id === entry.player_id);
         
+        // Use price_paid if available, fallback to competition entry_fee
+        const effectiveAmount = entry.price_paid ?? parseFloat(competition?.entry_fee?.toString() || '0');
+        
         return {
           id: entry.id,
           entry_date: entry.entry_date,
@@ -225,33 +246,34 @@ const RevenueBreakdown = () => {
           player_email: profile?.email || 'Unknown Email',
           club_name: (competition?.clubs as any)?.name || 'Unknown Club',
           competition_name: competition?.name || 'Unknown Competition',
-          entry_fee: parseFloat(competition?.entry_fee?.toString() || '0')
+          entry_fee: effectiveAmount
         };
       });
 
       setEntries(transformedEntries);
 
-      // Calculate stats
+      // Calculate stats using full dataset
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const startOfYear = new Date(now.getFullYear(), 0, 1);
       
-      const totalEntries = transformedEntries.length;
-      const totalRevenue = transformedEntries
-        .filter(e => e.paid)
-        .reduce((sum, e) => sum + e.entry_fee, 0);
+      // Filter paid entries for revenue calculations
+      const paidEntries = transformedEntries.filter(e => e.paid);
       
-      const monthToDateRevenue = transformedEntries
+      const totalEntries = transformedEntries.length;
+      const totalRevenue = paidEntries.reduce((sum, e) => sum + e.entry_fee, 0);
+      
+      const monthToDateRevenue = paidEntries
         .filter(e => {
           const entryDate = new Date(e.entry_date);
-          return e.paid && entryDate >= startOfMonth && entryDate <= now;
+          return entryDate >= startOfMonth && entryDate <= now;
         })
         .reduce((sum, e) => sum + e.entry_fee, 0);
         
-      const yearToDateRevenue = transformedEntries
+      const yearToDateRevenue = paidEntries
         .filter(e => {
           const entryDate = new Date(e.entry_date);
-          return e.paid && entryDate >= startOfYear && entryDate <= now;
+          return entryDate >= startOfYear && entryDate <= now;
         })
         .reduce((sum, e) => sum + e.entry_fee, 0);
 

@@ -16,6 +16,8 @@ interface PlayerEntry {
   competition_id: string;
   competition_name: string;
   club_name: string;
+  club_slug?: string;
+  competition_slug?: string;
   attempt_number: number;
   outcome_self: string | null;
   price_paid: number;
@@ -211,7 +213,7 @@ export default function PlayerDashboardNew() {
     }
   };
 
-  // Get recent misses for play again panel
+  // Get recent misses for play again panel with slugs
   const recentMisses = entries
     .filter(entry => 
       ['miss', 'auto_miss'].includes(entry.outcome_self || '') &&
