@@ -1457,15 +1457,21 @@ export type Database = {
         }[]
       }
       get_public_competition_data: {
-        Args: {
-          include_demo?: boolean
-          p_club_id?: string
-          p_competition_slug?: string
-        }
+        Args:
+          | {
+              include_demo?: boolean
+              p_club_id?: string
+              p_competition_slug?: string
+            }
+          | { p_club_id?: string; p_competition_slug?: string }
         Returns: {
+          club_address: string
+          club_email: string
           club_id: string
+          club_logo_url: string
           club_name: string
-          club_slug: string
+          club_phone: string
+          club_website: string
           description: string
           end_date: string
           entry_fee: number
@@ -1475,9 +1481,7 @@ export type Database = {
           is_year_round: boolean
           name: string
           prize_pool: number
-          slug: string
           start_date: string
-          status: Database["public"]["Enums"]["competition_status"]
         }[]
       }
       get_safe_club_info: {
