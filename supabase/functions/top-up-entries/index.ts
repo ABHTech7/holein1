@@ -86,13 +86,35 @@ async function handler(req: Request): Promise<Response> {
       throw new Error('No demo players found. Run top-up-players first.');
     }
 
-    // Get all active demo competitions (check both flag and demo patterns)
-    const { data: demoCompetitions, error: compError } = await supabaseAdmin
+    // Get demo club IDs first
+    const { data: demoClubs, error: clubError } = await supabaseAdmin
+      .from('clubs')
+      .select('id')
+      .or('is_demo_data.eq.true,email.like.%@demo-golf-club.test%,email.like.%@holein1demo.test%,name.like.%Demo%')
+      .eq('active', true)
+      .eq('archived', false);
+
+    if (clubError) {
+      console.error('Demo clubs query error:', clubError);
+      throw new Error(`Failed to query demo clubs: ${clubError.message}`);
+    }
+
+    const demoClubIds = demoClubs?.map(club => club.id) || [];
+
+    // Get all active demo competitions (check both flag and club ownership)
+    let competitionsQuery = supabaseAdmin
       .from('competitions')
       .select('id, entry_fee, name, club_id')
-      .or('is_demo_data.eq.true,club_id.in.(select id from clubs where is_demo_data = true or email like \'%@demo-golf-club.test%\')')
       .eq('status', 'ACTIVE')
       .eq('archived', false);
+
+    if (demoClubIds.length > 0) {
+      competitionsQuery = competitionsQuery.or(`is_demo_data.eq.true,club_id.in.(${demoClubIds.join(',')})`);
+    } else {
+      competitionsQuery = competitionsQuery.eq('is_demo_data', true);
+    }
+
+    const { data: demoCompetitions, error: compError } = await competitionsQuery;
 
     if (compError) {
       console.error('Competition query error:', compError);
