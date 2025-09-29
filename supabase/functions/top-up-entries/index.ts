@@ -162,7 +162,7 @@ async function handler(req: Request): Promise<Response> {
       }
       
       const entryDate = generateEntryDateInLast3Months();
-      const outcome = Math.random() < 0.25 ? 'win' : 'miss'; // 25% win rate
+      const outcome = Math.random() < (1/12000) ? 'win' : 'miss'; // 1 in 12,000 win rate
       
       const entry = {
         player_id: player.id,
@@ -226,6 +226,28 @@ async function handler(req: Request): Promise<Response> {
       });
 
       console.log(`Batch ${batch + 1}/${totalBatches}: Inserted ${insertedEntries.length} entries`);
+      
+      // Create verifications for win entries in this batch
+      const winEntries = insertedEntries.filter(e => e.outcome_self === 'win');
+      if (winEntries.length > 0) {
+        const verificationsToCreate = winEntries.map(entry => ({
+          entry_id: entry.id,
+          status: 'pending',
+          witnesses: [],
+          evidence_captured_at: entry.entry_date,
+          social_consent: false
+        }));
+        
+        const { error: verificationError } = await supabaseAdmin
+          .from('verifications')
+          .insert(verificationsToCreate);
+          
+        if (verificationError) {
+          console.error(`Failed to create verifications for batch ${batch + 1}:`, verificationError);
+        } else {
+          console.log(`Created ${verificationsToCreate.length} verifications for wins in batch ${batch + 1}`);
+        }
+      }
     }
 
     // Add error handling for no entries inserted

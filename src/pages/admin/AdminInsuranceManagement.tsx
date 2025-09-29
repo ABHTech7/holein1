@@ -105,29 +105,80 @@ const AdminInsuranceManagement = () => {
 
     try {
       const currentYear = new Date().getFullYear();
+      
+      // Get insurance premiums for the current year
+      const { data: premiumsData, error: premiumsError } = await supabase
+        .from('insurance_premiums')
+        .select('*')
+        .eq('insurance_company_id', currentCompany.id)
+        .gte('period_start', `${currentYear}-01-01`)
+        .lte('period_end', `${currentYear}-12-31`)
+        .order('period_start', { ascending: true });
+
+      if (premiumsError) throw premiumsError;
+
       const months = [];
       
-      // Get data for each month of the current year
+      // Build monthly data from insurance_premiums table
       for (let month = 0; month < 12; month++) {
-        const monthStart = new Date(currentYear, month, 1);
-        const monthEnd = new Date(currentYear, month + 1, 0, 23, 59, 59, 999);
+        const monthDate = new Date(currentYear, month, 1);
+        const monthStr = `${currentYear}-${String(month + 1).padStart(2, '0')}`;
         
-        const { count: entries, error } = await supabase
-          .from('entries')
-          .select('id', { count: 'exact', head: true })
-          .gte('entry_date', monthStart.toISOString())
-          .lte('entry_date', monthEnd.toISOString());
-
-        if (error) throw error;
-
-        const monthName = monthStart.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
-        const premiums = (entries || 0) * currentCompany.premium_rate_per_entry;
-
-        months.push({
-          month: monthName,
-          entries: entries || 0,
-          premiums: premiums
-        });
+        // Find existing premium record for this month
+        const existingPremium = premiumsData?.find(p => 
+          p.period_start.startsWith(monthStr)
+        );
+        
+        if (existingPremium) {
+          months.push({
+            month: monthDate.toLocaleDateString('en-US', { month: 'short' }),
+            entries: existingPremium.total_entries,
+            premiums: existingPremium.total_premium_amount
+          });
+        } else {
+          // For current month, calculate on-the-fly
+          const currentMonth = new Date().getMonth();
+          
+          if (month === currentMonth) {
+            try {
+              const { data: calculatedPremium } = await supabase.functions.invoke('calculate-monthly-premiums', {
+                body: {
+                  companyId: currentCompany.id,
+                  month: month + 1,
+                  year: currentYear
+                }
+              });
+              
+              if (calculatedPremium && calculatedPremium.calculations && calculatedPremium.calculations.length > 0) {
+                const calc = calculatedPremium.calculations[0];
+                months.push({
+                  month: monthDate.toLocaleDateString('en-US', { month: 'short' }),
+                  entries: calc.entry_count,
+                  premiums: calc.total_premium
+                });
+              } else {
+                months.push({
+                  month: monthDate.toLocaleDateString('en-US', { month: 'short' }),
+                  entries: 0,
+                  premiums: 0
+                });
+              }
+            } catch (error) {
+              console.error('Failed to calculate current month:', error);
+              months.push({
+                month: monthDate.toLocaleDateString('en-US', { month: 'short' }),
+                entries: 0,
+                premiums: 0
+              });
+            }
+          } else {
+            months.push({
+              month: monthDate.toLocaleDateString('en-US', { month: 'short' }),
+              entries: 0,
+              premiums: 0
+            });
+          }
+        }
       }
 
       setMonthlyData(months);

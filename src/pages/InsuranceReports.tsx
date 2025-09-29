@@ -99,44 +99,68 @@ const InsuranceReports = () => {
       if (premiumsError) throw premiumsError;
       setPremiums(premiumsData || []);
 
-      // Get entries for the selected year to calculate current-month premiums
-      const yearStart = `${selectedYear}-01-01`;
-      const yearEnd = `${selectedYear}-12-31`;
-      
-      const { data: yearEntries, error: entriesError } = await supabase
-        .from('entries')
-        .select('entry_date, paid')
-        .gte('entry_date', yearStart)
-        .lte('entry_date', yearEnd)
-        .eq('paid', true);
-
-      if (entriesError) throw entriesError;
-
-      // Generate monthly stats directly from entries for current data
+      // Build monthly stats from insurance_premiums table
       const monthlyStats: MonthlyStats[] = [];
       for (let month = 0; month < 12; month++) {
         const monthDate = new Date(parseInt(selectedYear), month, 1);
+        const monthStr = `${selectedYear}-${String(month + 1).padStart(2, '0')}`;
         
-        // Use string-based date comparisons to avoid timezone issues
-        const monthStartStr = `${selectedYear}-${String(month + 1).padStart(2, '0')}-01`;
-        const nextMonth = month === 11 ? 1 : month + 2;
-        const nextYear = month === 11 ? parseInt(selectedYear) + 1 : parseInt(selectedYear);
-        const monthEndStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+        // Find existing premium record for this month
+        const existingPremium = premiumsData?.find(p => 
+          p.period_start.startsWith(monthStr)
+        );
         
-        // Count entries in this month using string comparison
-        const monthEntries = (yearEntries || []).filter(e => {
-          const entryDateStr = e.entry_date.split('T')[0]; // Get YYYY-MM-DD part
-          return entryDateStr >= monthStartStr && entryDateStr < monthEndStr;
-        });
-
-        const entriesCount = monthEntries.length;
-        const premiumAmount = entriesCount * company.premium_rate_per_entry;
-
-        monthlyStats.push({
-          month: monthDate.toLocaleDateString('en-GB', { month: 'short' }),
-          entries: entriesCount,
-          premium: premiumAmount
-        });
+        if (existingPremium) {
+          monthlyStats.push({
+            month: monthDate.toLocaleDateString('en-GB', { month: 'short' }),
+            entries: existingPremium.total_entries,
+            premium: existingPremium.total_premium_amount
+          });
+        } else {
+          // For missing months (like current month), call the edge function
+          const currentMonth = new Date().getMonth();
+          const currentYear = new Date().getFullYear();
+          
+          if (month === currentMonth && parseInt(selectedYear) === currentYear) {
+            try {
+              const { data: calculatedPremium } = await supabase.functions.invoke('calculate-monthly-premiums', {
+                body: {
+                  companyId: company.id,
+                  month: month + 1,
+                  year: parseInt(selectedYear)
+                }
+              });
+              
+              if (calculatedPremium && calculatedPremium.calculations && calculatedPremium.calculations.length > 0) {
+                const calc = calculatedPremium.calculations[0];
+                monthlyStats.push({
+                  month: monthDate.toLocaleDateString('en-GB', { month: 'short' }),
+                  entries: calc.entry_count,
+                  premium: calc.total_premium
+                });
+              } else {
+                monthlyStats.push({
+                  month: monthDate.toLocaleDateString('en-GB', { month: 'short' }),
+                  entries: 0,
+                  premium: 0
+                });
+              }
+            } catch (error) {
+              console.error('Failed to calculate current month premium:', error);
+              monthlyStats.push({
+                month: monthDate.toLocaleDateString('en-GB', { month: 'short' }),
+                entries: 0,
+                premium: 0
+              });
+            }
+          } else {
+            monthlyStats.push({
+              month: monthDate.toLocaleDateString('en-GB', { month: 'short' }),
+              entries: 0,
+              premium: 0
+            });
+          }
+        }
       }
 
       setYearlyStats(monthlyStats);

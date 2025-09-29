@@ -434,7 +434,7 @@ async function handler(req: Request): Promise<Response> {
               payment_date: entryDate.toISOString(),
               price_paid: competition.entry_fee || 25,
               status: getRandomElement(['completed', 'pending', 'verification_pending']),
-              outcome_self: getRandomElement(['miss', 'miss', 'miss', 'win']), // 25% win rate
+              outcome_self: Math.random() < (1/12000) ? 'win' : 'miss', // 1 in 12,000 win rate
               is_demo_data: true
             });
           }
@@ -450,6 +450,28 @@ async function handler(req: Request): Promise<Response> {
             } else {
               createdEntries += newEntries?.length || 0;
               console.log(`Batch ${batchIndex + 1}: Created ${newEntries?.length || 0} entries`);
+              
+              // Create verifications for win entries in this batch
+              const winEntries = newEntries?.filter(e => e.outcome_self === 'win') || [];
+              if (winEntries.length > 0) {
+                const verificationsToCreate = winEntries.map(entry => ({
+                  entry_id: entry.id,
+                  status: 'pending',
+                  witnesses: [],
+                  evidence_captured_at: entry.entry_date,
+                  social_consent: false
+                }));
+                
+                const { error: verificationError } = await supabaseAdmin
+                  .from('verifications')
+                  .insert(verificationsToCreate);
+                  
+                if (verificationError) {
+                  console.error(`Failed to create verifications for batch ${batchIndex + 1}:`, verificationError);
+                } else {
+                  console.log(`Created ${verificationsToCreate.length} verifications for wins in batch ${batchIndex + 1}`);
+                }
+              }
             }
           }
           
