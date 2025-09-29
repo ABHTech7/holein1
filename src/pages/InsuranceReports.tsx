@@ -116,13 +116,17 @@ const InsuranceReports = () => {
       const monthlyStats: MonthlyStats[] = [];
       for (let month = 0; month < 12; month++) {
         const monthDate = new Date(parseInt(selectedYear), month, 1);
-        const monthStart = new Date(parseInt(selectedYear), month, 1);
-        const monthEnd = new Date(parseInt(selectedYear), month + 1, 0); // Last day of month
         
-        // Count entries in this month
+        // Use string-based date comparisons to avoid timezone issues
+        const monthStartStr = `${selectedYear}-${String(month + 1).padStart(2, '0')}-01`;
+        const nextMonth = month === 11 ? 1 : month + 2;
+        const nextYear = month === 11 ? parseInt(selectedYear) + 1 : parseInt(selectedYear);
+        const monthEndStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+        
+        // Count entries in this month using string comparison
         const monthEntries = (yearEntries || []).filter(e => {
-          const entryDate = new Date(e.entry_date);
-          return entryDate >= monthStart && entryDate <= monthEnd;
+          const entryDateStr = e.entry_date.split('T')[0]; // Get YYYY-MM-DD part
+          return entryDateStr >= monthStartStr && entryDateStr < monthEndStr;
         });
 
         const entriesCount = monthEntries.length;
