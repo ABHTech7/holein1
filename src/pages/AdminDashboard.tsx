@@ -14,6 +14,9 @@ import SiteSettingsModal from "@/components/admin/SiteSettingsModal";
 import NewUserModal from "@/components/admin/NewUserModal";
 import AdminQuickActions from "@/components/admin/AdminQuickActions";
 import { SimpleResetDemoButton } from "@/components/admin/SimpleResetDemoButton";
+import { TopUpClubsButton } from "@/components/admin/TopUpClubsButton";
+import { TopUpPlayersButton } from "@/components/admin/TopUpPlayersButton";
+import { TopUpEntriesButton } from "@/components/admin/TopUpEntriesButton";
 import { SuperAdminProfileModal } from "@/components/admin/SuperAdminProfileModal";
 import { Users, Calendar, Trophy, TrendingUp, Plus, Settings, PoundSterling, UserPlus, Edit3, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -592,9 +595,15 @@ const AdminDashboard = () => {
               totalClubs: stats.totalClubs
             }} insurancePremiums={insurancePremiums} onAddUser={handleAddUser} isEditing={isEditingActions} />
             
-            {/* Simple Demo Reset - Only show in demo/development mode */}
+            {/* Demo Data Management - Only show in demo/development mode */}
             {showDemoTools && (
               <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Demo Data Management</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <TopUpClubsButton />
+                  <TopUpPlayersButton />
+                  <TopUpEntriesButton />
+                </div>
                 <SimpleResetDemoButton />
               </div>
             )}
