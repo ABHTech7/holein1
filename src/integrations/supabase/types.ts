@@ -1378,6 +1378,15 @@ export type Database = {
           onboarding_complete: boolean
         }[]
       }
+      get_insurance_entries_count: {
+        Args: {
+          company_id?: string
+          include_demo?: boolean
+          month_end?: string
+          month_start?: string
+        }
+        Returns: number
+      }
       get_insurance_entries_data: {
         Args: {
           company_id?: string
