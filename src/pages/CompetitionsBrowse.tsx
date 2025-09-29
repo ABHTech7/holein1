@@ -52,19 +52,19 @@ const CompetitionsBrowse = () => {
 
       if (competitionsError) throw competitionsError;
 
-      // Transform data to match our interface
+      // Transform data to match our interface (using snake_case to match Competition type)
       const transformedCompetitions = (competitionsData || [])
         .map(comp => ({
           id: comp.id,
           name: comp.name,
           description: comp.description,
-          entryFee: comp.entry_fee,
-          prizePool: comp.prize_pool,
-          holeNumber: comp.hole_number,
-          startDate: comp.start_date,
-          endDate: comp.end_date,
-          isYearRound: comp.is_year_round,
-          heroImageUrl: comp.hero_image_url,
+          entry_fee: comp.entry_fee,
+          prize_pool: comp.prize_pool,
+          hole_number: comp.hole_number,
+          start_date: comp.start_date,
+          end_date: comp.end_date,
+          is_year_round: comp.is_year_round,
+          hero_image_url: comp.hero_image_url,
           clubs: {
             id: comp.club_id,
             name: comp.club_name,
