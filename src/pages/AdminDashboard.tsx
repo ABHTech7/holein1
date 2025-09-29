@@ -166,26 +166,36 @@ const AdminDashboard = () => {
           entriesQuery
         ]);
 
-        // Fetch revenue baseline dataset (YTD entries + competition fees) to mirror Revenue pages logic
-        const [{ data: ytdEntries, error: ytdEntriesError }, { data: compsForFees, error: ytdCompsError }] = await Promise.all([
-          supabase
-            .from('entries')
-            .select(`
-              id,
-              entry_date,
-              paid,
-              price_paid,
-              competition_id
-            `)
-            .gte('entry_date', yearStartStr),
-          supabase
-            .from('competitions')
-            .select('id, entry_fee')
-        ]);
-        if (ytdEntriesError || ytdCompsError) {
-          if (process.env.NODE_ENV !== 'production') {
-            console.error('ADMIN DASHBOARD REVENUE ERROR', { ytdEntriesError, ytdCompsError });
+        // Fetch revenue baseline dataset (YTD entries + competition fees) with pagination to avoid row limits
+        let allYtdEntries: any[] = [];
+        {
+          let offset = 0;
+          const pageSize = 1000;
+          while (true) {
+            const { data: entriesPage, error } = await supabase
+              .from('entries')
+              .select('id, entry_date, paid, price_paid, competition_id')
+              .gte('entry_date', yearStartStr)
+              .order('entry_date', { ascending: false })
+              .range(offset, offset + pageSize - 1);
+            if (error) {
+              if (process.env.NODE_ENV !== 'production') {
+                console.error('ADMIN DASHBOARD REVENUE ERROR (entries page)', { offset, error });
+              }
+              break;
+            }
+            if (!entriesPage || entriesPage.length === 0) break;
+            allYtdEntries = allYtdEntries.concat(entriesPage);
+            if (entriesPage.length < pageSize) break;
+            offset += pageSize;
           }
+        }
+        // Fetch competitions fees once
+        const { data: compsForFees, error: ytdCompsError } = await supabase
+          .from('competitions')
+          .select('id, entry_fee');
+        if (ytdCompsError && process.env.NODE_ENV !== 'production') {
+          console.error('ADMIN DASHBOARD REVENUE ERROR (competitions)', { ytdCompsError });
         }
 
         // Enhanced error logging with comprehensive diagnostic details
@@ -257,7 +267,7 @@ const AdminDashboard = () => {
 
         // Calculate revenue (pence) mirroring Revenue pages: use price_paid if present, else competition entry_fee
         const feeMap = new Map<string, number>((compsForFees || []).map((c: any) => [c.id, parseFloat((c as any).entry_fee?.toString() || '0')]));
-        const paidYtdEntries = (ytdEntries || []).filter((e: any) => e.paid);
+        const paidYtdEntries = (allYtdEntries || []).filter((e: any) => e.paid);
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
         const startOfMonthDate = new Date(now.getFullYear(), now.getMonth(), 1);
