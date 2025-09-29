@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 interface VerifyMagicLinkRequest {
@@ -13,30 +14,48 @@ interface VerifyMagicLinkRequest {
 // Helper function to find user by email using paginated listUsers
 async function findUserByEmail(supabaseAdmin: any, email: string, traceId: string) {
   const normalizedEmail = email.toLowerCase().trim();
-  console.log(`[${traceId}] Searching for auth user with email:`, normalizedEmail);
+  const maxPages = 10; // Scan up to 10,000 users
+  let page = 1;
   
-  // listUsers() returns all users, so we filter client-side
-  const { data: usersData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000 // Reasonable limit, adjust if needed
-  });
+  console.log(`[${traceId}] Starting paginated search for:`, normalizedEmail);
   
-  if (listError) {
-    console.error(`[${traceId}] listUsers error:`, listError);
-    return { user: null, error: listError };
+  while (page <= maxPages) {
+    const { data: usersData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+      page,
+      perPage: 1000
+    });
+    
+    if (listError) {
+      console.error(`[${traceId}] listUsers error on page ${page}:`, listError);
+      return { user: null, error: listError };
+    }
+    
+    if (!usersData.users || usersData.users.length === 0) {
+      console.log(`[${traceId}] No more users on page ${page}, search complete`);
+      return { user: null, error: null };
+    }
+    
+    // Search current page for matching email
+    const foundUser = usersData.users.find(
+      (u: any) => u.email?.toLowerCase().trim() === normalizedEmail
+    );
+    
+    if (foundUser) {
+      console.log(`[${traceId}] Found user on page ${page}:`, foundUser.id);
+      return { user: foundUser, error: null };
+    }
+    
+    // If page has fewer results than perPage, we've reached the last page
+    if (usersData.users.length < 1000) {
+      console.log(`[${traceId}] Reached last page (${page}), user not found`);
+      return { user: null, error: null };
+    }
+    
+    page++;
   }
   
-  const foundUser = usersData.users.find(
-    (u: any) => u.email?.toLowerCase().trim() === normalizedEmail
-  );
-  
-  if (foundUser) {
-    console.log(`[${traceId}] Found user via listUsers:`, foundUser.id);
-  } else {
-    console.log(`[${traceId}] No user found via listUsers for email:`, normalizedEmail);
-  }
-  
-  return { user: foundUser || null, error: null };
+  console.warn(`[${traceId}] Hit max pages limit (${maxPages}), user not found - consider increasing limit`);
+  return { user: null, error: null };
 }
 
 const handler = async (req: Request): Promise<Response> => {
