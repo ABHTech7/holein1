@@ -113,10 +113,10 @@ const AdminDashboard = () => {
 
         // Get current dates for revenue calculations
         const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-        const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-        const yearStart = new Date(now.getFullYear(), 0, 1).toISOString();
+        const yearStartStr = `${now.getFullYear()}-01-01`;
+        const monthStartStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+        const todayStr = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+        const tomorrowStr = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
 
         // Fetch basic stats with proper error handling and demo filtering
         console.log('Fetching admin dashboard stats...');
@@ -130,7 +130,7 @@ const AdminDashboard = () => {
         let newPlayersQuery = supabase.from('profiles').select('id', {
           count: 'exact',
           head: true
-        }).eq('role', 'PLAYER').neq('status', 'deleted').is('deleted_at', null).gte('created_at', monthStart);
+        }).eq('role', 'PLAYER').neq('status', 'deleted').is('deleted_at', null).gte('created_at', monthStartStr);
         
         let clubsQuery = supabase.from('clubs').select('id', {
           count: 'exact',
@@ -142,7 +142,7 @@ const AdminDashboard = () => {
         let entriesQuery = supabase.from('entries').select('id', {
           count: 'exact',
           head: true
-        }).gte('entry_date', monthStart);
+        }).gte('entry_date', monthStartStr);
         
         // Apply demo filtering if needed
         if (filterDemoData) {
@@ -161,29 +161,29 @@ const AdminDashboard = () => {
           entriesQuery
         ]);
 
-        // Fetch revenue data for different periods with price_paid
+        // Fetch revenue data for different periods with price_paid/amount_minor only (no competitions join to avoid RLS filtering)
         const [todayEntriesRes, monthlyEntriesRes, yearlyEntriesRes] = await Promise.all([
         // Today's revenue
         supabase.from('entries').select(`
               entry_date,
               paid,
               price_paid,
-              competitions!inner(entry_fee)
-            `).eq('paid', true).gte('entry_date', today).lt('entry_date', tomorrow),
+              amount_minor
+            `).eq('paid', true).gte('entry_date', todayStr).lt('entry_date', tomorrowStr),
         // Month-to-date revenue
         supabase.from('entries').select(`
               entry_date,
               paid,
               price_paid,
-              competitions!inner(entry_fee)
-            `).eq('paid', true).gte('entry_date', monthStart),
+              amount_minor
+            `).eq('paid', true).gte('entry_date', monthStartStr),
         // Year-to-date revenue
         supabase.from('entries').select(`
               entry_date,
               paid,
               price_paid,
-              competitions!inner(entry_fee)
-            `).eq('paid', true).gte('entry_date', yearStart)]);
+              amount_minor
+            `).eq('paid', true).gte('entry_date', yearStartStr)]);
 
         // Enhanced error logging with comprehensive diagnostic details
         if (playersRes.error && process.env.NODE_ENV !== 'production') {
@@ -252,17 +252,17 @@ const AdminDashboard = () => {
           });
         }
 
-        // Calculate revenue for different periods using price_paid with fallback to entry_fee
+        // Calculate revenue for different periods using price_paid with fallback to amount_minor
         const todayRevenue = (todayEntriesRes.data || []).reduce((sum, entry) => {
-          const effectiveAmount = (entry as any).price_paid ?? ((entry as any).competitions?.entry_fee || 0);
+          const effectiveAmount = (entry as any).price_paid ?? (entry as any).amount_minor ?? 0;
           return sum + effectiveAmount;
         }, 0);
         const monthlyRevenue = (monthlyEntriesRes.data || []).reduce((sum, entry) => {
-          const effectiveAmount = (entry as any).price_paid ?? ((entry as any).competitions?.entry_fee || 0);
+          const effectiveAmount = (entry as any).price_paid ?? (entry as any).amount_minor ?? 0;
           return sum + effectiveAmount;
         }, 0);
         const yearlyRevenue = (yearlyEntriesRes.data || []).reduce((sum, entry) => {
-          const effectiveAmount = (entry as any).price_paid ?? ((entry as any).competitions?.entry_fee || 0);
+          const effectiveAmount = (entry as any).price_paid ?? (entry as any).amount_minor ?? 0;
           return sum + effectiveAmount;
         }, 0);
         console.log('Month to date entries count:', monthToDateEntriesRes.count);
@@ -392,7 +392,7 @@ const AdminDashboard = () => {
             const { count: monthlyEntries } = await supabase
               .from('entries')
               .select('id', { count: 'exact', head: true })
-              .gte('entry_date', monthStart);
+              .gte('entry_date', monthStartStr);
 
             const monthlyPremium = (monthlyEntries || 0) * insuranceCompany.premium_rate_per_entry;
             
