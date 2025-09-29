@@ -166,29 +166,27 @@ const AdminDashboard = () => {
           entriesQuery
         ]);
 
-        // Fetch revenue data for different periods with price_paid/amount_minor only (no competitions join to avoid RLS filtering)
-        const [todayEntriesRes, monthlyEntriesRes, yearlyEntriesRes] = await Promise.all([
-        // Today's revenue
-        supabase.from('entries').select(`
+        // Fetch revenue baseline dataset (YTD entries + competition fees) to mirror Revenue pages logic
+        const [{ data: ytdEntries, error: ytdEntriesError }, { data: compsForFees, error: ytdCompsError }] = await Promise.all([
+          supabase
+            .from('entries')
+            .select(`
+              id,
               entry_date,
               paid,
               price_paid,
-              amount_minor
-            `).eq('paid', true).gte('entry_date', todayStr).lt('entry_date', tomorrowStr),
-        // Month-to-date revenue
-        supabase.from('entries').select(`
-              entry_date,
-              paid,
-              price_paid,
-              amount_minor
-            `).eq('paid', true).gte('entry_date', monthStartStr),
-        // Year-to-date revenue
-        supabase.from('entries').select(`
-              entry_date,
-              paid,
-              price_paid,
-              amount_minor
-            `).eq('paid', true).gte('entry_date', yearStartStr)]);
+              competition_id
+            `)
+            .gte('entry_date', yearStartStr),
+          supabase
+            .from('competitions')
+            .select('id, entry_fee')
+        ]);
+        if (ytdEntriesError || ytdCompsError) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.error('ADMIN DASHBOARD REVENUE ERROR', { ytdEntriesError, ytdCompsError });
+          }
+        }
 
         // Enhanced error logging with comprehensive diagnostic details
         if (playersRes.error && process.env.NODE_ENV !== 'production') {
@@ -257,18 +255,30 @@ const AdminDashboard = () => {
           });
         }
 
-        // Calculate revenue for different periods using price_paid with fallback to amount_minor
-        // Sum in pence: prefer amount_minor (already pence); otherwise convert price_paid (pounds) to pence
-        const toPence = (e: any) => {
-          const minor = typeof e.amount_minor === 'number' ? e.amount_minor : null;
-          const pounds = typeof e.price_paid === 'number' ? e.price_paid : null;
-          if (minor !== null && !isNaN(minor)) return minor;
-          if (pounds !== null && !isNaN(pounds)) return Math.round(pounds * 100);
-          return 0;
+        // Calculate revenue (pence) mirroring Revenue pages: use price_paid if present, else competition entry_fee
+        const feeMap = new Map<string, number>((compsForFees || []).map((c: any) => [c.id, parseFloat((c as any).entry_fee?.toString() || '0')]));
+        const paidYtdEntries = (ytdEntries || []).filter((e: any) => e.paid);
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        const startOfMonthDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        const getAmount = (e: any) => {
+          const price = typeof e.price_paid === 'number' ? e.price_paid : null;
+          if (price !== null && !isNaN(price)) return price;
+          return feeMap.get(e.competition_id) || 0;
         };
-        const todayRevenue = (todayEntriesRes.data || []).reduce((sum, entry) => sum + toPence(entry), 0);
-        const monthlyRevenue = (monthlyEntriesRes.data || []).reduce((sum, entry) => sum + toPence(entry), 0);
-        const yearlyRevenue = (yearlyEntriesRes.data || []).reduce((sum, entry) => sum + toPence(entry), 0);
+        const todayRevenue = paidYtdEntries
+          .filter((e: any) => {
+            const d = new Date(e.entry_date);
+            return d >= startOfToday && d < startOfTomorrow;
+          })
+          .reduce((sum: number, e: any) => sum + getAmount(e), 0);
+        const monthlyRevenue = paidYtdEntries
+          .filter((e: any) => {
+            const d = new Date(e.entry_date);
+            return d >= startOfMonthDate;
+          })
+          .reduce((sum: number, e: any) => sum + getAmount(e), 0);
+        const yearlyRevenue = paidYtdEntries.reduce((sum: number, e: any) => sum + getAmount(e), 0);
         console.log('Month to date entries count:', monthToDateEntriesRes.count);
         setStats({
           totalPlayers: playersRes.count || 0,
