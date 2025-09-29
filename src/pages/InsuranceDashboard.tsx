@@ -217,8 +217,8 @@ const InsuranceDashboard = () => {
       const { count, error } = await supabase
         .from('entries')
         .select('*', { count: 'exact', head: true })
-        .gte('entry_date', monthStart.toISOString().split('T')[0])
-        .lte('entry_date', monthEnd.toISOString().split('T')[0]);
+        .gte('entry_date', monthStartStr)
+        .lte('entry_date', monthEndStr);
       
       if (!error) {
         setActualCurrentMonthCount(count || 0);
@@ -229,7 +229,7 @@ const InsuranceDashboard = () => {
     };
     
     fetchCurrentMonthCount();
-  }, [company, selectedMonth, monthStart, monthEnd]);
+  }, [company, selectedMonth, monthStartStr, monthEndStr]);
 
   if (authLoading || loading) {
     return (
