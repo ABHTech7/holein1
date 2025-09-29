@@ -67,32 +67,43 @@ const AdminInsuranceManagement = () => {
 
     try {
       const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const yearStart = new Date(now.getFullYear(), 0, 1);
+      // Use UTC date boundaries to avoid timezone issues
+      const monthStartUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+      const yearStartUTC = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+      const todayUTCStr = now.toISOString().slice(0, 10);
+      const monthStartStr = monthStartUTC.toISOString().slice(0, 10);
+      const yearStartStr = yearStartUTC.toISOString().slice(0, 10);
 
-      // Get month-to-date entries
-      const { count: monthEntries, error: monthError } = await supabase
-        .from('entries')
-        .select('id', { count: 'exact', head: true })
-        .gte('entry_date', monthStart.toISOString());
-
+      // Get month-to-date entries via RPC (respects access control and demo flag)
+      const { data: mtdData, error: monthError } = await supabase
+        .rpc('get_insurance_entries_data', {
+          company_id: currentCompany.id,
+          month_start: monthStartStr,
+          month_end: todayUTCStr,
+          include_demo: true,
+        });
       if (monthError) throw monthError;
 
-      // Get year-to-date entries
-      const { count: ytdEntries, error: ytdError } = await supabase
-        .from('entries')
-        .select('id', { count: 'exact', head: true })
-        .gte('entry_date', yearStart.toISOString());
-
+      // Get year-to-date entries via RPC
+      const { data: ytdData, error: ytdError } = await supabase
+        .rpc('get_insurance_entries_data', {
+          company_id: currentCompany.id,
+          month_start: yearStartStr,
+          month_end: todayUTCStr,
+          include_demo: true,
+        });
       if (ytdError) throw ytdError;
 
-      // Calculate premiums: entries × rate
-      const monthPremiums = (monthEntries || 0) * currentCompany.premium_rate_per_entry;
-      const ytdPremiums = (ytdEntries || 0) * currentCompany.premium_rate_per_entry;
+      const monthEntries = mtdData?.length || 0;
+      const ytdEntries = ytdData?.length || 0;
 
-      setMonthToDateEntries(monthEntries || 0);
+      // Calculate premiums: entries × rate
+      const monthPremiums = monthEntries * currentCompany.premium_rate_per_entry;
+      const ytdPremiums = ytdEntries * currentCompany.premium_rate_per_entry;
+
+      setMonthToDateEntries(monthEntries);
       setMonthToDatePremiums(monthPremiums);
-      setYearToDateEntries(ytdEntries || 0);
+      setYearToDateEntries(ytdEntries);
       setYearToDatePremiums(ytdPremiums);
 
     } catch (error) {
@@ -136,46 +147,31 @@ const AdminInsuranceManagement = () => {
             premiums: existingPremium.total_premium_amount
           });
         } else {
-          // For current month, calculate on-the-fly
-          const currentMonth = new Date().getMonth();
-          
-          if (month === currentMonth) {
-            try {
-              const { data: calculatedPremium } = await supabase.functions.invoke('calculate-monthly-premiums', {
-                body: {
-                  companyId: currentCompany.id,
-                  month: month + 1,
-                  year: currentYear
-                }
-              });
-              
-              if (calculatedPremium && calculatedPremium.calculations && calculatedPremium.calculations.length > 0) {
-                const calc = calculatedPremium.calculations[0];
-                months.push({
-                  month: monthDate.toLocaleDateString('en-US', { month: 'short' }),
-                  entries: calc.entry_count,
-                  premiums: calc.total_premium
-                });
-              } else {
-                months.push({
-                  month: monthDate.toLocaleDateString('en-US', { month: 'short' }),
-                  entries: 0,
-                  premiums: 0
-                });
-              }
-            } catch (error) {
-              console.error('Failed to calculate current month:', error);
-              months.push({
-                month: monthDate.toLocaleDateString('en-US', { month: 'short' }),
-                entries: 0,
-                premiums: 0
-              });
-            }
-          } else {
+          // Compute entries per month via RPC when no stored premium exists
+          try {
+            const monthStartUTC = new Date(Date.UTC(currentYear, month, 1));
+            const monthEndUTC = new Date(Date.UTC(currentYear, month + 1, 0));
+            const { data: monthEntriesData, error: rpcError } = await supabase.rpc('get_insurance_entries_data', {
+              company_id: currentCompany.id,
+              month_start: monthStartUTC.toISOString().slice(0, 10),
+              month_end: monthEndUTC.toISOString().slice(0, 10),
+              include_demo: true,
+            });
+            if (rpcError) throw rpcError;
+
+            const entriesCount = monthEntriesData?.length || 0;
+            const premiumsTotal = entriesCount * currentCompany.premium_rate_per_entry;
+            months.push({
+              month: monthDate.toLocaleDateString('en-US', { month: 'short' }),
+              entries: entriesCount,
+              premiums: premiumsTotal,
+            });
+          } catch (err) {
+            console.error('Failed to compute month via RPC:', err);
             months.push({
               month: monthDate.toLocaleDateString('en-US', { month: 'short' }),
               entries: 0,
-              premiums: 0
+              premiums: 0,
             });
           }
         }
