@@ -15,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDateTime } from "@/lib/formatters";
 import { createClubSlug, createCompetitionSlug, generateCompetitionEntryUrlSync } from "@/lib/competitionUtils";
+import { getDemoModeDisplayConfig } from "@/lib/demoMode";
 
 interface Competition {
   id: string;
@@ -46,18 +47,55 @@ const CompetitionsBrowse = () => {
 
   const fetchCompetitions = async () => {
     try {
-      // Use RPC that filters demo data based on is_demo_data flags
-      const { data: competitionsData, error: competitionsError } = await supabase
-        .rpc('get_public_competition_data', {
-          p_club_id: null,
-          p_competition_slug: null
+      const demoConfig = getDemoModeDisplayConfig();
+      
+      // Primary RPC call - no parameters to avoid signature issues
+      console.info('🔍 Fetching competitions from get_public_competition_data...');
+      const { data: primaryData, error: primaryError } = await supabase
+        .rpc('get_public_competition_data');
+
+      if (primaryError) {
+        console.error('❌ Primary RPC error:', primaryError);
+        throw primaryError;
+      }
+
+      console.info(`✅ Primary RPC returned ${primaryData?.length || 0} competitions`);
+
+      let competitionsData = primaryData;
+
+      // Fallback if primary returns nothing
+      if (!competitionsData || competitionsData.length === 0) {
+        console.info('⚠️ No data from primary, trying fallback get_safe_competition_data...');
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .rpc('get_safe_competition_data');
+
+        if (fallbackError) {
+          console.error('❌ Fallback RPC error:', fallbackError);
+        } else {
+          console.info(`✅ Fallback RPC returned ${fallbackData?.length || 0} competitions`);
+          competitionsData = fallbackData;
+        }
+      }
+
+      if (!competitionsData || competitionsData.length === 0) {
+        console.warn('⚠️ No competitions returned from DB. Check filters or seed data.');
+        toast({
+          title: "No competitions found",
+          description: "No active competitions are currently available.",
+          variant: "default"
         });
+      }
 
-      if (competitionsError) throw competitionsError;
-
-      // Transform data to match our interface and add client-side safety filter
+      // Transform data to match our interface
       const transformedCompetitions = (competitionsData || [])
-        .filter(comp => !comp.name.toLowerCase().includes('demo')) // Client-side safety filter
+        // Only filter demo names when filterDemoData is enabled
+        .filter(comp => {
+          const shouldFilter = demoConfig.filterDemoData && comp.name.toLowerCase().includes('demo');
+          if (shouldFilter) {
+            console.info(`🚫 Filtering out demo competition: ${comp.name}`);
+          }
+          return !shouldFilter;
+        })
         .map(comp => ({
           id: comp.id,
           name: comp.name,
@@ -72,9 +110,11 @@ const CompetitionsBrowse = () => {
           clubs: {
             id: comp.club_id,
             name: comp.club_name,
-            website: null // Not returned by the new RPC
+            website: null
           }
         }));
+
+      console.info(`📊 Final transformed competitions: ${transformedCompetitions.length}`);
 
       // Sort by start date
       const sortedCompetitions = transformedCompetitions
