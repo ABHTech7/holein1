@@ -94,7 +94,8 @@ const InsuranceDashboard = () => {
             .rpc('get_insurance_entries_data', {
               company_id: company.id,
               month_start: startDate.toISOString().slice(0, 10),
-              month_end: endDate.toISOString().slice(0, 10)
+              month_end: endDate.toISOString().slice(0, 10),
+              include_demo: true
             });
 
           if (error) throw error;
@@ -153,7 +154,8 @@ const InsuranceDashboard = () => {
           .rpc('get_insurance_entries_data', {
             company_id: companyData.id,
             month_start: monthStartStr,
-            month_end: monthEndStr
+            month_end: monthEndStr,
+            include_demo: true
           });
 
         if (entriesError) throw entriesError;
@@ -168,7 +170,8 @@ const InsuranceDashboard = () => {
           .rpc('get_insurance_entries_data', {
             company_id: companyData.id,
             month_start: yearStartStr,
-            month_end: todayStr
+            month_end: todayStr,
+            include_demo: true
           });
         if (ytdError) {
           console.warn('YTD entries fetch error:', ytdError);
@@ -214,14 +217,17 @@ const InsuranceDashboard = () => {
     if (!company) return;
     
     const fetchCurrentMonthCount = async () => {
-      const { count, error } = await supabase
-        .from('entries')
-        .select('*', { count: 'exact', head: true })
-        .gte('entry_date', monthStartStr)
-        .lte('entry_date', monthEndStr);
+      // Use RPC to get accurate count that respects access control
+      const { data: currentMonthEntries, error } = await supabase
+        .rpc('get_insurance_entries_data', {
+          company_id: company.id,
+          month_start: monthStartStr,
+          month_end: monthEndStr,
+          include_demo: true
+        });
       
       if (!error) {
-        setActualCurrentMonthCount(count || 0);
+        setActualCurrentMonthCount(currentMonthEntries?.length || 0);
       } else {
         console.warn('Current month count error:', error);
         setActualCurrentMonthCount(entries.length);

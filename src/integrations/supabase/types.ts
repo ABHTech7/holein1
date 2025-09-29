@@ -1379,7 +1379,14 @@ export type Database = {
         }[]
       }
       get_insurance_entries_data: {
-        Args: { company_id?: string; month_end?: string; month_start?: string }
+        Args:
+          | {
+              company_id?: string
+              include_demo?: boolean
+              month_end?: string
+              month_start?: string
+            }
+          | { company_id?: string; month_end?: string; month_start?: string }
         Returns: {
           competition_name: string
           entry_date: string
