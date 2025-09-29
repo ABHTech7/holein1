@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { createSlug } from "@/lib/slugUtils";
 import { toast } from "@/hooks/use-toast";
 import { resolvePublicUrl, withCacheBuster } from "@/lib/imageUtils";
+import { showSupabaseError } from "@/lib/showSupabaseError";
 
 interface Competition {
   id: string;
@@ -40,19 +41,20 @@ const PlayerExcitementSection = () => {
 
   const fetchCompetitions = async () => {
     try {
-      // Use new RPC with demo filtering based on domain
+      // Fetch all public competitions
       const { data: competitionsData, error: competitionsError } = await supabase
         .rpc('get_public_competition_data', {
           p_club_id: null,
-          p_competition_slug: null,
-          include_demo: false // Always false for public pages - live site won't show demo data
+          p_competition_slug: null
         });
 
-      if (competitionsError) throw competitionsError;
+      if (competitionsError) {
+        const errorMsg = showSupabaseError(competitionsError, 'fetching competitions');
+        throw new Error(errorMsg);
+      }
 
-      // Transform data to match our interface and add client-side safety filter
+      // Transform data to match our interface
       const transformedCompetitions = (competitionsData || [])
-        .filter(comp => !comp.name.toLowerCase().includes('demo')) // Client-side safety filter
         .map(comp => ({
           id: comp.id,
           name: comp.name,
@@ -79,9 +81,10 @@ const PlayerExcitementSection = () => {
       setCompetitions(sortedCompetitions);
     } catch (error: any) {
       console.error('Error loading competitions:', error);
+      const errorMessage = error?.message || 'Unable to load competitions. Please try again.';
       toast({
         title: "Error loading competitions",
-        description: "Unable to load competitions. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

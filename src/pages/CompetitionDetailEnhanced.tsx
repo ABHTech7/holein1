@@ -446,7 +446,12 @@ const CompetitionDetailEnhanced = () => {
             <div className="flex items-center gap-4">
               <Button 
                 variant="outline" 
-                onClick={() => navigate(profile?.role === 'ADMIN' ? '/dashboard/admin/competitions' : '/dashboard/club/competitions')}
+                onClick={() => {
+                  const dashboardRoute = profile?.role === 'ADMIN' || profile?.role === 'SUPER_ADMIN'
+                    ? '/dashboard/admin/competitions'
+                    : '/dashboard/club/competitions';
+                  navigate(dashboardRoute);
+                }}
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />

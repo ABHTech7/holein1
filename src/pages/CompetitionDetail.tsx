@@ -29,6 +29,7 @@ import {
   obfuscateEmail, 
   getCompetitionStatusColor
 } from '@/lib/formatters';
+import { showSupabaseError } from '@/lib/showSupabaseError';
 
 interface Profile {
   id: string;
@@ -113,22 +114,23 @@ const CompetitionDetail = () => {
       console.log('🔍 Fetching competition with ID:', id);
 
       try {
-        // Use new RPC to get competition data with demo filtering
+        // Fetch competition data
         let competitionData = null;
         
         const { data: competitionsData, error: competitionsError } = await supabase
           .rpc('get_public_competition_data', {
             p_club_id: null,
-            p_competition_slug: null,
-            include_demo: false // Always false for public pages - live site won't show demo data
+            p_competition_slug: null
           });
 
-        if (competitionsError) throw competitionsError;
+        if (competitionsError) {
+          const errorMsg = showSupabaseError(competitionsError, 'fetching competition');
+          throw new Error(errorMsg);
+        }
         console.log('📋 Found competitions:', competitionsData?.length || 0);
 
-        // Find the competition by ID and apply client-side safety filter
+        // Find the competition by ID
         const found = (competitionsData || [])
-          .filter(comp => !comp.name.toLowerCase().includes('demo')) // Client-side safety filter
           .find(comp => comp.id === id);
           
         if (found) {
@@ -200,9 +202,10 @@ const CompetitionDetail = () => {
 
       } catch (error) {
         console.error('❌ Error fetching competition:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load competition details';
         toast({
           title: 'Error',
-          description: 'Failed to load competition details',
+          description: errorMessage,
           variant: 'destructive',
         });
       } finally {
@@ -273,7 +276,12 @@ const CompetitionDetail = () => {
             <div className="flex items-center gap-4">
               <Button 
                 variant="outline" 
-                onClick={() => navigate((profile?.role === 'ADMIN' || profile?.role === 'SUPER_ADMIN') ? '/dashboard/admin/competitions' : '/dashboard/club/competitions')}
+                onClick={() => {
+                  const dashboardRoute = profile?.role === 'ADMIN' || profile?.role === 'SUPER_ADMIN' 
+                    ? '/dashboard/admin/competitions' 
+                    : '/dashboard/club/competitions';
+                  navigate(dashboardRoute);
+                }}
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />

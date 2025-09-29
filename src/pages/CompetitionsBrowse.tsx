@@ -99,10 +99,15 @@ const CompetitionsBrowse = () => {
   const getDashboardRoute = () => {
     if (!profile) return "/";
     switch (profile.role) {
-      case 'ADMIN': return "/dashboard/admin";
-      case 'CLUB': return "/dashboard/club";
-      case 'PLAYER': return "/players/entries";
-      default: return "/";
+      case 'SUPER_ADMIN':
+      case 'ADMIN': 
+        return "/dashboard/admin";
+      case 'CLUB': 
+        return "/dashboard/club";
+      case 'PLAYER': 
+        return "/players/entries";
+      default: 
+        return "/";
     }
   };
 
