@@ -36,10 +36,17 @@ interface Player {
   first_name: string | null;
   last_name: string | null;
   phone: string | null;
+  age_years: number | null;
+  handicap: number | null;
+  gender: string | null;
+  club_name?: string;
+  club_id?: string;
+  role: string;
   created_at: string;
-  last_entry_date: string | null;
-  total_entries: number;
   status: string;
+  entry_count: number;
+  last_entry_date: string | null;
+  total_count: number;
 }
 
 const PlayersPage = () => {
@@ -81,9 +88,9 @@ const PlayersPage = () => {
 
       setPlayers(data || []);
       
-      // For now, estimate total pages based on results
-      // In production, you'd want a separate count query
-      setTotalPages(Math.max(1, Math.ceil((data?.length || 0) / ITEMS_PER_PAGE) + (data?.length === ITEMS_PER_PAGE ? 1 : 0)));
+      // Use the total_count from the first row to calculate pagination
+      const totalCount = data?.[0]?.total_count || 0;
+      setTotalPages(Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE)));
       
     } catch (error) {
       const msg = showSupabaseError(error, 'PlayersPage.fetchPlayers');
@@ -227,7 +234,7 @@ const PlayersPage = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="w-5 h-5" />
-                All Players ({players.length} total{players.length > 0 ? `, showing ${players.length}` : ''})
+                All Players ({players?.[0]?.total_count || 0} total{players.length > 0 ? `, showing ${(currentPage - 1) * ITEMS_PER_PAGE + 1}-${Math.min(currentPage * ITEMS_PER_PAGE, players?.[0]?.total_count || 0)}` : ''})
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -313,13 +320,13 @@ const PlayersPage = () => {
                           </TableCell>
                           <TableCell>
                             <Badge variant="secondary">
-                              {player.total_entries}
+                              {player.entry_count}
                             </Badge>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <Badge variant={player.total_entries > 0 ? "default" : "outline"}>
-                                {player.total_entries > 0 ? "Active" : "Inactive"}
+                              <Badge variant={player.entry_count > 0 ? "default" : "outline"}>
+                                {player.entry_count > 0 ? "Active" : "Inactive"}
                               </Badge>
                               <Button
                                 variant="outline"

@@ -1298,15 +1298,22 @@ export type Database = {
       get_admin_players_with_stats: {
         Args: { p_limit?: number; p_offset?: number; p_search?: string }
         Returns: {
+          age_years: number
+          club_id: string
+          club_name: string
           created_at: string
           email: string
+          entry_count: number
           first_name: string
+          gender: string
+          handicap: number
           id: string
           last_entry_date: string
           last_name: string
           phone: string
+          role: Database["public"]["Enums"]["user_role"]
           status: string
-          total_entries: number
+          total_count: number
         }[]
       }
       get_competition_status: {

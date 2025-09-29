@@ -96,9 +96,11 @@ async function handler(req: Request): Promise<Response> {
 
       console.log(`Processing batch ${batch + 1}/${totalBatches} (${batchSize_} players)`);
 
-      const playersToCreate = Array.from({ length: batchSize_ }, () => {
+      const playersToCreate = Array.from({ length: batchSize_ }, (_, index) => {
         const { firstName, lastName } = generatePlayerName();
-        const email = `${sanitizeForEmail(firstName)}.${sanitizeForEmail(lastName)}@demo-golfer.test`;
+        const timestamp = Date.now();
+        const uniqueId = Math.floor(Math.random() * 10000);
+        const email = `${sanitizeForEmail(firstName)}.${sanitizeForEmail(lastName)}.${timestamp}.${uniqueId}@demo-golfer.test`;
         const phone = generateUKPhone();
         
         return {
