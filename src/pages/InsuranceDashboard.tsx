@@ -71,9 +71,14 @@ const InsuranceDashboard = () => {
   const [actualCurrentMonthCount, setActualCurrentMonthCount] = useState(0);
   const entriesPerPage = 15;
 
-  // Get current month date range - fixed to use proper end date
-  const monthStart = new Date(selectedMonth + '-01');
-  const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0); // Last day of month
+  // Get current month date range in UTC to avoid timezone issues
+  const [yearStr, monthStr] = selectedMonth.split('-');
+  const ymYear = Number(yearStr);
+  const ymMonthIndex = Number(monthStr) - 1;
+  const monthStartDate = new Date(Date.UTC(ymYear, ymMonthIndex, 1));
+  const monthEndDate = new Date(Date.UTC(ymYear, ymMonthIndex + 1, 0));
+  const monthStartStr = monthStartDate.toISOString().slice(0, 10);
+  const monthEndStr = monthEndDate.toISOString().slice(0, 10);
 
   const fetchMonthlyData = async (company: InsuranceCompany) => {
     try {
@@ -81,29 +86,29 @@ const InsuranceDashboard = () => {
       const months = [];
       
       // Get data for each month of the current year
-      for (let month = 0; month < 12; month++) {
-        const monthStart = new Date(currentYear, month, 1);
-        const monthEnd = new Date(currentYear, month + 1, 0, 23, 59, 59, 999);
-        
-        const { data: monthEntries, error } = await supabase
-          .rpc('get_insurance_entries_data', {
-            company_id: company.id,
-            month_start: monthStart.toISOString().split('T')[0],
-            month_end: monthEnd.toISOString().split('T')[0]
+        for (let month = 0; month < 12; month++) {
+          const startDate = new Date(Date.UTC(currentYear, month, 1));
+          const endDate = new Date(Date.UTC(currentYear, month + 1, 0));
+          
+          const { data: monthEntries, error } = await supabase
+            .rpc('get_insurance_entries_data', {
+              company_id: company.id,
+              month_start: startDate.toISOString().slice(0, 10),
+              month_end: endDate.toISOString().slice(0, 10)
+            });
+
+          if (error) throw error;
+
+          const monthName = startDate.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+          const entriesCount = monthEntries?.length || 0;
+          const premiums = entriesCount * company.premium_rate_per_entry;
+
+          months.push({
+            month: monthName,
+            entries: entriesCount,
+            premiums: premiums
           });
-
-        if (error) throw error;
-
-        const monthName = monthStart.toLocaleDateString('en-US', { month: 'short' });
-        const entriesCount = monthEntries?.length || 0;
-        const premiums = entriesCount * company.premium_rate_per_entry;
-
-        months.push({
-          month: monthName,
-          entries: entriesCount,
-          premiums: premiums
-        });
-      }
+        }
 
       setMonthlyData(months);
     } catch (error) {
@@ -147,21 +152,23 @@ const InsuranceDashboard = () => {
         const { data: entriesData, error: entriesError } = await supabase
           .rpc('get_insurance_entries_data', {
             company_id: companyData.id,
-            month_start: monthStart.toISOString().split('T')[0],
-            month_end: monthEnd.toISOString().split('T')[0]
+            month_start: monthStartStr,
+            month_end: monthEndStr
           });
 
         if (entriesError) throw entriesError;
         setEntries(entriesData || []);
 
         // Compute YTD premium using RPC (respects RLS)
-        const yearStart = new Date(new Date().getFullYear(), 0, 1);
-        const today = new Date();
+        const now = new Date();
+        const yearStartDate = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+        const yearStartStr = yearStartDate.toISOString().slice(0, 10);
+        const todayStr = now.toISOString().slice(0, 10);
         const { data: ytdEntries, error: ytdError } = await supabase
           .rpc('get_insurance_entries_data', {
             company_id: companyData.id,
-            month_start: yearStart.toISOString().split('T')[0],
-            month_end: today.toISOString().split('T')[0]
+            month_start: yearStartStr,
+            month_end: todayStr
           });
         if (ytdError) {
           console.warn('YTD entries fetch error:', ytdError);
@@ -308,7 +315,7 @@ const InsuranceDashboard = () => {
                 <CardContent>
                   <div className="text-2xl font-bold">{currentMonthEntries.toLocaleString()}</div>
                   <p className="text-xs text-muted-foreground">
-                    {monthStart.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' })}
+                    {monthStartDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' })}
                   </p>
                 </CardContent>
               </Card>
@@ -401,12 +408,12 @@ const InsuranceDashboard = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {[...Array(12)].map((_, i) => {
-                          const date = new Date();
-                          date.setMonth(date.getMonth() - i);
-                          const value = date.toISOString().slice(0, 7);
-                          const label = date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+                          const now = new Date();
+                          const utcFirstOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+                          const value = utcFirstOfMonth.toISOString().slice(0, 7);
+                          const label = utcFirstOfMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
                           return (
-                            <SelectItem key={value} value={value}>
+                            <SelectItem key={`${value}-${i}`} value={value}>
                               {label}
                             </SelectItem>
                           );
