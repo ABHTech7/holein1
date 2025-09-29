@@ -28,7 +28,8 @@ function getRandomInt(min: number, max: number): number {
 function generateClubName(): string {
   const prefix = getRandomElement(clubPrefixes);
   const suffix = getRandomElement(clubSuffixes);
-  return `${prefix} ${suffix}`;
+  const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
+  return `${prefix} ${suffix} ${timestamp}`;
 }
 
 function sanitizeForEmail(name: string): string {
@@ -60,16 +61,19 @@ async function handler(req: Request): Promise<Response> {
     console.log('Starting to create 25 demo clubs...');
 
     // Create 25 new clubs
-    const clubsToCreate = Array.from({ length: 25 }, () => {
+    const clubsToCreate = Array.from({ length: 25 }, (_, index) => {
       const clubName = generateClubName();
       const sanitizedName = sanitizeForEmail(clubName);
+      const timestamp = Date.now();
+      const uniqueId = `${timestamp}-${index}`;
       
       return {
         name: clubName,
-        email: `${sanitizedName}@demo-golf-club.test`,
-        phone: `0${getRandomInt(1111, 9999)} ${getRandomInt(100000, 999999)}`,
-        address: `Golf Course Lane, ${getRandomElement(['Surrey', 'Kent', 'Essex', 'Hertfordshire', 'Buckinghamshire'])}, UK`,
-        website: `https://${sanitizedName}.golf.co.uk`,
+        email: `${sanitizedName}.${uniqueId}@demo-golf-club.test`,
+        phone: `0${getRandomInt(1000, 9999)} ${getRandomInt(100000, 999999)}`,
+        address: `${getRandomInt(1, 999)} Golf Course Lane, ${getRandomElement(['Surrey', 'Kent', 'Essex', 'Hertfordshire', 'Buckinghamshire'])}, UK`,
+        website: `https://${sanitizedName}-${uniqueId}.golf.co.uk`,
+        slug: `${sanitizedName}-${uniqueId}`,
         is_demo_data: true,
         active: true
       };
@@ -97,6 +101,10 @@ async function handler(req: Request): Promise<Response> {
         const endDate = new Date(startDate);
         endDate.setFullYear(endDate.getFullYear() + 1); // 1 year from start
         
+        const competitionType = i === 0 ? 'championship' : 'monthly';
+        const baseSlug = club.slug || club.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        const competitionSlug = `${baseSlug}-${competitionType}-challenge-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+        
         competitionsToCreate.push({
           club_id: club.id,
           name: `${club.name} ${i === 0 ? 'Championship' : 'Monthly'} Challenge`,
@@ -104,12 +112,12 @@ async function handler(req: Request): Promise<Response> {
           start_date: startDate.toISOString(),
           end_date: endDate.toISOString(),
           status: 'ACTIVE',
-          entry_fee: getRandomElement([1000, 2500, 5000]), // £10, £25, £50 only
-          prize_pool: getRandomElement([1000000, 2500000, 5000000]),
+          entry_fee: getRandomElement([1000, 2500, 5000]), // £10, £25, £50 in pence
+          prize_pool: getRandomElement([1000000, 2500000, 5000000]), // £10k, £25k, £50k in pence
           hole_number: getRandomInt(1, 18),
           is_year_round: true,
           is_demo_data: true,
-          slug: `${club.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${i === 0 ? 'championship' : 'monthly'}-challenge`
+          slug: competitionSlug
         });
       }
     });

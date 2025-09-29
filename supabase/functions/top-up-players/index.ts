@@ -72,14 +72,20 @@ async function handler(req: Request): Promise<Response> {
 
     console.log(`Starting to create ${playerCount} demo players...`);
 
-    // Get all demo clubs to distribute players across
+    // Get all demo clubs to distribute players across (check both flag and email patterns)
     const { data: demoClubs, error: clubError } = await supabaseAdmin
       .from('clubs')
-      .select('id')
-      .eq('is_demo_data', true);
+      .select('id, name')
+      .or('is_demo_data.eq.true,email.like.%@demo-golf-club.test%,email.like.%@holein1demo.test%,name.like.%Demo%');
 
-    if (clubError || !demoClubs || demoClubs.length === 0) {
-      throw new Error('No demo clubs found to distribute players across');
+    if (clubError) {
+      console.error('Club query error:', clubError);
+      throw new Error(`Failed to query demo clubs: ${clubError.message}`);
+    }
+
+    if (!demoClubs || demoClubs.length === 0) {
+      console.log('No demo clubs found. First run backfill_demo_data_flags() or top-up-clubs');
+      throw new Error('No demo clubs found to distribute players across. Run top-up-clubs first.');
     }
 
     console.log(`Found ${demoClubs.length} demo clubs to distribute players across`);
@@ -99,8 +105,9 @@ async function handler(req: Request): Promise<Response> {
       const playersToCreate = Array.from({ length: batchSize_ }, (_, index) => {
         const { firstName, lastName } = generatePlayerName();
         const timestamp = Date.now();
-        const uniqueId = Math.floor(Math.random() * 10000);
-        const email = `${sanitizeForEmail(firstName)}.${sanitizeForEmail(lastName)}.${timestamp}.${uniqueId}@demo-golfer.test`;
+        const batchIndex = batch * batchSize + index;
+        const uniqueId = `${timestamp}-${batchIndex}-${Math.floor(Math.random() * 1000)}`;
+        const email = `${sanitizeForEmail(firstName)}.${sanitizeForEmail(lastName)}.${uniqueId}@demo-golfer.test`;
         const phone = generateUKPhone();
         
         return {

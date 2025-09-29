@@ -68,26 +68,40 @@ async function handler(req: Request): Promise<Response> {
 
     console.log(`Starting to create ${entryCount} demo entries...`);
 
-    // Get all demo players
+    // Get all demo players (check both flag and email patterns)
     const { data: demoPlayers, error: playerError } = await supabaseAdmin
       .from('profiles')
-      .select('id, email')
-      .eq('is_demo_data', true)
-      .eq('role', 'PLAYER');
+      .select('id, email, first_name, last_name')
+      .or('is_demo_data.eq.true,email.like.%@demo-golfer.test%,email.like.%@holein1demo.test%,email.like.%@holein1.test%')
+      .eq('role', 'PLAYER')
+      .neq('status', 'deleted');
 
-    if (playerError || !demoPlayers || demoPlayers.length === 0) {
-      throw new Error('No demo players found');
+    if (playerError) {
+      console.error('Player query error:', playerError);
+      throw new Error(`Failed to query demo players: ${playerError.message}`);
     }
 
-    // Get all active demo competitions
+    if (!demoPlayers || demoPlayers.length === 0) {
+      console.log('No demo players found. First run backfill_demo_data_flags() or top-up-players');
+      throw new Error('No demo players found. Run top-up-players first.');
+    }
+
+    // Get all active demo competitions (check both flag and demo patterns)
     const { data: demoCompetitions, error: compError } = await supabaseAdmin
       .from('competitions')
-      .select('id, entry_fee, name')
-      .eq('is_demo_data', true)
-      .eq('status', 'ACTIVE');
+      .select('id, entry_fee, name, club_id')
+      .or('is_demo_data.eq.true,club_id.in.(select id from clubs where is_demo_data = true or email like \'%@demo-golf-club.test%\')')
+      .eq('status', 'ACTIVE')
+      .eq('archived', false);
 
-    if (compError || !demoCompetitions || demoCompetitions.length === 0) {
-      throw new Error('No active demo competitions found');
+    if (compError) {
+      console.error('Competition query error:', compError);
+      throw new Error(`Failed to query demo competitions: ${compError.message}`);
+    }
+
+    if (!demoCompetitions || demoCompetitions.length === 0) {
+      console.log('No active demo competitions found. First run backfill_demo_data_flags() or top-up-clubs');
+      throw new Error('No active demo competitions found. Run top-up-clubs first.');
     }
 
     console.log(`Found ${demoPlayers.length} demo players and ${demoCompetitions.length} demo competitions`);
@@ -129,14 +143,16 @@ async function handler(req: Request): Promise<Response> {
         entry_date: entryDate.toISOString(),
         paid: true,
         payment_date: entryDate.toISOString(),
-        price_paid: competition.entry_fee / 100, // Convert pence to pounds
+        price_paid: competition.entry_fee, // Keep in pence to match database expectation
         outcome_self: outcome,
         status: outcome === 'win' ? 'verification_pending' : 'completed',
         completed_at: entryDate.toISOString(),
         terms_accepted_at: entryDate.toISOString(),
         is_demo_data: true,
         payment_provider: 'demo',
-        payment_id: `demo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        payment_id: `demo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        attempt_number: 1,
+        is_repeat_attempt: false
       };
       
       entriesToCreate.push(entry);
