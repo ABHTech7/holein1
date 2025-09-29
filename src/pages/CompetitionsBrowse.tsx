@@ -46,12 +46,11 @@ const CompetitionsBrowse = () => {
 
   const fetchCompetitions = async () => {
     try {
-      // Use new RPC with demo filtering based on domain
+      // Use RPC that filters demo data based on is_demo_data flags
       const { data: competitionsData, error: competitionsError } = await supabase
         .rpc('get_public_competition_data', {
           p_club_id: null,
-          p_competition_slug: null,
-          include_demo: false // Always false for public pages - live site won't show demo data
+          p_competition_slug: null
         });
 
       if (competitionsError) throw competitionsError;
