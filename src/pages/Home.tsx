@@ -5,7 +5,7 @@ import Container from "@/components/layout/Container";
 import Section from "@/components/layout/Section";
 import AudienceSelector from "@/components/home/AudienceSelector";
 import ClubPartnerSection from "@/components/home/ClubPartnerSection";
-import PlayerExcitementSection from "@/components/home/PlayerExcitementSection";
+
 
 const Home = () => {
   const [selectedAudience, setSelectedAudience] = useState<'clubs' | 'players'>('clubs');
@@ -44,11 +44,7 @@ const Home = () => {
         </section>
 
         {/* Dynamic Content Based on Selection */}
-        {selectedAudience === 'clubs' ? (
-          <ClubPartnerSection />
-        ) : (
-          <PlayerExcitementSection />
-        )}
+        {selectedAudience === 'clubs' && <ClubPartnerSection />}
       </main>
 
       <SiteFooter />
