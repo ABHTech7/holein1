@@ -68,6 +68,7 @@ const InsuranceDashboard = () => {
   const [ytdPremiumPence, setYtdPremiumPence] = useState(0);
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [actualCurrentMonthCount, setActualCurrentMonthCount] = useState(0);
   const entriesPerPage = 15;
 
   // Get current month date range - fixed to use proper end date
@@ -82,27 +83,24 @@ const InsuranceDashboard = () => {
       // Get data for each month of the current year
       for (let month = 0; month < 12; month++) {
         const monthStart = new Date(currentYear, month, 1);
-        const monthEnd = new Date(currentYear, month + 1, 0);
+        const monthEnd = new Date(currentYear, month + 1, 0, 23, 59, 59, 999);
         
-        // Direct count from entries table since RPC doesn't filter by company properly
-        const { count: entriesCount, error } = await supabase
-          .from('entries')
-          .select('*', { count: 'exact', head: true })
-          .gte('entry_date', monthStart.toISOString().split('T')[0])
-          .lte('entry_date', monthEnd.toISOString().split('T')[0]);
+        const { data: monthEntries, error } = await supabase
+          .rpc('get_insurance_entries_data', {
+            company_id: company.id,
+            month_start: monthStart.toISOString().split('T')[0],
+            month_end: monthEnd.toISOString().split('T')[0]
+          });
 
-        if (error) {
-          console.error('Error fetching month entries:', error);
-          continue;
-        }
+        if (error) throw error;
 
         const monthName = monthStart.toLocaleDateString('en-US', { month: 'short' });
-        const actualCount = entriesCount || 0;
-        const premiums = actualCount * company.premium_rate_per_entry;
+        const entriesCount = monthEntries?.length || 0;
+        const premiums = entriesCount * company.premium_rate_per_entry;
 
         months.push({
           month: monthName,
-          entries: actualCount,
+          entries: entriesCount,
           premiums: premiums
         });
       }
@@ -156,21 +154,20 @@ const InsuranceDashboard = () => {
         if (entriesError) throw entriesError;
         setEntries(entriesData || []);
 
-        // Get accurate YTD count directly from entries table
+        // Compute YTD premium using RPC (respects RLS)
         const yearStart = new Date(new Date().getFullYear(), 0, 1);
         const today = new Date();
-        const { count: ytdCount, error: ytdCountError } = await supabase
-          .from('entries')
-          .select('*', { count: 'exact', head: true })
-          .gte('entry_date', yearStart.toISOString().split('T')[0])
-          .lte('entry_date', today.toISOString().split('T')[0]);
-        
-        if (ytdCountError) {
-          console.warn('YTD count fetch error:', ytdCountError);
+        const { data: ytdEntries, error: ytdError } = await supabase
+          .rpc('get_insurance_entries_data', {
+            company_id: companyData.id,
+            month_start: yearStart.toISOString().split('T')[0],
+            month_end: today.toISOString().split('T')[0]
+          });
+        if (ytdError) {
+          console.warn('YTD entries fetch error:', ytdError);
           setYtdPremiumPence(0);
         } else {
-          const actualYtdCount = ytdCount || 0;
-          console.log('YTD Calculation:', { actualYtdCount, rate: companyData.premium_rate_per_entry });
+          const actualYtdCount = (ytdEntries?.length || 0);
           setYtdPremiumPence(Math.round(actualYtdCount * Number(companyData.premium_rate_per_entry) * 100));
         }
 
@@ -205,6 +202,28 @@ const InsuranceDashboard = () => {
     setCurrentPage(1);
   }, [selectedMonth]);
 
+  // Fetch actual current month count directly from DB for accurate calculations
+  useEffect(() => {
+    if (!company) return;
+    
+    const fetchCurrentMonthCount = async () => {
+      const { count, error } = await supabase
+        .from('entries')
+        .select('*', { count: 'exact', head: true })
+        .gte('entry_date', monthStart.toISOString().split('T')[0])
+        .lte('entry_date', monthEnd.toISOString().split('T')[0]);
+      
+      if (!error) {
+        setActualCurrentMonthCount(count || 0);
+      } else {
+        console.warn('Current month count error:', error);
+        setActualCurrentMonthCount(entries.length);
+      }
+    };
+    
+    fetchCurrentMonthCount();
+  }, [company, selectedMonth, monthStart, monthEnd]);
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -237,26 +256,7 @@ const InsuranceDashboard = () => {
     );
   }
 
-  // Get actual current month count directly from DB for accurate calculations
-  const [actualCurrentMonthCount, setActualCurrentMonthCount] = useState(0);
   
-  useEffect(() => {
-    if (!company) return;
-    
-    const fetchCurrentMonthCount = async () => {
-      const { count, error } = await supabase
-        .from('entries')
-        .select('*', { count: 'exact', head: true })
-        .gte('entry_date', monthStart.toISOString().split('T')[0])
-        .lte('entry_date', monthEnd.toISOString().split('T')[0]);
-      
-      if (!error) {
-        setActualCurrentMonthCount(count || 0);
-      }
-    };
-    
-    fetchCurrentMonthCount();
-  }, [company, selectedMonth, monthStart, monthEnd]);
 
   const currentMonthEntries = actualCurrentMonthCount;
   const currentMonthPremium = currentMonthEntries * (company?.premium_rate_per_entry || 0);
