@@ -316,7 +316,7 @@ const AdminQuickActions = ({ stats, insurancePremiums, onAddUser, isEditing = fa
               {!isEditing && action.path.includes('entries') && (action.count ?? 0) > 0 && (
                 <div className="mt-3">
                   <Badge variant="secondary" className="text-xs">
-                    {action.count} Month to Date
+                    {action.count}
                   </Badge>
                 </div>
               )}
