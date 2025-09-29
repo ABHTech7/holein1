@@ -313,13 +313,6 @@ const AdminQuickActions = ({ stats, insurancePremiums, onAddUser, isEditing = fa
                 </div>
               )}
               
-              {!isEditing && action.path.includes('entries') && (action.count ?? 0) > 0 && (
-                <div className="mt-3">
-                  <Badge variant="secondary" className="text-xs">
-                    {action.count}
-                  </Badge>
-                </div>
-              )}
             </CardContent>
           </Card>
         );
