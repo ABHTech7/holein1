@@ -1581,6 +1581,10 @@ export type Database = {
         Args: { p_email: string; p_first_name?: string; p_last_name?: string }
         Returns: Json
       }
+      slugify: {
+        Args: { text_input: string }
+        Returns: string
+      }
       update_club_contract_status: {
         Args: {
           p_club_id: string
