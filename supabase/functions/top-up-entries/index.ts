@@ -171,7 +171,7 @@ async function handler(req: Request): Promise<Response> {
         completed_at: entryDate.toISOString(),
         terms_accepted_at: entryDate.toISOString(),
         is_demo_data: true,
-        payment_provider: 'demo',
+        payment_provider: null,
         payment_id: `demo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         attempt_number: 1,
         is_repeat_attempt: false
@@ -220,6 +220,11 @@ async function handler(req: Request): Promise<Response> {
       });
 
       console.log(`Batch ${batch + 1}/${totalBatches}: Inserted ${insertedEntries.length} entries`);
+    }
+
+    // Add error handling for no entries inserted
+    if (totalInserted === 0) {
+      throw new Error('Failed to create any entries - database constraint violations occurred');
     }
 
     const result = {

@@ -52,6 +52,36 @@ function sanitizeForEmail(name: string): string {
     .slice(0, 20);
 }
 
+function generatePlayerRegistrationDateInLast3Months(): Date {
+  const now = new Date();
+  
+  // Weight distribution: 50% current month, 30% last month, 20% two months ago
+  const weights = [0.5, 0.3, 0.2];
+  const rand = Math.random();
+  let monthsBack = 0;
+  
+  if (rand < weights[0]) {
+    monthsBack = 0; // Current month
+  } else if (rand < weights[0] + weights[1]) {
+    monthsBack = 1; // Last month
+  } else {
+    monthsBack = 2; // Two months ago
+  }
+  
+  const targetMonth = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
+  const daysInMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0).getDate();
+  const randomDay = getRandomInt(1, daysInMonth);
+  
+  const registrationDate = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), randomDay);
+  
+  // Ensure not in future
+  if (registrationDate > now) {
+    return now;
+  }
+  
+  return registrationDate;
+}
+
 async function handler(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -109,6 +139,7 @@ async function handler(req: Request): Promise<Response> {
         const uniqueId = `${timestamp}-${batchIndex}-${Math.floor(Math.random() * 1000)}`;
         const email = `${sanitizeForEmail(firstName)}.${sanitizeForEmail(lastName)}.${uniqueId}@demo-golfer.test`;
         const phone = generateUKPhone();
+        const registrationDate = generatePlayerRegistrationDateInLast3Months();
         
         return {
           first_name: firstName,
@@ -121,13 +152,16 @@ async function handler(req: Request): Promise<Response> {
           gender: getRandomElement(['male', 'female']),
           role: 'PLAYER',
           is_demo_data: true,
-          club_id: getRandomElement(demoClubs).id // Distribute across demo clubs
+          club_id: getRandomElement(demoClubs).id, // Distribute across demo clubs
+          created_at: registrationDate.toISOString(),
+          updated_at: registrationDate.toISOString()
         };
       });
 
       // Create auth users first
       const authPromises = playersToCreate.map(async (player) => {
         try {
+          const playerDate = new Date(player.created_at);
           const { data: authUser, error } = await supabaseAdmin.auth.admin.createUser({
             email: player.email,
             password: 'DemoPlayer123!',
@@ -142,6 +176,20 @@ async function handler(req: Request): Promise<Response> {
           if (error) {
             console.error(`Failed to create auth user for ${player.email}:`, error);
             return null;
+          }
+
+          // Update auth user created_at to match player registration date
+          if (authUser.user) {
+            try {
+              await supabaseAdmin.auth.admin.updateUserById(authUser.user.id, {
+                user_metadata: {
+                  ...authUser.user.user_metadata,
+                  created_at: playerDate.toISOString()
+                }
+              });
+            } catch (updateError) {
+              console.warn(`Failed to update auth user created_at for ${player.email}:`, updateError);
+            }
           }
 
           return { ...player, id: authUser.user?.id };

@@ -25,11 +25,19 @@ export const TopUpEntriesButton = () => {
       }
 
       if (data?.success) {
-        const { monthlyBreakdown } = data;
-        toast({
-          title: "Entries Added Successfully",
-          description: `Created ${data.entriesCreated} entries. Current month: ${monthlyBreakdown.current}, Last month: ${monthlyBreakdown.lastMonth}, Two months ago: ${monthlyBreakdown.twoMonthsAgo}`
-        });
+        if (data.entriesCreated === 0) {
+          toast({
+            title: "No Entries Created",
+            description: "All player-competition combinations already exist or database constraints prevented creation.",
+            variant: "destructive",
+          });
+        } else {
+          const { monthlyBreakdown } = data;
+          toast({
+            title: "Entries Added Successfully",
+            description: `Created ${data.entriesCreated} entries. Current month: ${monthlyBreakdown.current}, Last month: ${monthlyBreakdown.lastMonth}, Two months ago: ${monthlyBreakdown.twoMonthsAgo}`
+          });
+        }
       } else {
         throw new Error(data?.error || 'Unknown error occurred');
       }
