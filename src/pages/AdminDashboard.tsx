@@ -113,10 +113,15 @@ const AdminDashboard = () => {
 
         // Get current dates for revenue calculations
         const now = new Date();
-        const yearStartStr = `${now.getFullYear()}-01-01`;
-        const monthStartStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-        const todayStr = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-        const tomorrowStr = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const yearStartStr = `${yyyy}-01-01`;
+        const monthStartStr = `${yyyy}-${mm}-01`;
+        // Use date-only strings to avoid timezone drift and ensure inclusive daily windows
+        const todayStr = `${yyyy}-${mm}-${dd}`;
+        const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
 
         // Fetch basic stats with proper error handling and demo filtering
         console.log('Fetching admin dashboard stats...');
@@ -253,18 +258,17 @@ const AdminDashboard = () => {
         }
 
         // Calculate revenue for different periods using price_paid with fallback to amount_minor
-        const todayRevenue = (todayEntriesRes.data || []).reduce((sum, entry) => {
-          const effectiveAmount = (entry as any).price_paid ?? (entry as any).amount_minor ?? 0;
-          return sum + effectiveAmount;
-        }, 0);
-        const monthlyRevenue = (monthlyEntriesRes.data || []).reduce((sum, entry) => {
-          const effectiveAmount = (entry as any).price_paid ?? (entry as any).amount_minor ?? 0;
-          return sum + effectiveAmount;
-        }, 0);
-        const yearlyRevenue = (yearlyEntriesRes.data || []).reduce((sum, entry) => {
-          const effectiveAmount = (entry as any).price_paid ?? (entry as any).amount_minor ?? 0;
-          return sum + effectiveAmount;
-        }, 0);
+        // Sum in pence: prefer amount_minor (already pence); otherwise convert price_paid (pounds) to pence
+        const toPence = (e: any) => {
+          const minor = typeof e.amount_minor === 'number' ? e.amount_minor : null;
+          const pounds = typeof e.price_paid === 'number' ? e.price_paid : null;
+          if (minor !== null && !isNaN(minor)) return minor;
+          if (pounds !== null && !isNaN(pounds)) return Math.round(pounds * 100);
+          return 0;
+        };
+        const todayRevenue = (todayEntriesRes.data || []).reduce((sum, entry) => sum + toPence(entry), 0);
+        const monthlyRevenue = (monthlyEntriesRes.data || []).reduce((sum, entry) => sum + toPence(entry), 0);
+        const yearlyRevenue = (yearlyEntriesRes.data || []).reduce((sum, entry) => sum + toPence(entry), 0);
         console.log('Month to date entries count:', monthToDateEntriesRes.count);
         setStats({
           totalPlayers: playersRes.count || 0,
