@@ -10,8 +10,39 @@ interface VerifyMagicLinkRequest {
   token: string;
 }
 
+// Helper function to find user by email using paginated listUsers
+async function findUserByEmail(supabaseAdmin: any, email: string, traceId: string) {
+  const normalizedEmail = email.toLowerCase().trim();
+  console.log(`[${traceId}] Searching for auth user with email:`, normalizedEmail);
+  
+  // listUsers() returns all users, so we filter client-side
+  const { data: usersData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000 // Reasonable limit, adjust if needed
+  });
+  
+  if (listError) {
+    console.error(`[${traceId}] listUsers error:`, listError);
+    return { user: null, error: listError };
+  }
+  
+  const foundUser = usersData.users.find(
+    (u: any) => u.email?.toLowerCase().trim() === normalizedEmail
+  );
+  
+  if (foundUser) {
+    console.log(`[${traceId}] Found user via listUsers:`, foundUser.id);
+  } else {
+    console.log(`[${traceId}] No user found via listUsers for email:`, normalizedEmail);
+  }
+  
+  return { user: foundUser || null, error: null };
+}
+
 const handler = async (req: Request): Promise<Response> => {
-  console.log("Magic link verification request received:", req.method);
+  // Generate trace ID for this invocation
+  const traceId = crypto.randomUUID().slice(0, 8);
+  console.log(`[${traceId}] Magic link verification request received:`, req.method);
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -27,7 +58,7 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { token }: VerifyMagicLinkRequest = await req.json();
     
-    console.log("Verifying magic link token:", token);
+    console.log(`[${traceId}] Verifying magic link token:`, token);
 
     // Initialize Supabase Admin Client
     const supabaseAdmin = createClient(
@@ -35,7 +66,7 @@ const handler = async (req: Request): Promise<Response> => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    console.log("Supabase client initialized successfully");
+    console.log(`[${traceId}] Supabase client initialized successfully`);
 
     // Look up the magic link token with detailed error handling
     const { data: tokenData, error: tokenError } = await supabaseAdmin
@@ -45,25 +76,35 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (tokenError || !tokenData) {
-      console.error("Token not found:", tokenError);
+      console.error(`[${traceId}] Token not found:`, tokenError);
       return new Response(JSON.stringify({ 
         success: false,
+        code: 'token_not_found',
         error: "Invalid magic link - token not found" 
       }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       });
     }
+    
+    // Normalize email to lowercase
+    const normalizedEmail = tokenData.email.toLowerCase().trim();
 
     // Check if token is expired
     const now = new Date();
     const expiresAt = new Date(tokenData.expires_at);
     
+    console.log(`[${traceId}] Checking token expiration:`, {
+      current: now.toISOString(),
+      expires: expiresAt.toISOString()
+    });
+    
     // Check expiration first - if expired, token is truly unusable
     if (expiresAt <= now) {
-      console.error("Token expired:", token);
+      console.error(`[${traceId}] Token expired:`, token);
       return new Response(JSON.stringify({ 
         success: false,
+        code: 'token_expired',
         error: "This magic link has expired. Please request a new one." 
       }), {
         status: 400,
@@ -72,69 +113,47 @@ const handler = async (req: Request): Promise<Response> => {
     }
     
     // Token is still valid - allow reuse within the 6-hour window
-    // Log if token has been used before but allow it to continue
     if (tokenData.used) {
-      console.log("Token previously used but still within validity window, allowing reuse:", token);
+      console.log(`[${traceId}] Token previously used but still within validity window, allowing reuse`);
     }
     
-    console.log("Checking token expiration:");
-    console.log("Current time (UTC):", now.toISOString());
-    console.log("Token expires at (UTC):", expiresAt.toISOString());
-    
-    if (expiresAt <= now) {
-      console.error("Token expired:", token);
-      return new Response(JSON.stringify({ 
-        success: false,
-        error: "This magic link has expired. Please request a new one." 
-      }), {
-        status: 400,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
-    
-    console.log("Token validation successful. Token is still valid.");
+    console.log(`[${traceId}] Token validation successful`);
 
-    // Check if user already exists using profiles table lookup
+    // Check if user already exists using profiles table lookup (normalized email)
     const { data: existingProfile, error: queryError } = await supabaseAdmin
       .from('profiles')
       .select('id')
-      .eq('email', tokenData.email)
+      .ilike('email', normalizedEmail)
       .maybeSingle();
 
     let user;
     
     if (queryError && !queryError.message.includes('No rows found')) {
-      console.error("Error checking for existing user:", queryError);
-      throw new Error("Failed to verify user status");
+      console.error(`[${traceId}] Error checking for existing user:`, queryError);
+      return new Response(JSON.stringify({ 
+        success: false,
+        code: 'profile_lookup_failed',
+        message: "Failed to verify user status"
+      }), {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
     }
 
     if (existingProfile) {
       // Profile exists, try to get the corresponding auth user
-      console.log("Profile exists, fetching corresponding auth user");
+      console.log(`[${traceId}] Profile exists, fetching corresponding auth user`);
       
       const { data: existingUserData, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(existingProfile.id);
       
       if (getUserError || !existingUserData.user) {
-        console.log("Auth user not found for existing profile, this is an orphaned profile");
-        console.log("Attempting to create auth user with existing profile ID");
+        console.log(`[${traceId}] Auth user not found for existing profile, checking via listUsers`);
         
-        // Try to create auth user with the existing profile ID
-        const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-          email: tokenData.email,
-          email_confirm: true,
-          user_metadata: {
-            first_name: tokenData.first_name,
-            last_name: tokenData.last_name,
-            phone: tokenData.phone_e164,
-            age_years: tokenData.age_years,
-            handicap: tokenData.handicap,
-            role: 'PLAYER'
-          }
-        });
-
-        if (createError || !userData.user) {
-          console.error("Failed to create auth user for orphaned profile:", createError);
-          console.log("Deleting orphaned profile and will create fresh user");
+        // Search for auth user using listUsers
+        const { user: foundAuthUser, error: findError } = await findUserByEmail(supabaseAdmin, normalizedEmail, traceId);
+        
+        if (foundAuthUser) {
+          console.log(`[${traceId}] Found auth user via listUsers, orphaned profile detected:`, foundAuthUser.id);
           
           // Delete the orphaned profile
           await supabaseAdmin
@@ -142,11 +161,15 @@ const handler = async (req: Request): Promise<Response> => {
             .delete()
             .eq('id', existingProfile.id);
           
-          // Create a completely fresh new user
-          console.log("Creating fresh user after orphaned profile cleanup");
+          console.log(`[${traceId}] Orphaned profile deleted, will upsert with correct user.id`);
+          user = foundAuthUser;
           
+        } else {
+          console.log(`[${traceId}] No auth user found, creating new user`);
+          
+          // Create a completely fresh new user
           const { data: freshUserData, error: freshUserError } = await supabaseAdmin.auth.admin.createUser({
-            email: tokenData.email,
+            email: normalizedEmail,
             email_confirm: true,
             user_metadata: {
               first_name: tokenData.first_name,
@@ -159,47 +182,44 @@ const handler = async (req: Request): Promise<Response> => {
           });
 
           if (freshUserError || !freshUserData.user) {
-            console.error("Failed to create fresh user:", freshUserError);
-            throw new Error("Failed to create fresh user after orphaned profile cleanup");
+            console.error(`[${traceId}] Failed to create fresh user:`, freshUserError);
+            return new Response(JSON.stringify({ 
+              success: false,
+              code: 'user_creation_failed',
+              message: "Failed to create user account after orphaned profile cleanup",
+              traceId
+            }), {
+              status: 500,
+              headers: { "Content-Type": "application/json", ...corsHeaders },
+            });
           }
           
           user = freshUserData.user;
-          console.log("Fresh user created after cleanup:", user.id);
-        } else {
-          user = userData.user;
-          console.log("Created auth user for existing profile:", user.id);
+          console.log(`[${traceId}] Fresh user created after cleanup:`, user.id);
         }
       } else {
         user = existingUserData.user;
-        console.log("Existing user found:", user.id);
+        console.log(`[${traceId}] Existing user found:`, user.id);
       }
       
     } else {
-      // No profile exists, but check if auth user exists before creating
-      console.log("No profile found, checking for existing auth user");
+      // No profile exists, check if auth user exists using listUsers
+      console.log(`[${traceId}] No profile found, searching auth users for:`, normalizedEmail);
       
-      const { data: existingAuthUsers, error: listUsersError } = await supabaseAdmin.auth.admin.listUsers();
+      const { user: foundAuthUser, error: findError } = await findUserByEmail(supabaseAdmin, normalizedEmail, traceId);
       
-      if (listUsersError) {
-        console.error("Error listing users:", listUsersError);
-        throw new Error("Failed to verify user status");
-      }
-      
-      const existingAuthUser = existingAuthUsers.users.find(
-        u => u.email?.toLowerCase() === tokenData.email.toLowerCase()
-      );
-      
-      if (existingAuthUser) {
+      if (foundAuthUser) {
         // Auth user exists without profile - use existing user
-        console.log("Found existing auth user without profile:", existingAuthUser.id);
-        user = existingAuthUser;
+        console.log(`[${traceId}] Found existing auth user without profile:`, foundAuthUser.id);
+        user = foundAuthUser;
+        
       } else {
-        // No auth user exists, create new user
-        console.log("Creating new user");
+        // No auth user found, create new user
+        console.log(`[${traceId}] No auth user found, creating new user`);
         
         const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-          email: tokenData.email,
-          email_confirm: true, // Auto-confirm email since they clicked the magic link
+          email: normalizedEmail,
+          email_confirm: true,
           user_metadata: {
             first_name: tokenData.first_name,
             last_name: tokenData.last_name,
@@ -211,60 +231,68 @@ const handler = async (req: Request): Promise<Response> => {
         });
 
         if (createError) {
-          console.error("Error creating user:", createError);
+          console.error(`[${traceId}] Error creating user:`, createError);
           
-          // Handle email_exists error as fallback
+          // Handle email_exists error with listUsers fallback
           if (createError.message?.includes('already been registered') || createError.code === 'email_exists') {
-            console.log("User exists (caught via email_exists), fetching existing user");
+            console.log(`[${traceId}] email_exists fallback: using listUsers to recover`);
             
-            const { data: retryUsers, error: retryError } = await supabaseAdmin.auth.admin.listUsers();
-            if (retryError) {
-              throw new Error("Failed to fetch existing user after email_exists error");
+            const { user: retryFoundUser, error: retryError } = await findUserByEmail(supabaseAdmin, normalizedEmail, traceId);
+            
+            if (!retryFoundUser || retryError) {
+              console.error(`[${traceId}] listUsers failed after email_exists:`, retryError);
+              return new Response(JSON.stringify({ 
+                success: false,
+                code: 'auth_user_missing',
+                message: "Auth user exists but could not be retrieved. Please contact support.",
+                details: "listUsers returned no user after email_exists error",
+                traceId
+              }), {
+                status: 500,
+                headers: { "Content-Type": "application/json", ...corsHeaders },
+              });
             }
             
-            const foundUser = retryUsers.users.find(
-              u => u.email?.toLowerCase() === tokenData.email.toLowerCase()
-            );
+            user = retryFoundUser;
+            console.log(`[${traceId}] Successfully recovered existing user via listUsers:`, user.id);
             
-            if (!foundUser) {
-              throw new Error("User exists but could not be found");
-            }
-            
-            user = foundUser;
-            console.log("Successfully recovered existing user:", user.id);
           } else {
             return new Response(JSON.stringify({ 
               success: false,
               code: 'user_creation_failed',
               message: "Failed to create user account",
-              error: createError.message
+              details: createError.message,
+              traceId
             }), {
               status: 500,
               headers: { "Content-Type": "application/json", ...corsHeaders },
             });
           }
+          
         } else if (!userData.user) {
           return new Response(JSON.stringify({ 
             success: false,
             code: 'user_creation_failed',
-            message: "Failed to create user account"
+            message: "Failed to create user account",
+            traceId
           }), {
             status: 500,
             headers: { "Content-Type": "application/json", ...corsHeaders },
           });
+          
         } else {
           user = userData.user;
-          console.log("New user created:", user.id);
+          console.log(`[${traceId}] New user created:`, user.id);
         }
       }
     }
 
-    // Update user profile with the collected information
+    // Update user profile with normalized email
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .upsert({
         id: user.id,
-        email: tokenData.email,
+        email: normalizedEmail,
         first_name: tokenData.first_name,
         last_name: tokenData.last_name,
         phone_e164: tokenData.phone_e164,
@@ -274,7 +302,7 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
     if (profileError) {
-      console.error("Error updating profile:", profileError);
+      console.error(`[${traceId}] Error updating profile:`, profileError);
       // Don't fail the request for profile errors, just log them
     }
 
