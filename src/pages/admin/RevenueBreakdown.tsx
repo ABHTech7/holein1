@@ -242,11 +242,17 @@ const RevenueBreakdown = () => {
         .reduce((sum, e) => sum + e.entry_fee, 0);
       
       const monthToDateRevenue = transformedEntries
-        .filter(e => e.paid && new Date(e.entry_date) >= startOfMonth)
+        .filter(e => {
+          const entryDate = new Date(e.entry_date);
+          return e.paid && entryDate >= startOfMonth && entryDate <= now;
+        })
         .reduce((sum, e) => sum + e.entry_fee, 0);
         
       const yearToDateRevenue = transformedEntries
-        .filter(e => e.paid && new Date(e.entry_date) >= startOfYear)
+        .filter(e => {
+          const entryDate = new Date(e.entry_date);
+          return e.paid && entryDate >= startOfYear && entryDate <= now;
+        })
         .reduce((sum, e) => sum + e.entry_fee, 0);
 
       setStats({

@@ -6,7 +6,7 @@ import { PlayerEntriesTable } from "@/components/player/PlayerEntriesTable";
 import { PlayAgainPanel } from "@/components/player/PlayAgainPanel";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Target } from "lucide-react";
 
@@ -33,7 +33,7 @@ interface PlayerSummary {
 
 export default function PlayerDashboardNew() {
   const { user, session, loading: authLoading } = useAuth();
-  const { toast } = useToast();
+  
   const navigate = useNavigate();
 
   const [entries, setEntries] = useState<PlayerEntry[]>([]);
@@ -161,10 +161,54 @@ export default function PlayerDashboardNew() {
     }
   };
 
-  const handlePlayAgain = (competitionId: string) => {
-    // Navigate to competition entry page
-    // For now, we'll use a simple route - this will be enhanced with proper routing later
-    navigate(`/competitions/${competitionId}/enter`);
+  const handlePlayAgain = async (competitionId: string) => {
+    try {
+      // First, get the competition and club details to build correct URL
+      const { data: competition, error } = await supabase
+        .from('competitions')
+        .select(`
+          id,
+          name,
+          slug,
+          clubs!inner(
+            id,
+            name,
+            slug
+          )
+        `)
+        .eq('id', competitionId)
+        .single();
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to load competition details",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!competition) {
+        toast({
+          title: "Competition Not Found",
+          description: "The competition you're trying to enter could not be found",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const club = competition.clubs as any;
+      
+      // Navigate using proper URL pattern: /competition/{club-slug}/{competition-slug}/enter
+      navigate(`/competition/${club.slug}/${competition.slug}/enter`);
+    } catch (error) {
+      console.error('Play again navigation error:', error);
+      toast({
+        title: "Navigation Error",
+        description: "Failed to navigate to competition entry",
+        variant: "destructive"
+      });
+    }
   };
 
   // Get recent misses for play again panel

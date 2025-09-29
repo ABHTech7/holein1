@@ -21,7 +21,15 @@ interface PlayAgainPanelProps {
 }
 
 export function PlayAgainPanel({ recentMisses, onPlayAgain }: PlayAgainPanelProps) {
-  if (recentMisses.length === 0) {
+  // Filter out entries that are still in cooldown (12 hours)
+  const now = new Date();
+  const availableEntries = recentMisses.filter(entry => {
+    const entryDate = new Date(entry.entry_date);
+    const cooldownEnd = new Date(entryDate.getTime() + 12 * 60 * 60 * 1000); // 12 hours later
+    return now >= cooldownEnd;
+  });
+
+  if (availableEntries.length === 0) {
     return null;
   }
 
@@ -45,7 +53,7 @@ export function PlayAgainPanel({ recentMisses, onPlayAgain }: PlayAgainPanelProp
         <RotateCcw className="h-5 w-5 text-orange-600" />
         <h3 className="text-lg font-semibold text-orange-900">Try Again</h3>
         <Badge variant="secondary" className="bg-orange-100 text-orange-800">
-          {recentMisses.length} Recent Miss{recentMisses.length > 1 ? 'es' : ''}
+          {availableEntries.length} Available
         </Badge>
       </div>
       
@@ -54,7 +62,7 @@ export function PlayAgainPanel({ recentMisses, onPlayAgain }: PlayAgainPanelProp
       </p>
 
       <div className="space-y-3">
-        {recentMisses.slice(0, 3).map((entry) => (
+        {availableEntries.slice(0, 3).map((entry) => (
           <div key={entry.id} className="flex items-center justify-between p-3 bg-white/60 rounded-lg border border-orange-100">
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-1">
@@ -92,10 +100,10 @@ export function PlayAgainPanel({ recentMisses, onPlayAgain }: PlayAgainPanelProp
         ))}
       </div>
 
-      {recentMisses.length > 3 && (
+      {availableEntries.length > 3 && (
         <div className="text-center mt-4">
           <Button variant="outline" className="border-orange-200 text-orange-700 hover:bg-orange-50">
-            View All Recent Misses ({recentMisses.length - 3} more)
+            View All Recent Misses ({availableEntries.length - 3} more)
           </Button>
         </div>
       )}

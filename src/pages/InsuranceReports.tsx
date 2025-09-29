@@ -99,20 +99,28 @@ const InsuranceReports = () => {
       if (premiumsError) throw premiumsError;
       setPremiums(premiumsData || []);
 
-      // Generate monthly stats for visualization
+      // Generate monthly stats for visualization by aggregating all premiums that fall within each month
       const monthlyStats: MonthlyStats[] = [];
       for (let month = 0; month < 12; month++) {
         const monthDate = new Date(parseInt(selectedYear), month, 1);
-        const monthStr = monthDate.toISOString().slice(0, 7);
+        const monthStart = new Date(parseInt(selectedYear), month, 1);
+        const monthEnd = new Date(parseInt(selectedYear), month + 1, 0); // Last day of month
         
-        const monthPremium = (premiumsData || []).find(p => 
-          p.period_start.startsWith(monthStr)
-        );
+        // Find all premiums that overlap with this month
+        const monthPremiums = (premiumsData || []).filter(p => {
+          const periodStart = new Date(p.period_start);
+          const periodEnd = new Date(p.period_end);
+          // Check if premium period overlaps with this month
+          return periodStart <= monthEnd && periodEnd >= monthStart;
+        });
+
+        const totalEntries = monthPremiums.reduce((sum, p) => sum + p.total_entries, 0);
+        const totalPremiums = monthPremiums.reduce((sum, p) => sum + parseFloat(p.total_premium_amount?.toString() || '0'), 0);
 
         monthlyStats.push({
           month: monthDate.toLocaleDateString('en-GB', { month: 'short' }),
-          entries: monthPremium?.total_entries || 0,
-          premium: parseFloat(monthPremium?.total_premium_amount?.toString() || '0')
+          entries: totalEntries,
+          premium: totalPremiums
         });
       }
 

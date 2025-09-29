@@ -21,8 +21,8 @@ function getRandomInt(min: number, max: number): number {
 function generateEntryDateInLast3Months(): Date {
   const now = new Date();
   
-  // Weight distribution: 50% current month, 30% last month, 20% two months ago
-  const weights = [0.5, 0.3, 0.2];
+  // Weight distribution: 40% current month, 35% last month, 25% two months ago
+  const weights = [0.4, 0.35, 0.25];
   const rand = Math.random();
   let monthsBack = 0;
   
@@ -36,13 +36,19 @@ function generateEntryDateInLast3Months(): Date {
   
   const targetMonth = new Date(now.getFullYear(), now.getMonth() - monthsBack, 1);
   const daysInMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0).getDate();
-  const randomDay = getRandomInt(1, daysInMonth);
+  let randomDay = getRandomInt(1, daysInMonth);
   
-  const entryDate = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), randomDay);
+  // For current month, don't exceed today's date
+  if (monthsBack === 0) {
+    randomDay = Math.min(randomDay, now.getDate());
+  }
   
-  // Ensure not in future
+  const entryDate = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), randomDay, 
+    getRandomInt(9, 17), getRandomInt(0, 59)); // Random time during business hours
+  
+  // Final safety check - ensure not in future
   if (entryDate > now) {
-    return now;
+    return new Date(now.getTime() - getRandomInt(1, 7) * 24 * 60 * 60 * 1000); // 1-7 days ago
   }
   
   return entryDate;
