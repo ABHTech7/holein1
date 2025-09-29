@@ -19,24 +19,43 @@ export const TopUpEntriesButton = () => {
         body: { entryCount }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Function error:', error);
+        throw new Error(error.message || 'Failed to invoke function');
+      }
 
-      if (data.success) {
+      if (data?.success) {
         const { monthlyBreakdown } = data;
         toast({
           title: "Entries Added Successfully",
           description: `Created ${data.entriesCreated} entries. Current month: ${monthlyBreakdown.current}, Last month: ${monthlyBreakdown.lastMonth}, Two months ago: ${monthlyBreakdown.twoMonthsAgo}`
         });
       } else {
-        throw new Error(data.error || 'Unknown error occurred');
+        throw new Error(data?.error || 'Unknown error occurred');
       }
     } catch (error: any) {
       console.error('Top-up entries error:', error);
-      toast({
-        title: "Failed to Add Entries",
-        description: error.message || "Failed to create demo entries",
-        variant: "destructive"
-      });
+      const errorMessage = error.message || 'Failed to create demo entries';
+      
+      if (errorMessage.includes('No demo players found')) {
+        toast({
+          title: "No Demo Players Found",
+          description: "Please run 'Top-Up Demo Players' first to create players for entries.",
+          variant: "destructive"
+        });
+      } else if (errorMessage.includes('No active demo competitions found')) {
+        toast({
+          title: "No Demo Competitions Found",
+          description: "Please run 'Top-Up Demo Clubs' first to create competitions for entries.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Failed to Add Entries",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsCreating(false);
     }

@@ -19,23 +19,42 @@ export const TopUpPlayersButton = () => {
         body: { playerCount }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Function error:', error);
+        throw new Error(error.message || 'Failed to invoke function');
+      }
 
-      if (data.success) {
+      if (data?.success) {
         toast({
           title: "Players Added Successfully",
           description: `Created ${data.playersCreated} players across ${data.distributedAcrossClubs} demo clubs`
         });
       } else {
-        throw new Error(data.error || 'Unknown error occurred');
+        throw new Error(data?.error || 'Unknown error occurred');
       }
     } catch (error: any) {
       console.error('Top-up players error:', error);
-      toast({
-        title: "Failed to Add Players",
-        description: error.message || "Failed to create demo players",
-        variant: "destructive"
-      });
+      const errorMessage = error.message || 'Failed to create demo players';
+      
+      if (errorMessage.includes('No demo clubs found')) {
+        toast({
+          title: "No Demo Clubs Found",
+          description: "Please run 'Top-Up Demo Clubs' first to create clubs for player distribution.",
+          variant: "destructive"
+        });
+      } else if (errorMessage.includes('backfill_demo_data_flags')) {
+        toast({
+          title: "Data Consistency Issue",
+          description: "Demo data flags need updating. Please contact admin.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Failed to Add Players",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsCreating(false);
     }
