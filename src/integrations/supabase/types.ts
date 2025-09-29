@@ -1501,9 +1501,7 @@ export type Database = {
         }[]
       }
       get_safe_competition_data: {
-        Args:
-          | { p_club_id?: string; p_competition_slug?: string }
-          | { p_club_id?: string; p_competition_slug?: string }
+        Args: { p_club_id?: string; p_competition_slug?: string }
         Returns: {
           club_address: string
           club_email: string
