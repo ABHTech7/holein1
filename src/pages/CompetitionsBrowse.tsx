@@ -15,7 +15,6 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDateTime } from "@/lib/formatters";
 import { createClubSlug, createCompetitionSlug, generateCompetitionEntryUrlSync } from "@/lib/competitionUtils";
-import { getDemoModeDisplayConfig } from "@/lib/demoMode";
 
 interface Competition {
   id: string;
@@ -47,74 +46,31 @@ const CompetitionsBrowse = () => {
 
   const fetchCompetitions = async () => {
     try {
-      const demoConfig = getDemoModeDisplayConfig();
-      
-      // Primary RPC call - no parameters to avoid signature issues
-      console.info('🔍 Fetching competitions from get_public_competition_data...');
-      const { data: primaryData, error: primaryError } = await supabase
+      // Fetch all active competitions without demo filtering
+      const { data: competitionsData, error: competitionsError } = await supabase
         .rpc('get_public_competition_data');
 
-      if (primaryError) {
-        console.error('❌ Primary RPC error:', primaryError);
-        throw primaryError;
-      }
-
-      console.info(`✅ Primary RPC returned ${primaryData?.length || 0} competitions`);
-
-      let competitionsData = primaryData;
-
-      // Fallback if primary returns nothing
-      if (!competitionsData || competitionsData.length === 0) {
-        console.info('⚠️ No data from primary, trying fallback get_safe_competition_data...');
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .rpc('get_safe_competition_data');
-
-        if (fallbackError) {
-          console.error('❌ Fallback RPC error:', fallbackError);
-        } else {
-          console.info(`✅ Fallback RPC returned ${fallbackData?.length || 0} competitions`);
-          competitionsData = fallbackData;
-        }
-      }
-
-      if (!competitionsData || competitionsData.length === 0) {
-        console.warn('⚠️ No competitions returned from DB. Check filters or seed data.');
-        toast({
-          title: "No competitions found",
-          description: "No active competitions are currently available.",
-          variant: "default"
-        });
-      }
+      if (competitionsError) throw competitionsError;
 
       // Transform data to match our interface
       const transformedCompetitions = (competitionsData || [])
-        // Only filter demo names when filterDemoData is enabled
-        .filter(comp => {
-          const shouldFilter = demoConfig.filterDemoData && comp.name.toLowerCase().includes('demo');
-          if (shouldFilter) {
-            console.info(`🚫 Filtering out demo competition: ${comp.name}`);
-          }
-          return !shouldFilter;
-        })
         .map(comp => ({
           id: comp.id,
           name: comp.name,
           description: comp.description,
-          entry_fee: comp.entry_fee,
-          prize_pool: comp.prize_pool,
-          hole_number: comp.hole_number,
-          start_date: comp.start_date,
-          end_date: comp.end_date,
-          is_year_round: comp.is_year_round,
-          hero_image_url: comp.hero_image_url,
+          entryFee: comp.entry_fee,
+          prizePool: comp.prize_pool,
+          holeNumber: comp.hole_number,
+          startDate: comp.start_date,
+          endDate: comp.end_date,
+          isYearRound: comp.is_year_round,
+          heroImageUrl: comp.hero_image_url,
           clubs: {
             id: comp.club_id,
             name: comp.club_name,
             website: null
           }
         }));
-
-      console.info(`📊 Final transformed competitions: ${transformedCompetitions.length}`);
 
       // Sort by start date
       const sortedCompetitions = transformedCompetitions
