@@ -162,7 +162,7 @@ async function handler(req: Request): Promise<Response> {
       }
       
       const entryDate = generateEntryDateInLast3Months();
-      const outcome = Math.random() < (1/12000) ? 'win' : 'miss'; // 1 in 12,000 win rate
+      const outcome = Math.random() < (1/500) ? 'win' : 'miss'; // 1 in 500 win rate
       
       const entry = {
         player_id: player.id,

@@ -434,7 +434,7 @@ async function handler(req: Request): Promise<Response> {
               payment_date: entryDate.toISOString(),
               price_paid: competition.entry_fee || 25,
               status: getRandomElement(['completed', 'pending', 'verification_pending']),
-              outcome_self: Math.random() < (1/12000) ? 'win' : 'miss', // 1 in 12,000 win rate
+              outcome_self: Math.random() < (1/500) ? 'win' : 'miss', // 1 in 500 win rate
               is_demo_data: true
             });
           }

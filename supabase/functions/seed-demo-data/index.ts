@@ -429,51 +429,51 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Created ${createdEntries.length} entries total`);
 
-    // Create winners (1 per competition)
+    // Create winners (1 in 500 win rate)
     console.log("Creating winners and claims...");
     const winnersToUpdate = [];
     const verificationsToCreate = [];
     const claimsToCreate = [];
 
-    for (const competition of createdCompetitions) {
-      // Find a random entry for this competition to make a winner
-      const competitionEntries = createdEntries.filter(e => e.competition_id === competition.id);
-      if (competitionEntries.length === 0) continue;
+    for (const entry of createdEntries) {
+      // 1 in 500 chance for each entry to be a winner
+      if (Math.random() < (1/500)) {
+        const competition = createdCompetitions.find(c => c.id === entry.competition_id);
+        if (!competition) continue;
+        
+        // Update entry to be a winner
+        winnersToUpdate.push({
+          id: entry.id,
+          outcome_self: "win",
+          status: "completed",
+          score: 1 // Hole in one!
+        });
 
-      const winnerEntry = getRandomElement(competitionEntries);
-      
-      // Update entry to be a winner
-      winnersToUpdate.push({
-        id: winnerEntry.id,
-        outcome_self: "win",
-        status: "completed",
-        score: 1 // Hole in one!
-      });
+        // Create verification record
+        verificationsToCreate.push({
+          entry_id: entry.id,
+          witnesses: [{
+            name: "Club Staff Member",
+            contact: generateUKPhone(),
+            relationship: "Staff"
+          }],
+          status: "approved",
+          verified_at: new Date().toISOString(),
+          social_consent: true,
+          evidence_captured_at: new Date().toISOString()
+        });
 
-      // Create verification record
-      verificationsToCreate.push({
-        entry_id: winnerEntry.id,
-        witnesses: [{
-          name: "Club Staff Member",
-          contact: generateUKPhone(),
-          relationship: "Staff"
-        }],
-        status: "approved",
-        verified_at: new Date().toISOString(),
-        social_consent: true,
-        evidence_captured_at: new Date().toISOString()
-      });
-
-      // Create approved claim
-      claimsToCreate.push({
-        entry_id: winnerEntry.id,
-        hole_number: competition.hole_number,
-        status: "APPROVED",
-        verified_at: new Date().toISOString(),
-        witness_name: "Club Staff Member",
-        witness_contact: generateUKPhone(),
-        notes: "Verified hole-in-one with video evidence and witness confirmation"
-      });
+        // Create approved claim
+        claimsToCreate.push({
+          entry_id: entry.id,
+          hole_number: competition.hole_number,
+          status: "APPROVED",
+          verified_at: new Date().toISOString(),
+          witness_name: "Club Staff Member",
+          witness_contact: generateUKPhone(),
+          notes: "Verified hole-in-one with video evidence and witness confirmation"
+        });
+      }
     }
 
     // Update winner entries
