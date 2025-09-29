@@ -161,24 +161,27 @@ const AdminDashboard = () => {
           entriesQuery
         ]);
 
-        // Fetch revenue data for different periods
+        // Fetch revenue data for different periods with price_paid
         const [todayEntriesRes, monthlyEntriesRes, yearlyEntriesRes] = await Promise.all([
         // Today's revenue
         supabase.from('entries').select(`
               entry_date,
               paid,
+              price_paid,
               competitions!inner(entry_fee)
             `).eq('paid', true).gte('entry_date', today).lt('entry_date', tomorrow),
         // Month-to-date revenue
         supabase.from('entries').select(`
               entry_date,
               paid,
+              price_paid,
               competitions!inner(entry_fee)
             `).eq('paid', true).gte('entry_date', monthStart),
         // Year-to-date revenue
         supabase.from('entries').select(`
               entry_date,
               paid,
+              price_paid,
               competitions!inner(entry_fee)
             `).eq('paid', true).gte('entry_date', yearStart)]);
 
@@ -249,18 +252,18 @@ const AdminDashboard = () => {
           });
         }
 
-        // Calculate revenue for different periods
+        // Calculate revenue for different periods using price_paid with fallback to entry_fee
         const todayRevenue = (todayEntriesRes.data || []).reduce((sum, entry) => {
-          const fee = (entry as any).competitions?.entry_fee || 0;
-          return sum + fee;
+          const effectiveAmount = (entry as any).price_paid ?? ((entry as any).competitions?.entry_fee || 0);
+          return sum + effectiveAmount;
         }, 0);
         const monthlyRevenue = (monthlyEntriesRes.data || []).reduce((sum, entry) => {
-          const fee = (entry as any).competitions?.entry_fee || 0;
-          return sum + fee;
+          const effectiveAmount = (entry as any).price_paid ?? ((entry as any).competitions?.entry_fee || 0);
+          return sum + effectiveAmount;
         }, 0);
         const yearlyRevenue = (yearlyEntriesRes.data || []).reduce((sum, entry) => {
-          const fee = (entry as any).competitions?.entry_fee || 0;
-          return sum + fee;
+          const effectiveAmount = (entry as any).price_paid ?? ((entry as any).competitions?.entry_fee || 0);
+          return sum + effectiveAmount;
         }, 0);
         console.log('Month to date entries count:', monthToDateEntriesRes.count);
         setStats({
