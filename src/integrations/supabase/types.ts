@@ -1401,6 +1401,22 @@ export type Database = {
           player_last_name: string
         }[]
       }
+      get_insurance_entries_page: {
+        Args: {
+          company_id?: string
+          include_demo?: boolean
+          month_end?: string
+          month_start?: string
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: {
+          competition_name: string
+          entry_date: string
+          player_first_name: string
+          player_last_name: string
+        }[]
+      }
       get_my_entries: {
         Args: { p_filters?: Json; p_limit?: number; p_offset?: number }
         Returns: {

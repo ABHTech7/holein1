@@ -85,13 +85,13 @@ const InsuranceDashboard = () => {
       const currentYear = new Date().getFullYear();
       const months = [];
       
-      // Get data for each month of the current year
+        // Get data for each month of the current year using count RPC
         for (let month = 0; month < 12; month++) {
           const startDate = new Date(Date.UTC(currentYear, month, 1));
           const endDate = new Date(Date.UTC(currentYear, month + 1, 0));
           
-          const { data: monthEntries, error } = await supabase
-            .rpc('get_insurance_entries_data', {
+          const { data: monthEntriesCount, error } = await supabase
+            .rpc('get_insurance_entries_count', {
               company_id: company.id,
               month_start: startDate.toISOString().slice(0, 10),
               month_end: endDate.toISOString().slice(0, 10),
@@ -101,7 +101,7 @@ const InsuranceDashboard = () => {
           if (error) throw error;
 
           const monthName = startDate.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
-          const entriesCount = monthEntries?.length || 0;
+          const entriesCount = Number(monthEntriesCount) || 0;
           const premiums = entriesCount * company.premium_rate_per_entry;
 
           months.push({
@@ -149,35 +149,37 @@ const InsuranceDashboard = () => {
         // Fetch monthly chart data
         await fetchMonthlyData(companyData);
 
-        // Get entries data for the selected month using RPC (for display data with names)
+        // Get entries data for the selected month using paginated RPC (for display data with names)
         const { data: entriesData, error: entriesError } = await supabase
-          .rpc('get_insurance_entries_data', {
+          .rpc('get_insurance_entries_page', {
             company_id: companyData.id,
             month_start: monthStartStr,
             month_end: monthEndStr,
-            include_demo: true
+            include_demo: true,
+            p_limit: 1000, // Get enough entries for initial display, pagination handled client-side for now
+            p_offset: 0
           });
 
         if (entriesError) throw entriesError;
         setEntries(entriesData || []);
 
-        // Compute YTD premium using RPC (respects RLS)
+        // Compute YTD premium using count RPC (respects RLS)
         const now = new Date();
         const yearStartDate = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
         const yearStartStr = yearStartDate.toISOString().slice(0, 10);
         const todayStr = now.toISOString().slice(0, 10);
-        const { data: ytdEntries, error: ytdError } = await supabase
-          .rpc('get_insurance_entries_data', {
+        const { data: ytdCount, error: ytdError } = await supabase
+          .rpc('get_insurance_entries_count', {
             company_id: companyData.id,
             month_start: yearStartStr,
             month_end: todayStr,
             include_demo: true
           });
         if (ytdError) {
-          console.warn('YTD entries fetch error:', ytdError);
+          console.warn('YTD entries count fetch error:', ytdError);
           setYtdPremiumPence(0);
         } else {
-          const actualYtdCount = (ytdEntries?.length || 0);
+          const actualYtdCount = Number(ytdCount) || 0;
           setYtdPremiumPence(Math.round(actualYtdCount * Number(companyData.premium_rate_per_entry) * 100));
         }
 
@@ -217,9 +219,9 @@ const InsuranceDashboard = () => {
     if (!company) return;
     
     const fetchCurrentMonthCount = async () => {
-      // Use RPC to get accurate count that respects access control
-      const { data: currentMonthEntries, error } = await supabase
-        .rpc('get_insurance_entries_data', {
+      // Use count RPC to get accurate count that respects access control
+      const { data: currentMonthCount, error } = await supabase
+        .rpc('get_insurance_entries_count', {
           company_id: company.id,
           month_start: monthStartStr,
           month_end: monthEndStr,
@@ -227,7 +229,7 @@ const InsuranceDashboard = () => {
         });
       
       if (!error) {
-        setActualCurrentMonthCount(currentMonthEntries?.length || 0);
+        setActualCurrentMonthCount(Number(currentMonthCount) || 0);
       } else {
         console.warn('Current month count error:', error);
         setActualCurrentMonthCount(entries.length);

@@ -74,9 +74,9 @@ const AdminInsuranceManagement = () => {
       const monthStartStr = monthStartUTC.toISOString().slice(0, 10);
       const yearStartStr = yearStartUTC.toISOString().slice(0, 10);
 
-      // Get month-to-date entries via RPC (respects access control and demo flag)
-      const { data: mtdData, error: monthError } = await supabase
-        .rpc('get_insurance_entries_data', {
+      // Get month-to-date entries count via new count RPC
+      const { data: mtdCount, error: monthError } = await supabase
+        .rpc('get_insurance_entries_count', {
           company_id: currentCompany.id,
           month_start: monthStartStr,
           month_end: todayUTCStr,
@@ -84,9 +84,9 @@ const AdminInsuranceManagement = () => {
         });
       if (monthError) throw monthError;
 
-      // Get year-to-date entries via RPC
-      const { data: ytdData, error: ytdError } = await supabase
-        .rpc('get_insurance_entries_data', {
+      // Get year-to-date entries count via new count RPC
+      const { data: ytdCount, error: ytdError } = await supabase
+        .rpc('get_insurance_entries_count', {
           company_id: currentCompany.id,
           month_start: yearStartStr,
           month_end: todayUTCStr,
@@ -94,8 +94,8 @@ const AdminInsuranceManagement = () => {
         });
       if (ytdError) throw ytdError;
 
-      const monthEntries = mtdData?.length || 0;
-      const ytdEntries = ytdData?.length || 0;
+      const monthEntries = Number(mtdCount) || 0;
+      const ytdEntries = Number(ytdCount) || 0;
 
       // Calculate premiums: entries × rate
       const monthPremiums = monthEntries * currentCompany.premium_rate_per_entry;
@@ -147,11 +147,11 @@ const AdminInsuranceManagement = () => {
             premiums: existingPremium.total_premium_amount
           });
         } else {
-          // Compute entries per month via RPC when no stored premium exists
+          // Compute entries per month via count RPC when no stored premium exists
           try {
             const monthStartUTC = new Date(Date.UTC(currentYear, month, 1));
             const monthEndUTC = new Date(Date.UTC(currentYear, month + 1, 0));
-            const { data: monthEntriesData, error: rpcError } = await supabase.rpc('get_insurance_entries_data', {
+            const { data: monthEntriesCount, error: rpcError } = await supabase.rpc('get_insurance_entries_count', {
               company_id: currentCompany.id,
               month_start: monthStartUTC.toISOString().slice(0, 10),
               month_end: monthEndUTC.toISOString().slice(0, 10),
@@ -159,7 +159,7 @@ const AdminInsuranceManagement = () => {
             });
             if (rpcError) throw rpcError;
 
-            const entriesCount = monthEntriesData?.length || 0;
+            const entriesCount = Number(monthEntriesCount) || 0;
             const premiumsTotal = entriesCount * currentCompany.premium_rate_per_entry;
             months.push({
               month: monthDate.toLocaleDateString('en-US', { month: 'short' }),
@@ -167,7 +167,7 @@ const AdminInsuranceManagement = () => {
               premiums: premiumsTotal,
             });
           } catch (err) {
-            console.error('Failed to compute month via RPC:', err);
+            console.error('Failed to compute month via count RPC:', err);
             months.push({
               month: monthDate.toLocaleDateString('en-US', { month: 'short' }),
               entries: 0,
