@@ -175,29 +175,88 @@ const handler = async (req: Request): Promise<Response> => {
       }
       
     } else {
-      // User doesn't exist, create new user
-      console.log("Creating new user");
+      // No profile exists, but check if auth user exists before creating
+      console.log("No profile found, checking for existing auth user");
       
-      const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email: tokenData.email,
-        email_confirm: true, // Auto-confirm email since they clicked the magic link
-        user_metadata: {
-          first_name: tokenData.first_name,
-          last_name: tokenData.last_name,
-          phone: tokenData.phone_e164,
-          age_years: tokenData.age_years,
-          handicap: tokenData.handicap,
-          role: 'PLAYER'
-        }
-      });
-
-      if (createError || !userData.user) {
-        console.error("Error creating user:", createError);
-        throw new Error("Failed to create user account");
+      const { data: existingAuthUsers, error: listUsersError } = await supabaseAdmin.auth.admin.listUsers();
+      
+      if (listUsersError) {
+        console.error("Error listing users:", listUsersError);
+        throw new Error("Failed to verify user status");
       }
       
-      user = userData.user;
-      console.log("New user created:", user.id);
+      const existingAuthUser = existingAuthUsers.users.find(
+        u => u.email?.toLowerCase() === tokenData.email.toLowerCase()
+      );
+      
+      if (existingAuthUser) {
+        // Auth user exists without profile - use existing user
+        console.log("Found existing auth user without profile:", existingAuthUser.id);
+        user = existingAuthUser;
+      } else {
+        // No auth user exists, create new user
+        console.log("Creating new user");
+        
+        const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+          email: tokenData.email,
+          email_confirm: true, // Auto-confirm email since they clicked the magic link
+          user_metadata: {
+            first_name: tokenData.first_name,
+            last_name: tokenData.last_name,
+            phone: tokenData.phone_e164,
+            age_years: tokenData.age_years,
+            handicap: tokenData.handicap,
+            role: 'PLAYER'
+          }
+        });
+
+        if (createError) {
+          console.error("Error creating user:", createError);
+          
+          // Handle email_exists error as fallback
+          if (createError.message?.includes('already been registered') || createError.code === 'email_exists') {
+            console.log("User exists (caught via email_exists), fetching existing user");
+            
+            const { data: retryUsers, error: retryError } = await supabaseAdmin.auth.admin.listUsers();
+            if (retryError) {
+              throw new Error("Failed to fetch existing user after email_exists error");
+            }
+            
+            const foundUser = retryUsers.users.find(
+              u => u.email?.toLowerCase() === tokenData.email.toLowerCase()
+            );
+            
+            if (!foundUser) {
+              throw new Error("User exists but could not be found");
+            }
+            
+            user = foundUser;
+            console.log("Successfully recovered existing user:", user.id);
+          } else {
+            return new Response(JSON.stringify({ 
+              success: false,
+              code: 'user_creation_failed',
+              message: "Failed to create user account",
+              error: createError.message
+            }), {
+              status: 500,
+              headers: { "Content-Type": "application/json", ...corsHeaders },
+            });
+          }
+        } else if (!userData.user) {
+          return new Response(JSON.stringify({ 
+            success: false,
+            code: 'user_creation_failed',
+            message: "Failed to create user account"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        } else {
+          user = userData.user;
+          console.log("New user created:", user.id);
+        }
+      }
     }
 
     // Update user profile with the collected information
