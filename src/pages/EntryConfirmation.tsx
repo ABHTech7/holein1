@@ -505,12 +505,17 @@ const EntryConfirmation = () => {
       // Check for cooldown_active response
       if (result?.success === false && result?.code === 'cooldown_active') {
         clearAllEntryContext();
+        
+        if (import.meta.env.DEV) {
+          console.log('⏰ EntryConfirmation: Cooldown active, not navigating', result.message);
+        }
+        
         toast({
           title: "Cooldown Active",
           description: result.message || "You've already played in the last 12 hours. Please try again later.",
           variant: "destructive"
         });
-        return;
+        return; // Don't navigate - same competition retry is allowed immediately
       }
 
       if (!result?.entry_id) {
@@ -698,8 +703,8 @@ const EntryConfirmation = () => {
                       </div>
                     )}
 
-                    {/* Play Again button for misses */}
-                    {(entry.outcome_self === 'miss' || entry.outcome_self === 'auto_miss') && showPlayAgain && (
+                    {/* Play Again button for misses - shown immediately based on outcome */}
+                    {(entry.outcome_self === 'miss' || entry.outcome_self === 'auto_miss') && (
                       <div className="mt-4 space-y-3">
                         <Button 
                           onClick={handlePlayAgain}

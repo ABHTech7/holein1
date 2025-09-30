@@ -208,7 +208,8 @@ export function PlayerEntriesTable({
                           <Eye className="h-3 w-3 mr-1" />
                           View
                         </Button>
-                        {(entry.outcome_self === 'miss' || entry.outcome_self === 'auto_miss') && (
+                        {/* Play Again button for misses - shown immediately without delay */}
+                        {(entry?.outcome_self === 'miss' || entry?.outcome_self === 'auto_miss') && (
                           <Button 
                             variant="default" 
                             size="sm"
