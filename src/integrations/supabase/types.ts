@@ -1277,30 +1277,6 @@ export type Database = {
           total_premium: number
         }[]
       }
-      citext: {
-        Args: { "": boolean } | { "": string } | { "": unknown }
-        Returns: string
-      }
-      citext_hash: {
-        Args: { "": string }
-        Returns: number
-      }
-      citextin: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      citextout: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      citextrecv: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      citextsend: {
-        Args: { "": string }
-        Returns: string
-      }
       cleanup_demo_data: {
         Args: { cleanup_all?: boolean }
         Returns: Json
