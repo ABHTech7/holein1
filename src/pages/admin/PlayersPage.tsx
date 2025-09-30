@@ -51,7 +51,7 @@ interface Player {
 
 const PlayersPage = () => {
   const navigate = useNavigate();
-  const { profile, loading: authLoading } = useAuth();
+  const { profile, session, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [players, setPlayers] = useState<Player[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -68,23 +68,29 @@ const PlayersPage = () => {
 
   // Fetch players using the secure RPC function
   const fetchPlayers = async () => {
-    // Don't fetch if auth is still loading or user is not admin
-    if (authLoading || !profile || !['ADMIN', 'SUPER_ADMIN'].includes(profile.role)) {
+    // Hard gate: Only proceed when auth is fully ready
+    if (!session || !profile || authLoading || !['ADMIN', 'SUPER_ADMIN'].includes(profile.role)) {
+      console.log('[PlayersPage] fetchPlayers blocked - auth not ready:', {
+        hasSession: !!session,
+        hasProfile: !!profile,
+        authLoading,
+        role: profile?.role
+      });
       return;
     }
 
     try {
       setLoading(true);
       
-      // Use the secure RPC function to get players with stats
+      // Use the secure RPC function to get players with stats (returns array)
       const offset = (currentPage - 1) * ITEMS_PER_PAGE;
-      const { data, error } = await supabase.rpc('get_admin_players_with_stats', {
-        p_limit: ITEMS_PER_PAGE,
-        p_offset: offset,
-        p_search: searchTerm || null
-      });
-
-      if (error) throw error;
+      const { data, error } = await supabase
+        .rpc('get_admin_players_with_stats', {
+          p_limit: ITEMS_PER_PAGE,
+          p_offset: offset,
+          p_search: searchTerm || null
+        })
+        .throwOnError();
 
       setPlayers(data || []);
       
@@ -92,7 +98,18 @@ const PlayersPage = () => {
       const totalCount = data?.[0]?.total_count || 0;
       setTotalPages(Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE)));
       
-    } catch (error) {
+    } catch (error: any) {
+      // Explicit handling for "Cannot coerce" / PGRST116 errors
+      if (error?.code === 'PGRST116' || error?.message?.includes('Cannot coerce')) {
+        console.warn('[PlayersPage] Session not ready, skipping fetch:', error);
+        toast({ 
+          title: "Session not ready yet", 
+          description: "Please wait a moment and try again",
+          variant: "default"
+        });
+        return;
+      }
+
       const msg = showSupabaseError(error, 'PlayersPage.fetchPlayers');
       toast({ 
         title: "Failed to load players data", 
@@ -137,9 +154,18 @@ const PlayersPage = () => {
     }
   };
 
+  // Debounced fetch with hard gate
   useEffect(() => {
-    fetchPlayers();
-  }, [authLoading, profile, currentPage, searchTerm]);
+    // Only trigger when auth is fully ready
+    if (!authLoading && session && profile && ['ADMIN', 'SUPER_ADMIN'].includes(profile.role)) {
+      // Debounce by 250ms to avoid double-calls on rapid state changes
+      const timeoutId = setTimeout(() => {
+        fetchPlayers();
+      }, 250);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [authLoading, session?.user?.id, profile?.role, currentPage, searchTerm]);
 
   useEffect(() => {
     // Reset to first page when search changes
