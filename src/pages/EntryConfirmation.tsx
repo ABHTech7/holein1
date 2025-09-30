@@ -470,8 +470,25 @@ const EntryConfirmation = () => {
 
       if (error) throw error;
 
-      // Type cast the response
-      const result = data as { entry_id: string; duplicate_prevented?: boolean } | null;
+      // Type cast the response - now includes success flag and code
+      const result = data as { 
+        success?: boolean;
+        code?: string;
+        entry_id?: string; 
+        duplicate_prevented?: boolean;
+        message?: string;
+      } | null;
+
+      // Check for cooldown_active response
+      if (result?.success === false && result?.code === 'cooldown_active') {
+        clearAllEntryContext();
+        toast({
+          title: "Cooldown Active",
+          description: result.message || "You've already played in the last 12 hours. Please try again later.",
+          variant: "destructive"
+        });
+        return;
+      }
 
       if (!result?.entry_id) {
         throw new Error('No entry ID returned');

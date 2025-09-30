@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Target } from "lucide-react";
+import { clearAllEntryContext } from "@/lib/entryContextPersistence";
 
 interface PlayerEntry {
   id: string;
@@ -165,49 +166,53 @@ export default function PlayerDashboardNew() {
 
   const handlePlayAgain = async (competitionId: string) => {
     try {
-      // First, get the competition and club details to build correct URL
-      const { data: competition, error } = await supabase
-        .from('competitions')
-        .select(`
-          id,
-          name,
-          slug,
-          clubs!inner(
-            id,
-            name,
-            slug
-          )
-        `)
-        .eq('id', competitionId)
-        .single();
+      // Call RPC to create new entry with cooldown check
+      const { data, error } = await supabase
+        .rpc('create_new_entry_for_current_email', {
+          p_competition_id: competitionId
+        });
 
-      if (error) {
+      if (error) throw error;
+
+      // Type cast the response
+      const result = data as { 
+        success?: boolean;
+        code?: string;
+        entry_id?: string; 
+        duplicate_prevented?: boolean;
+        message?: string;
+      } | null;
+
+      // Check for cooldown_active response
+      if (result?.success === false && result?.code === 'cooldown_active') {
+        clearAllEntryContext();
         toast({
-          title: "Error",
-          description: "Failed to load competition details",
+          title: "Cooldown Active",
+          description: result.message || "You've already played in the last 12 hours. Please try again later.",
           variant: "destructive"
         });
         return;
       }
 
-      if (!competition) {
-        toast({
-          title: "Competition Not Found",
-          description: "The competition you're trying to enter could not be found",
-          variant: "destructive"
-        });
-        return;
+      if (!result?.entry_id) {
+        throw new Error('No entry ID returned');
       }
 
-      const club = competition.clubs as any;
+      // Clear entry context before navigating
+      clearAllEntryContext();
+
+      // Navigate to new entry confirmation
+      navigate(`/entry/${result.entry_id}/confirmation`);
       
-      // Navigate using proper URL pattern: /competition/{club-slug}/{competition-slug}/enter
-      navigate(`/competition/${club.slug}/${competition.slug}/enter`);
-    } catch (error) {
-      console.error('Play again navigation error:', error);
       toast({
-        title: "Navigation Error",
-        description: "Failed to navigate to competition entry",
+        title: "New entry created!",
+        description: "Good luck with your next attempt"
+      });
+    } catch (error: any) {
+      console.error('Play again error:', error);
+      toast({
+        title: "Failed to create new entry",
+        description: error.message || "Something went wrong",
         variant: "destructive"
       });
     }
