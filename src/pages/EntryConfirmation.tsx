@@ -579,7 +579,58 @@ const EntryConfirmation = () => {
                       </div>
                     )}
                   </div>
-                ) : !isTimeUp ? (
+                ) : isTimeUp ? (
+                  // Time up - show action buttons (no dead-end)
+                  <div className="text-center p-6 rounded-xl border border-amber-500/20 bg-amber-500/5">
+                    <div className="flex justify-center mb-4">
+                      <AlertTriangle className="w-8 h-8 text-amber-500" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">Time's Up!</h3>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      Your 6-hour attempt window has ended. Did you make your attempt?
+                    </p>
+                    
+                    <div className="space-y-3">
+                      <Button 
+                        onClick={async () => {
+                          await handleReportWin();
+                          // Navigate to evidence collection
+                          await ensureVerificationRecord(entry.id);
+                          navigate(`/win-claim/${entry.id}`);
+                        }}
+                        disabled={submitting}
+                        className="w-full"
+                        size="lg"
+                      >
+                        <Trophy className="w-4 h-4 mr-2" />
+                        I Won! (Submit Evidence)
+                      </Button>
+                      
+                      <Button 
+                        onClick={handleReportMiss}
+                        disabled={submitting}
+                        variant="outline"
+                        className="w-full"
+                        size="lg"
+                      >
+                        <XCircle className="w-4 h-4 mr-2" />
+                        Missed
+                      </Button>
+                      
+                      <Button 
+                        onClick={() => navigate('/')}
+                        variant="ghost"
+                        className="w-full"
+                      >
+                        Start a New Entry
+                      </Button>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground mt-4">
+                      Note: Entry will auto-miss after 12 hours if no outcome is reported
+                    </p>
+                  </div>
+                ) : (
                   <SimpleAttemptFlow
                     entry={{ id: entry.id }}
                     competition={{ 
@@ -597,7 +648,7 @@ const EntryConfirmation = () => {
                       navigate(`/win-claim/${entry.id}`);
                     }}
                   />
-                ) : null}
+                )}
               </CardContent>
             </Card>
 

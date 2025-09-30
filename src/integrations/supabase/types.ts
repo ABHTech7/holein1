@@ -441,6 +441,8 @@ export type Database = {
           attempt_number: number | null
           attempt_window_end: string | null
           attempt_window_start: string | null
+          auto_miss_applied: boolean | null
+          auto_miss_at: string | null
           competition_id: string
           completed_at: string | null
           created_at: string
@@ -478,6 +480,8 @@ export type Database = {
           attempt_number?: number | null
           attempt_window_end?: string | null
           attempt_window_start?: string | null
+          auto_miss_applied?: boolean | null
+          auto_miss_at?: string | null
           competition_id: string
           completed_at?: string | null
           created_at?: string
@@ -515,6 +519,8 @@ export type Database = {
           attempt_number?: number | null
           attempt_window_end?: string | null
           attempt_window_start?: string | null
+          auto_miss_applied?: boolean | null
+          auto_miss_at?: string | null
           competition_id?: string
           completed_at?: string | null
           created_at?: string

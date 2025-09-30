@@ -442,7 +442,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (existingEntry) {
       // Use existing entry
       entryId = existingEntry.id;
-      console.log("Found existing entry:", entryId, "with status:", existingEntry.status);
+      console.log(`[${traceId}] Found existing entry:`, entryId, "with status:", existingEntry.status);
       
       // Backfill email if NULL
       if (!existingEntry.email) {
@@ -453,22 +453,68 @@ const handler = async (req: Request): Promise<Response> => {
           .is('email', null);
         
         if (!backfillError) {
-          console.log("Backfilled email for entry:", entryId);
+          console.log(`[${traceId}] Backfilled email for entry:`, entryId);
+        }
+      }
+      
+      // Backfill attempt windows if they don't exist (for PENDING entries)
+      if (existingEntry.status === 'pending' || existingEntry.status === 'PENDING') {
+        const { data: entryDetails } = await supabaseAdmin
+          .from('entries')
+          .select('attempt_window_start, attempt_window_end, auto_miss_at')
+          .eq('id', entryId)
+          .single();
+        
+        if (entryDetails && !entryDetails.attempt_window_start) {
+          const now = new Date();
+          const attemptWindowEnd = new Date(now.getTime() + 6 * 60 * 60 * 1000); // 6 hours
+          const autoMissAt = new Date(now.getTime() + 12 * 60 * 60 * 1000); // 12 hours
+          
+          const { error: backfillError } = await supabaseAdmin
+            .from('entries')
+            .update({
+              attempt_window_start: now.toISOString(),
+              attempt_window_end: attemptWindowEnd.toISOString(),
+              auto_miss_at: autoMissAt.toISOString(),
+              auto_miss_applied: false
+            })
+            .eq('id', entryId);
+          
+          if (!backfillError) {
+            console.log(`[${traceId}] ✅ Backfilled attempt window for entry ${entryId}:`, {
+              attempt_window_start: now.toISOString(),
+              attempt_window_end: attemptWindowEnd.toISOString(),
+              auto_miss_at: autoMissAt.toISOString()
+            });
+          } else {
+            console.error(`[${traceId}] ❌ Failed to backfill attempt window:`, backfillError);
+          }
+        } else if (entryDetails?.attempt_window_end) {
+          const windowEnd = new Date(entryDetails.attempt_window_end);
+          const now = new Date();
+          if (windowEnd < now) {
+            console.log(`[${traceId}] ⏰ Attempt window expired, player will see "Time up" options`);
+          } else {
+            console.log(`[${traceId}] ⏱️  Attempt window still active, reusing existing entry`);
+          }
         }
       }
       
       // Don't mark token as used - allow continued access until outcome is selected
       if (!existingEntry.outcome_self) {
-        console.log("Entry outcome not yet selected, allowing continued access");
+        console.log(`[${traceId}] Entry outcome not yet selected, allowing continued access`);
       }
     } else {
       // Create new entry for the user
       const entryTime = new Date();
-      // Use configurable timeout from environment (default 12 hours if not set)
-      const timeoutHours = parseInt(Deno.env.get("VITE_VERIFICATION_TIMEOUT_HOURS") || "12");
-      const attemptWindowEnd = new Date(entryTime.getTime() + timeoutHours * 60 * 60 * 1000);
+      // 6-hour attempt window for reporting outcome (countdown)
+      const attemptWindowEnd = new Date(entryTime.getTime() + 6 * 60 * 60 * 1000);
+      // 12-hour auto-miss window (automatic marking as missed)
+      const autoMissAt = new Date(entryTime.getTime() + 12 * 60 * 60 * 1000);
       
-      console.log("Creating new entry for user:", user.id, "competition:", competitionId);
+      console.log(`[${traceId}] 🆕 Creating new entry for user:`, user.id, "competition:", competitionId);
+      console.log(`[${traceId}] ⏱️  Attempt window: 6 hours (ends ${attemptWindowEnd.toISOString()})`);
+      console.log(`[${traceId}] ⏰ Auto-miss window: 12 hours (triggers ${autoMissAt.toISOString()})`);
       
       const { data: entry, error: entryError } = await supabaseAdmin
         .from('entries')
@@ -481,7 +527,9 @@ const handler = async (req: Request): Promise<Response> => {
           terms_version: "1.0",
           terms_accepted_at: entryTime.toISOString(),
           attempt_window_start: entryTime.toISOString(),
-          attempt_window_end: attemptWindowEnd.toISOString()
+          attempt_window_end: attemptWindowEnd.toISOString(),
+          auto_miss_at: autoMissAt.toISOString(),
+          auto_miss_applied: false
         })
         .select('id')
         .single();
