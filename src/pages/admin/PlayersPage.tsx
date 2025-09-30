@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -63,24 +63,32 @@ const PlayersPage = () => {
   const [selectedPlayer, setSelectedPlayer] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
+  
+  // Toast spam control - prevent repeated "Session not ready" toasts during debounce
+  const sessionNotReadyToastShown = useRef(false);
 
   const ITEMS_PER_PAGE = 25;
 
-  // Fetch players using the secure RPC function
-  const fetchPlayers = async () => {
+  // Fetch players using the secure RPC function - wrapped in useCallback to prevent stale closures
+  const fetchPlayers = useCallback(async () => {
     // Hard gate: Only proceed when auth is fully ready
     if (!session || !profile || authLoading || !['ADMIN', 'SUPER_ADMIN'].includes(profile.role)) {
-      console.log('[PlayersPage] fetchPlayers blocked - auth not ready:', {
-        hasSession: !!session,
-        hasProfile: !!profile,
-        authLoading,
-        role: profile?.role
-      });
+      if (import.meta.env.DEV) {
+        console.log('[PlayersPage] fetchPlayers blocked - auth not ready:', {
+          hasSession: !!session,
+          hasProfile: !!profile,
+          authLoading,
+          role: profile?.role
+        });
+      }
       return;
     }
 
     try {
       setLoading(true);
+      
+      // Reset toast spam control when actually fetching
+      sessionNotReadyToastShown.current = false;
       
       // Use the secure RPC function to get players with stats (returns array)
       const offset = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -94,19 +102,31 @@ const PlayersPage = () => {
 
       setPlayers(data || []);
       
-      // Use the total_count from the first row to calculate pagination
-      const totalCount = data?.[0]?.total_count || 0;
-      setTotalPages(Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE)));
+      // Total count fallback: handle undefined total_count on empty pages
+      const totalCount = data?.[0]?.total_count;
+      if (totalCount !== undefined) {
+        setTotalPages(Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE)));
+      } else {
+        // Fallback: if no total_count, assume 1 page if empty, else keep current
+        setTotalPages(data?.length === 0 ? 1 : totalPages);
+      }
       
     } catch (error: any) {
       // Explicit handling for "Cannot coerce" / PGRST116 errors
       if (error?.code === 'PGRST116' || error?.message?.includes('Cannot coerce')) {
-        console.warn('[PlayersPage] Session not ready, skipping fetch:', error);
-        toast({ 
-          title: "Session not ready yet", 
-          description: "Please wait a moment and try again",
-          variant: "default"
-        });
+        if (import.meta.env.DEV) {
+          console.warn('[PlayersPage] Session not ready, skipping fetch:', error);
+        }
+        
+        // Toast spam control: only show once during debounce window
+        if (!sessionNotReadyToastShown.current) {
+          sessionNotReadyToastShown.current = true;
+          toast({ 
+            title: "Session not ready yet", 
+            description: "Please wait a moment and try again",
+            variant: "default"
+          });
+        }
         return;
       }
 
@@ -119,7 +139,7 @@ const PlayersPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [session?.user?.id, profile?.role, currentPage, searchTerm, authLoading, totalPages]);
 
   const handleDeletePlayer = async () => {
     if (!selectedPlayer) return;
@@ -167,8 +187,8 @@ const PlayersPage = () => {
     }
   }, [authLoading, session?.user?.id, profile?.role, currentPage, searchTerm]);
 
+  // Reset to first page when search changes
   useEffect(() => {
-    // Reset to first page when search changes
     if (currentPage !== 1) {
       setCurrentPage(1);
     }
