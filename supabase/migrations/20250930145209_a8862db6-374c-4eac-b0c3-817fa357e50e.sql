@@ -1,0 +1,51 @@
+-- Update get_entry_for_current_email RPC to include player_id fallback
+-- This makes it bulletproof against NULL email entries by matching either email OR player_id
+
+CREATE OR REPLACE FUNCTION public.get_entry_for_current_email(p_entry_id uuid)
+RETURNS TABLE(
+  id uuid,
+  attempt_window_start timestamp with time zone,
+  attempt_window_end timestamp with time zone,
+  status text,
+  outcome_self text,
+  competition_name text,
+  hole_number integer,
+  club_name text
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+  v_email text;
+BEGIN
+  -- Get email from JWT
+  v_email := lower(trim(auth.jwt() ->> 'email'));
+  
+  IF v_email IS NULL THEN
+    RAISE EXCEPTION 'No authenticated email found';
+  END IF;
+
+  -- Return entry matching the authenticated user's email OR player_id (fallback)
+  -- This handles both new entries (with email) and historical entries (NULL email but valid player_id)
+  RETURN QUERY
+  SELECT 
+    e.id,
+    e.attempt_window_start,
+    e.attempt_window_end,
+    e.status,
+    e.outcome_self,
+    c.name as competition_name,
+    c.hole_number,
+    cl.name as club_name
+  FROM public.entries e
+  JOIN public.competitions c ON e.competition_id = c.id
+  JOIN public.clubs cl ON c.club_id = cl.id
+  WHERE e.id = p_entry_id 
+    AND (
+      lower(trim(e.email)) = v_email  -- Match by email (new entries)
+      OR e.player_id = auth.uid()      -- Fallback: match by player_id (historical entries)
+    )
+  LIMIT 1;
+END;
+$function$;
