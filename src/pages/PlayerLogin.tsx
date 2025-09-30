@@ -11,10 +11,12 @@ import Section from "@/components/layout/Section";
 import Container from "@/components/layout/Container";
 import { Hero, HeroTitle, HeroSubtitle, HeroActions } from "@/components/ui/hero";
 import { Eye, EyeOff } from "lucide-react";
-import useAuth from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
+import { ROUTES } from "@/routes";
+import { clearAllEntryContext } from "@/lib/entryContextPersistence";
 
 const PlayerLogin = () => {
-  const { user, profile, signIn } = useAuth();
+  const { user, profile, signIn, loading: authLoading } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -22,21 +24,44 @@ const PlayerLogin = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
 
-  // Redirect if user is already logged in and is a player
+  // Clear entry context when user becomes authenticated as player
   useEffect(() => {
     if (user && profile?.role === 'PLAYER') {
-      // Redirect will happen via Navigate component below
+      clearAllEntryContext();
     }
   }, [user, profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await signIn(formData.email, formData.password);
+    
+    const { error } = await signIn(formData.email, formData.password);
+    
+    if (!error) {
+      // Clear stale entry context on successful login
+      clearAllEntryContext();
+    }
   };
 
-  // Redirect authenticated players to their entries page
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SiteHeader />
+        <main className="flex-1">
+          <Container className="py-12">
+            <div className="flex justify-center items-center min-h-[400px]">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          </Container>
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
+
+  // Redirect authenticated players to their dashboard
   if (user && profile?.role === 'PLAYER') {
-    return <Navigate to="/players/entries" replace />;
+    return <Navigate to={ROUTES.PLAYER.DASHBOARD} replace />;
   }
 
   return (
