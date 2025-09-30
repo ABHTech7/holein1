@@ -86,7 +86,8 @@ const handler = async (req: Request): Promise<Response> => {
         outcome_self: 'auto_miss',
         outcome_reported_at: now,
         status: 'completed',
-        auto_miss_applied: true
+        auto_miss_applied: true,
+        attempt_window_end: now // End window immediately
       })
       .in('id', entryIds);
 

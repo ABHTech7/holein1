@@ -1255,6 +1255,26 @@ export type Database = {
         Args: { p_player_id: string; p_reason?: string }
         Returns: Json
       }
+      admin_get_active_entries: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          attempt_number: number
+          attempt_window_end: string
+          club_name: string
+          competition_id: string
+          competition_name: string
+          created_at: string
+          entry_date: string
+          id: string
+          outcome_self: string
+          player_email: string
+          player_id: string
+          player_name: string
+          price_paid: number
+          status: string
+          total_count: number
+        }[]
+      }
       admin_mark_all_unpaid_entries_paid: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -1463,6 +1483,25 @@ export type Database = {
           entry_date: string
           player_first_name: string
           player_last_name: string
+        }[]
+      }
+      get_my_active_entries: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          attempt_number: number
+          attempt_window_end: string
+          club_name: string
+          club_slug: string
+          competition_id: string
+          competition_name: string
+          competition_slug: string
+          created_at: string
+          entry_date: string
+          id: string
+          is_repeat_attempt: boolean
+          outcome_self: string
+          price_paid: number
+          status: string
         }[]
       }
       get_my_entries: {

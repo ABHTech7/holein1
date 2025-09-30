@@ -132,7 +132,9 @@ export const processExpiredVerifications = async (): Promise<{
           .update({
             outcome_self: 'auto_miss',
             outcome_reported_at: new Date().toISOString(),
-            status: 'expired'
+            status: 'completed',
+            auto_miss_applied: true,
+            attempt_window_end: new Date().toISOString() // End window immediately
           })
           .eq('id', verification.entry_id);
 
