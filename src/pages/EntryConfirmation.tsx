@@ -34,7 +34,7 @@ interface EntryData {
 }
 
 const EntryConfirmation = () => {
-  const { entryId } = useParams();
+  const { entryId: entryIdParam } = useParams();
   const navigate = useNavigate();
   const { user, profile, forceRefresh } = useAuth();
   const [entry, setEntry] = useState<EntryData | null>(null);
@@ -42,13 +42,36 @@ const EntryConfirmation = () => {
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
   const initializedRef = useRef(false);
+  const [showNoEntry, setShowNoEntry] = useState(false);
+  
+  // Read entryId from param or cookie fallback
+  const entryId = entryIdParam || (() => {
+    try {
+      const cookies = document.cookie.split(';');
+      const entryCookie = cookies.find(c => c.trim().startsWith('oh1_entry_id='));
+      return entryCookie?.split('=')[1]?.trim();
+    } catch {
+      return null;
+    }
+  })();
 
   useEffect(() => {
     console.log('🔍 EntryConfirmation: Component mounted', { user: !!user, entryId, initialized: initializedRef.current });
     
+    // Check for "no active entry" flag from AuthCallback
+    const noActiveEntry = sessionStorage.getItem('no_active_entry');
+    if (noActiveEntry) {
+      console.log('🔍 EntryConfirmation: No active entry flag set');
+      sessionStorage.removeItem('no_active_entry');
+      setShowNoEntry(true);
+      setLoading(false);
+      return;
+    }
+    
     if (!entryId) {
-      console.log('❌ EntryConfirmation: No entryId provided');
-      navigate('/');
+      console.log('❌ EntryConfirmation: No entryId provided (param or cookie)');
+      setShowNoEntry(true);
+      setLoading(false);
       return;
     }
 
@@ -395,17 +418,23 @@ const EntryConfirmation = () => {
     );
   }
 
-  if (!entry) {
+  // Show "No Active Entry" recovery screen
+  if (!entry && (showNoEntry || !loading)) {
     return (
       <div className="min-h-screen flex flex-col">
         <SiteHeader />
-        <main className="flex-1 flex items-center justify-center">
+        <main className="flex-1 flex items-center justify-center p-6">
           <Card className="max-w-md mx-auto">
-            <CardContent className="text-center p-8">
-              <XCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Entry Not Found</h2>
-              <Button onClick={() => navigate('/')}>
-                Return Home
+            <CardContent className="text-center p-8 space-y-4">
+              <AlertTriangle className="w-12 h-12 text-primary mx-auto" />
+              <div>
+                <h2 className="text-xl font-semibold mb-2">No Active Entry</h2>
+                <p className="text-sm text-muted-foreground">
+                  We couldn't find an active entry for this link. This may happen if the link expired or was already completed.
+                </p>
+              </div>
+              <Button onClick={() => navigate('/')} className="w-full">
+                Start a New Entry
               </Button>
             </CardContent>
           </Card>

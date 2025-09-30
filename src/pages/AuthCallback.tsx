@@ -118,6 +118,13 @@ export default function AuthCallback() {
               token: branded_token
             });
             
+            // Handle "no active entry" case - show recovery UI
+            if (data?.code === 'no_entry') {
+              console.log('[AuthCallback] No active entry, will show recovery screen after auth');
+              sessionStorage.setItem('no_active_entry', 'true');
+              // Continue to let auth complete, then show recovery screen
+            }
+            
             // If it's a cooldown error, still proceed with authentication but show a message
             if (data?.cooldown_active && data?.action_link) {
               console.log('[AuthCallback] Cooldown active but auth link available, proceeding with sign-in');
@@ -130,9 +137,12 @@ export default function AuthCallback() {
               return;
             }
             
-            const redirectUrl = buildExpiredUrl('expired', true);
-            navigate(redirectUrl, { replace: true });
-            return;
+            // Only redirect to expired if truly failed (not "no_entry")
+            if (data?.code !== 'no_entry') {
+              const redirectUrl = buildExpiredUrl('expired', true);
+              navigate(redirectUrl, { replace: true });
+              return;
+            }
           }
 
           // Store server redirect info for use after auth completes

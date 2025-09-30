@@ -602,10 +602,14 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log("Success response data:", JSON.stringify(responseData, null, 2));
     
+    // Set short-lived entry_id cookie for reliable hand-off (10 min TTL, SameSite=Lax)
+    const cookieHeader = `oh1_entry_id=${entryId}; Path=/; Max-Age=600; SameSite=Lax; Secure`;
+    
     return new Response(JSON.stringify(responseData), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
+        "Set-Cookie": cookieHeader,
         ...corsHeaders,
       },
     });
@@ -613,6 +617,25 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error("Error in verify-magic-link function:", error);
     console.error("Error stack:", error.stack);
+    
+    // Return clean error for no entry case (200 status so UI can route cleanly)
+    if (error.message?.includes('Competition not found') || 
+        error.message?.includes('Invalid competition URL') ||
+        error.message?.includes('Failed to find competition')) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          code: "no_entry",
+          message: "No active entry found",
+          suggestion: "start_new"
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+    
     return new Response(
       JSON.stringify({ 
         success: false,
