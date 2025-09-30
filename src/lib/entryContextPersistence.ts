@@ -131,3 +131,25 @@ export const shouldShowEmailCheckScreen = (): { show: boolean; email?: string; c
   
   return { show: false };
 };
+
+/**
+ * Clear all entry context - localStorage, cookies, sessionStorage
+ * Use this when starting a new entry or navigating away to prevent context loops
+ */
+export const clearAllEntryContext = (): void => {
+  // Clear localStorage
+  localStorage.removeItem(PENDING_ENTRY_KEY);
+  localStorage.removeItem(LAST_AUTH_EMAIL_KEY);
+  
+  // Clear oh1_entry_id cookie
+  document.cookie = 'oh1_entry_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+  
+  // Clear any sessionStorage entry-related keys
+  Object.keys(sessionStorage).forEach(key => {
+    if (key.includes('entry') || key.includes('oh1')) {
+      sessionStorage.removeItem(key);
+    }
+  });
+  
+  console.log('[EntryContext] Cleared all entry context (localStorage, cookies, sessionStorage)');
+};

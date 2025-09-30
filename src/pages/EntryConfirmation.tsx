@@ -5,6 +5,7 @@ import { ensureVerificationRecord } from '@/lib/verificationService';
 import useAuth from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { getConfig } from "@/lib/featureFlags";
+import { clearAllEntryContext } from "@/lib/entryContextPersistence";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import Container from "@/components/layout/Container";
@@ -17,13 +18,15 @@ import {
   Target, 
   AlertTriangle, 
   CheckCircle2,
-  XCircle
+  XCircle,
+  RotateCcw
 } from "lucide-react";
 import { PlayerGreeting } from "@/components/ui/player-greeting";
 import { SimpleAttemptFlow } from "@/components/entry/SimpleAttemptFlow";
 
 interface EntryData {
   id: string;
+  competition_id?: string;
   competition_name: string;
   hole_number: number;
   venue_name: string;
@@ -32,6 +35,7 @@ interface EntryData {
   auto_miss_at: string | null;
   status: string;
   outcome_self: string | null;
+  entry_fee?: number;
 }
 
 const EntryConfirmation = () => {
@@ -44,6 +48,7 @@ const EntryConfirmation = () => {
   const [submitting, setSubmitting] = useState(false);
   const initializedRef = useRef(false);
   const [showNoEntry, setShowNoEntry] = useState(false);
+  const [showPlayAgain, setShowPlayAgain] = useState(false);
   
   // Read entryId from param or cookie fallback
   const entryId = entryIdParam || (() => {
@@ -273,6 +278,7 @@ const EntryConfirmation = () => {
 
         const entryData = {
           id: data.id,
+          competition_id: data.competition_id,
           competition_name: data.competition_name,
           hole_number: data.hole_number,
           venue_name: data.club_name || 'Unknown Club',
@@ -280,7 +286,8 @@ const EntryConfirmation = () => {
           attempt_window_end: data.attempt_window_end,
           auto_miss_at: data.auto_miss_at,
           status: data.status,
-          outcome_self: data.outcome_self
+          outcome_self: data.outcome_self,
+          entry_fee: data.entry_fee || 7.50
         };
 
         console.log('✅ fetchEntry: Entry data loaded successfully', {
@@ -426,6 +433,7 @@ const EntryConfirmation = () => {
         .eq('id', entry.id);
 
       setEntry(prev => prev ? { ...prev, outcome_self: 'miss', status: 'completed' } : null);
+      setShowPlayAgain(true);
       
       toast({
         title: "Outcome recorded",
@@ -436,6 +444,54 @@ const EntryConfirmation = () => {
       toast({
         title: "Failed to report outcome",
         description: error.message || "Something went wrong", 
+        variant: "destructive"
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handlePlayAgain = async () => {
+    if (!entry?.competition_id) {
+      toast({
+        title: "Error",
+        description: "Competition information not found",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { data, error } = await supabase
+        .rpc('create_new_entry_for_current_email', {
+          p_competition_id: entry.competition_id
+        });
+
+      if (error) throw error;
+
+      // Type cast the response
+      const result = data as { entry_id: string; duplicate_prevented?: boolean } | null;
+
+      if (!result?.entry_id) {
+        throw new Error('No entry ID returned');
+      }
+
+      // Clear all entry context before navigating
+      clearAllEntryContext();
+
+      // Navigate to new entry confirmation
+      navigate(`/entry/${result.entry_id}/confirmation`);
+      
+      toast({
+        title: "New entry created!",
+        description: "Good luck with your next attempt"
+      });
+    } catch (error: any) {
+      console.error('Play again error:', error);
+      toast({
+        title: "Failed to create new entry",
+        description: error.message || "Something went wrong",
         variant: "destructive"
       });
     } finally {
@@ -479,7 +535,13 @@ const EntryConfirmation = () => {
                   We couldn't find an active entry for this link. This may happen if the link expired or was already completed.
                 </p>
               </div>
-              <Button onClick={() => navigate('/')} className="w-full">
+              <Button 
+                onClick={() => {
+                  clearAllEntryContext();
+                  navigate('/');
+                }} 
+                className="w-full"
+              >
                 Start a New Entry
               </Button>
             </CardContent>
@@ -595,6 +657,24 @@ const EntryConfirmation = () => {
                         </p>
                       </div>
                     )}
+
+                    {/* Play Again button for misses */}
+                    {(entry.outcome_self === 'miss' || entry.outcome_self === 'auto_miss') && showPlayAgain && (
+                      <div className="mt-4 space-y-3">
+                        <Button 
+                          onClick={handlePlayAgain}
+                          disabled={submitting}
+                          className="w-full"
+                          size="lg"
+                        >
+                          <RotateCcw className="w-4 h-4 mr-2" />
+                          Have another go ({entry.entry_fee ? `£${entry.entry_fee.toFixed(2)}` : '£7.50'})
+                        </Button>
+                        <p className="text-xs text-muted-foreground">
+                          Payment will be processed before your next attempt
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ) : isTimeUp ? (
                   // Time up - show action buttons (no dead-end)
@@ -635,7 +715,10 @@ const EntryConfirmation = () => {
                       </Button>
                       
                       <Button 
-                        onClick={() => navigate('/')}
+                        onClick={() => {
+                          clearAllEntryContext();
+                          navigate('/');
+                        }}
                         variant="ghost"
                         className="w-full"
                       >
@@ -673,7 +756,10 @@ const EntryConfirmation = () => {
             <div className="text-center">
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/')}
+                onClick={() => {
+                  clearAllEntryContext();
+                  navigate('/');
+                }}
                 className="rounded-xl"
               >
                 View Other Competitions

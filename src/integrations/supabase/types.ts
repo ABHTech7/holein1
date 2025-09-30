@@ -1296,6 +1296,10 @@ export type Database = {
         }
         Returns: Json
       }
+      create_new_entry_for_current_email: {
+        Args: { p_competition_id: string }
+        Returns: Json
+      }
       create_player_idempotent: {
         Args: {
           p_age_years?: number
