@@ -8,6 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Target } from "lucide-react";
 import { clearAllEntryContext } from "@/lib/entryContextPersistence";
 
@@ -35,7 +37,7 @@ interface PlayerSummary {
 }
 
 export default function PlayerDashboardNew() {
-  const { user, session, loading: authLoading } = useAuth();
+  const { user, session, profile, loading: authLoading } = useAuth();
   
   const navigate = useNavigate();
 
@@ -44,31 +46,64 @@ export default function PlayerDashboardNew() {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [currentFilters, setCurrentFilters] = useState({});
+  const [error, setError] = useState<string | null>(null);
 
-  // Redirect if not authenticated
+  // Clear entry context on mount to prevent stale loops
   useEffect(() => {
-    if (!authLoading && !session) {
-      navigate('/auth');
-      return;
+    if (import.meta.env.DEV) {
+      console.log('🧹 PlayerDashboard: Clearing entry context on mount');
     }
-  }, [session, authLoading, navigate]);
+    clearAllEntryContext();
+  }, []);
+
+  // Redirect if not authenticated or not a player
+  useEffect(() => {
+    if (!authLoading) {
+      if (!session || !user) {
+        if (import.meta.env.DEV) {
+          console.log('🚫 PlayerDashboard: No session/user, redirecting to auth');
+        }
+        navigate('/auth');
+        return;
+      }
+      
+      if (profile && profile.role !== 'PLAYER') {
+        if (import.meta.env.DEV) {
+          console.log('🚫 PlayerDashboard: User is not a PLAYER, redirecting');
+        }
+        navigate('/');
+        return;
+      }
+    }
+  }, [session, user, profile, authLoading, navigate]);
 
   // Load initial data
   useEffect(() => {
-    if (session && user) {
+    if (session && user && profile?.role === 'PLAYER') {
+      if (import.meta.env.DEV) {
+        console.log('📊 PlayerDashboard: Loading dashboard data');
+      }
       loadDashboardData();
     }
-  }, [session, user]);
+  }, [session, user, profile]);
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      setError(null);
+
+      if (import.meta.env.DEV) {
+        console.log('🔄 PlayerDashboard: Fetching summary stats...');
+      }
 
       // Load summary stats
       const { data: summaryData, error: summaryError } = await supabase.rpc('get_my_entry_totals');
       
       if (summaryError) {
         console.error('Error loading summary:', summaryError);
+        if (import.meta.env.DEV) {
+          console.error('❌ PlayerDashboard: Summary fetch failed', summaryError);
+        }
         toast({
           title: "Error loading summary",
           description: "Could not load your dashboard statistics",
@@ -76,6 +111,13 @@ export default function PlayerDashboardNew() {
         });
       } else if (summaryData && summaryData.length > 0) {
         setSummary(summaryData[0]);
+        if (import.meta.env.DEV) {
+          console.log('✅ PlayerDashboard: Summary loaded', summaryData[0]);
+        }
+      }
+
+      if (import.meta.env.DEV) {
+        console.log('🔄 PlayerDashboard: Fetching entries...');
       }
 
       // Load entries
@@ -87,6 +129,9 @@ export default function PlayerDashboardNew() {
 
       if (entriesError) {
         console.error('Error loading entries:', entriesError);
+        if (import.meta.env.DEV) {
+          console.error('❌ PlayerDashboard: Entries fetch failed', entriesError);
+        }
         toast({
           title: "Error loading entries",
           description: "Could not load your entry history",
@@ -95,10 +140,22 @@ export default function PlayerDashboardNew() {
       } else {
         setEntries(entriesData || []);
         setHasMore((entriesData || []).length === 25);
+        if (import.meta.env.DEV) {
+          console.log('✅ PlayerDashboard: Entries loaded', {
+            count: entriesData?.length || 0,
+            hasMore: (entriesData || []).length === 25
+          });
+        }
       }
 
     } catch (error) {
       console.error('Dashboard load error:', error);
+      if (import.meta.env.DEV) {
+        console.error('💥 PlayerDashboard: Unexpected error', error);
+      }
+      
+      setError('An unexpected error occurred loading your dashboard');
+      
       toast({
         title: "Dashboard Error",
         description: "An unexpected error occurred loading your dashboard",
@@ -166,6 +223,10 @@ export default function PlayerDashboardNew() {
 
   const handlePlayAgain = async (competitionId: string) => {
     try {
+      if (import.meta.env.DEV) {
+        console.log('🔄 PlayerDashboard: Play again clicked', { competitionId });
+      }
+
       // Call RPC to create new entry with cooldown check
       const { data, error } = await supabase
         .rpc('create_new_entry_for_current_email', {
@@ -186,6 +247,11 @@ export default function PlayerDashboardNew() {
       // Check for cooldown_active response
       if (result?.success === false && result?.code === 'cooldown_active') {
         clearAllEntryContext();
+        
+        if (import.meta.env.DEV) {
+          console.log('⏰ PlayerDashboard: Cooldown active', result.message);
+        }
+        
         toast({
           title: "Cooldown Active",
           description: result.message || "You've already played in the last 12 hours. Please try again later.",
@@ -200,6 +266,10 @@ export default function PlayerDashboardNew() {
 
       // Clear entry context before navigating
       clearAllEntryContext();
+
+      if (import.meta.env.DEV) {
+        console.log('✅ PlayerDashboard: New entry created, navigating', { entryId: result.entry_id });
+      }
 
       // Navigate to new entry confirmation
       navigate(`/entry/${result.entry_id}/confirmation`);
@@ -221,12 +291,12 @@ export default function PlayerDashboardNew() {
   // Get recent misses for play again panel with slugs
   const recentMisses = entries
     .filter(entry => 
-      ['miss', 'auto_miss'].includes(entry.outcome_self || '') &&
-      new Date(entry.entry_date) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
+      ['miss', 'auto_miss'].includes(entry?.outcome_self || '') &&
+      entry?.entry_date && new Date(entry.entry_date) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
     )
     .slice(0, 5);
 
-  if (authLoading || !session) {
+  if (authLoading) {
     return (
       <Container className="py-8">
         <div className="space-y-6">
@@ -238,6 +308,20 @@ export default function PlayerDashboardNew() {
           </div>
           <Skeleton className="h-96" />
         </div>
+      </Container>
+    );
+  }
+
+  // Show error state if data load failed
+  if (error && !loading) {
+    return (
+      <Container className="py-8">
+        <Card className="p-8 text-center">
+          <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Unable to Load Dashboard</h2>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={() => loadDashboardData()}>Try Again</Button>
+        </Card>
       </Container>
     );
   }

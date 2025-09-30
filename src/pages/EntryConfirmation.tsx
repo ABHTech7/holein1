@@ -306,6 +306,16 @@ const EntryConfirmation = () => {
 
         setEntry(entryData);
 
+        // Show Play Again panel if entry is already a miss or auto_miss
+        if (entryData.outcome_self === 'miss' || entryData.outcome_self === 'auto_miss') {
+          if (import.meta.env.DEV) {
+            console.log('🎯 EntryConfirmation: Entry already missed, showing Play Again panel', {
+              outcome: entryData.outcome_self
+            });
+          }
+          setShowPlayAgain(true);
+        }
+
         // Check if attempt window has expired
         if (entryData.attempt_window_end) {
           const endTime = new Date(entryData.attempt_window_end);
@@ -369,11 +379,19 @@ const EntryConfirmation = () => {
         .from('entries')
         .update({
           outcome_self: 'auto_miss',
-          outcome_reported_at: new Date().toISOString()
+          outcome_reported_at: new Date().toISOString(),
+          status: 'completed',
+          auto_miss_applied: true,
+          attempt_window_end: new Date().toISOString() // End window immediately
         })
         .eq('id', entry.id);
 
-      setEntry(prev => prev ? { ...prev, outcome_self: 'auto_miss' } : null);
+      setEntry(prev => prev ? { ...prev, outcome_self: 'auto_miss', status: 'completed' } : null);
+      setShowPlayAgain(true);
+      
+      if (import.meta.env.DEV) {
+        console.log('⏰ EntryConfirmation: Auto-miss applied, showing Play Again panel');
+      }
       
       toast({
         title: "Time's up",
@@ -428,12 +446,17 @@ const EntryConfirmation = () => {
         .update({
           outcome_self: 'miss',
           outcome_reported_at: new Date().toISOString(),
-          status: 'completed'
+          status: 'completed',
+          attempt_window_end: new Date().toISOString() // End window immediately
         })
         .eq('id', entry.id);
 
       setEntry(prev => prev ? { ...prev, outcome_self: 'miss', status: 'completed' } : null);
       setShowPlayAgain(true);
+      
+      if (import.meta.env.DEV) {
+        console.log('✅ EntryConfirmation: Miss reported, showing Play Again panel');
+      }
       
       toast({
         title: "Outcome recorded",
