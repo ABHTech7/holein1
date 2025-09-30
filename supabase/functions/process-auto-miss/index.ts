@@ -7,11 +7,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
  * This edge function should be scheduled to run periodically (e.g., every 15 minutes)
  * to automatically mark entries as missed when the 12-hour auto-miss window expires.
  * 
- * Schedule this using pg_cron:
+ * Schedule this using pg_cron (every 15 minutes):
  * 
  * SELECT cron.schedule(
  *   'process-auto-miss',
- *   '*/15 * * * *', -- Every 15 minutes
+ *   '* /15 * * * *',
  *   $$
  *   SELECT net.http_post(
  *     url:='https://srnbylbbsdckkwatfqjg.supabase.co/functions/v1/process-auto-miss',
