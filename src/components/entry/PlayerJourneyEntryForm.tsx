@@ -246,58 +246,57 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
         return;
       }
 
-      // Check for existing entry first (prevent duplicates)
-      const { data: existingEntry } = await supabase
-        .from('entries')
-        .select('id, status')
-        .eq('player_id', userId)
-        .eq('competition_id', competition.id)
-        .single();
+      // Use RPC to create entry (includes cooldown check)
+      const { data: rpcData, error: rpcError } = await supabase
+        .rpc('create_new_entry_for_current_email', {
+          p_competition_id: competition.id
+        });
 
-      let entry;
-      
-      if (existingEntry) {
-        console.info('[Entry] Using existing entry:', existingEntry.id);
-        entry = existingEntry;
-        
-        // Update the existing entry with latest form data
-        await supabase
-          .from('entries')
-          .update({
-            amount_minor: competition.entry_fee * 100,
-            terms_accepted_at: new Date().toISOString(),
-            terms_version: '2.0',
-            status: existingEntry.status === 'expired' ? 'pending' : existingEntry.status,
-          })
-          .eq('id', existingEntry.id);
-      } else {
-        // Create new entry record
-        const { data: newEntry, error: entryError } = await supabase
-          .from('entries')
-          .insert({
-            player_id: userId,
-            competition_id: competition.id,
-            amount_minor: competition.entry_fee * 100,
-            terms_accepted_at: new Date().toISOString(),
-            terms_version: '2.0',
-            status: 'pending',
-          })
-          .select()
-          .single();
+      // Type cast the response
+      const result = rpcData as { 
+        success?: boolean;
+        code?: string; 
+        message?: string;
+        entry_id?: string; 
+        duplicate_prevented?: boolean;
+        cooldown_ends_at?: string;
+      } | null;
 
-        if (entryError || !newEntry) {
-          console.error('Entry creation failed:', entryError);
-          toast({ 
-            title: "Entry creation failed", 
-            description: entryError?.message || "Please try again",
-            variant: "destructive" 
-          });
-          return;
-        }
+      // Handle cooldown active response
+      if (result?.code === 'cooldown_active') {
+        const { clearAllEntryContext } = await import('@/lib/entryContextPersistence');
+        clearAllEntryContext();
         
-        entry = newEntry;
-        console.info('[Entry] Created new entry:', entry.id);
+        toast({
+          title: "Cooldown Active",
+          description: result.message || "You've already played in the last 12 hours. Please try again later.",
+          variant: "destructive"
+        });
+        return;
       }
+
+      if (rpcError || !result?.entry_id) {
+        console.error('Entry creation failed:', rpcError);
+        toast({ 
+          title: "Entry creation failed", 
+          description: rpcError?.message || "Please try again",
+          variant: "destructive" 
+        });
+        return;
+      }
+      
+      const entry = { id: result.entry_id };
+      console.info('[Entry] Created new entry via RPC:', entry.id);
+      
+      // Update entry with additional form data (terms acceptance)
+      await supabase
+        .from('entries')
+        .update({
+          amount_minor: competition.entry_fee * 100,
+          terms_accepted_at: new Date().toISOString(),
+          terms_version: '2.0',
+        })
+        .eq('id', entry.id);
 
       setEntryId(entry.id);
       
