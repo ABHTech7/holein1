@@ -234,8 +234,8 @@ const RevenueBreakdown = () => {
         const competition = competitionsData?.find(c => c.id === entry.competition_id);
         const profile = profilesData?.find(p => p.id === entry.player_id);
         
-        // Use price_paid if available, fallback to competition entry_fee
-        const effectiveAmount = entry.price_paid ?? parseFloat(competition?.entry_fee?.toString() || '0');
+        // Use price_paid if available and greater than 0, fallback to competition entry_fee
+        const effectiveAmount = (entry.price_paid && entry.price_paid > 0) ? entry.price_paid : parseFloat(competition?.entry_fee?.toString() || '0');
         
         return {
           id: entry.id,
