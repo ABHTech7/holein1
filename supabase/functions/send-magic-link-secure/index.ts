@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { createBrandedEmailTemplate } from "../_shared/email-template.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_DEMO_API_KEY"));
 
@@ -172,41 +173,52 @@ const handler = async (req: Request): Promise<Response> => {
     const baseUrl = new URL(competitionUrl).origin;
     const magicLink = `${baseUrl}/auth/callback?token=${token}&redirect=${encodeURIComponent(competitionUrl)}`;
 
-    // Send the email using Resend
-    const emailResponse = await resend.emails.send({
-      from: "Official Hole in 1 <noreply@demo.holein1challenge.co.uk>",
-      to: [email],
-      subject: "Your Secure Entry Link - Official Hole in 1",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #0F3D2E; font-size: 28px; margin-bottom: 10px;">Welcome to Official Hole in 1!</h1>
-            <p style="color: #666; font-size: 16px; margin: 0;">Hi ${firstName}, ready to take on the challenge?</p>
-          </div>
-          
-          <div style="background: linear-gradient(135deg, #0F3D2E 0%, #1a5a3e 100%); padding: 30px; border-radius: 12px; text-align: center; margin: 30px 0;">
-            <h2 style="color: white; margin: 0 0 20px 0; font-size: 20px;">Click to Complete Your Entry</h2>
-            <a href="${magicLink}" 
-               style="background: #C7A24C; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block; margin: 10px 0;">
-              Enter Competition →
-            </a>
-            <p style="color: #a0d4c4; font-size: 14px; margin: 20px 0 0 0;">This secure link expires in 15 minutes</p>
-          </div>
-          
-          <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <p style="margin: 0; color: #856404; font-size: 14px;">
-              <strong>🔒 Security Notice:</strong> This is a secure, one-time use link that will expire in 15 minutes for your protection.
-            </p>
-          </div>
-          
-          <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
-            <p style="color: #666; font-size: 12px; margin: 0;">
-              If you didn't request this email, you can safely ignore it.<br>
-              This email was sent by Official Hole in 1.
-            </p>
-          </div>
+    // Send the email using branded template
+    const emailHtml = createBrandedEmailTemplate({
+      preheader: `Secure entry link - expires in 15 minutes`,
+      heading: "Your Secure Entry Link",
+      body: `
+        <p>Hi ${firstName},</p>
+        <p>We've received your request to enter a competition. Click the secure button below to complete your entry.</p>
+        
+        <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 20px; border-radius: 8px; margin: 25px 0;">
+          <h3 style="font-family: 'Oswald', 'Arial Black', sans-serif; color: #0F3D2E; margin-bottom: 15px;">Your Details</h3>
+          <table style="width: 100%; font-size: 14px;">
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Name:</strong></td>
+              <td style="padding: 8px 0;">${firstName} ${lastName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Email:</strong></td>
+              <td style="padding: 8px 0;">${email}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Phone:</strong></td>
+              <td style="padding: 8px 0;">${phone}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Age:</strong></td>
+              <td style="padding: 8px 0;">${ageYears} years</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Handicap:</strong></td>
+              <td style="padding: 8px 0;">${handicap}</td>
+            </tr>
+          </table>
         </div>
+        
+        <p style="font-size: 14px; color: #666;">This secure link will expire in <strong>15 minutes</strong> for your security.</p>
       `,
+      ctaText: "Complete My Entry",
+      ctaUrl: magicLink,
+      includeSecurityNote: true,
+    });
+
+    const emailResponse = await resend.emails.send({
+      from: "OHIO Golf <noreply@demo.holein1challenge.co.uk>",
+      to: [email],
+      subject: "Your Secure Entry Link - OHIO Golf",
+      html: emailHtml,
     });
 
     console.log("Secure magic link email sent successfully");

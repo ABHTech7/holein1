@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { createBrandedEmailTemplate } from "../_shared/email-template.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -21,129 +22,67 @@ interface BrandedMagicLinkRequest {
   clubName?: string;
 }
 
-const createBrandedEmailTemplate = (data: BrandedMagicLinkRequest, magicLink: string, dashboardMagicLink?: string) => {
+const createEmailContent = (data: BrandedMagicLinkRequest, magicLink: string, dashboardMagicLink?: string) => {
   const { firstName, lastName, ageYears, handicap, competitionName, clubName } = data;
   
-  return `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Official Hole in 1 - Complete Your Entry</title>
-    </head>
-    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; background-color: #f5f7fa;">
-      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-        
-        <!-- Header -->
-        <div style="background: linear-gradient(135deg, #0F3D2E 0%, #1a5a3e 100%); padding: 30px 20px; text-align: center;">
-          <div style="color: #ffffff; font-size: 28px; font-weight: 700; margin-bottom: 8px;">
-            🏌️ Official Hole in 1
-          </div>
-          <div style="color: #a0d4c4; font-size: 16px; font-weight: 400;">
-            Making Golf History, One Shot at a Time
-          </div>
-        </div>
-
-        <!-- Main Content -->
-        <div style="padding: 40px 30px;">
-          <h1 style="color: #0F3D2E; font-size: 24px; font-weight: 600; margin: 0 0 20px 0; text-align: center;">
-            Welcome, ${firstName}!
-          </h1>
-          
-          <p style="color: #4a5568; font-size: 16px; line-height: 1.6; margin: 0 0 25px 0;">
-            You're just one click away from entering <strong>${competitionName || 'the competition'}</strong> 
-            ${clubName ? ` at ${clubName}` : ''}. Click the button below to complete your registration and secure your spot.
-          </p>
-
-          <!-- CTA Button -->
-          <div style="text-align: center; margin: 35px 0;">
-            <a href="${magicLink}" 
-               style="background: linear-gradient(135deg, #C7A24C 0%, #d4b356 100%); 
-                      color: #ffffff; 
-                      text-decoration: none; 
-                      padding: 16px 32px; 
-                      border-radius: 8px; 
-                      font-size: 18px; 
-                      font-weight: 600; 
-                      display: inline-block;
-                      box-shadow: 0 4px 12px rgba(199, 162, 76, 0.3);
-                      transition: all 0.2s ease;">
-              Complete My Entry →
-            </a>
-          </div>
-
-          <!-- Player Dashboard Link -->
-          <div style="text-align: center; margin: 20px 0 35px 0;">
-            <p style="color: #6b7280; font-size: 14px; margin: 0 0 10px 0;">
-              Already entered? View your entry history:
-            </p>
-            <a href="${dashboardMagicLink || magicLink.replace(encodeURIComponent(data.competitionUrl), encodeURIComponent('/player/dashboard'))}" 
-               style="background: #f3f4f6; 
-                      color: #374151; 
-                      text-decoration: none; 
-                      padding: 12px 24px; 
-                      border-radius: 6px; 
-                      font-size: 14px; 
-                      font-weight: 500; 
-                      display: inline-block;
-                      border: 1px solid #d1d5db;
-                      transition: all 0.2s ease;">
-              📊 View My Entries
-            </a>
-          </div>
-
-          <!-- Entry Details Card -->
-          <div style="background: #f8fffe; border: 1px solid #e2f4f1; border-radius: 12px; padding: 25px; margin: 30px 0;">
-            <h3 style="color: #0F3D2E; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;">
-              📋 Your Entry Details
-            </h3>
-            <div style="color: #4a5568; font-size: 14px; line-height: 1.5;">
-              <div style="margin-bottom: 8px;"><strong>Name:</strong> ${firstName} ${lastName}</div>
-              <div style="margin-bottom: 8px;"><strong>Age:</strong> ${ageYears} years</div>
-              <div style="margin-bottom: 8px;"><strong>Handicap:</strong> ${handicap === null ? 'No handicap' : handicap}</div>
-              ${competitionName ? `<div style="margin-bottom: 8px;"><strong>Competition:</strong> ${competitionName}</div>` : ''}
-              ${clubName ? `<div><strong>Venue:</strong> ${clubName}</div>` : ''}
-            </div>
-          </div>
-
-          <!-- What's Next -->
-          <div style="background: #fffbf0; border: 1px solid #f7e6a3; border-radius: 8px; padding: 20px; margin: 25px 0;">
-            <h4 style="color: #8B4513; font-size: 16px; font-weight: 600; margin: 0 0 10px 0;">
-              🎯 What Happens Next?
-            </h4>
-            <ul style="color: #8B4513; font-size: 14px; line-height: 1.5; margin: 0; padding-left: 20px;">
-              <li style="margin-bottom: 5px;">Complete your entry and payment</li>
-              <li style="margin-bottom: 5px;">Receive your attempt confirmation</li>
-              <li style="margin-bottom: 5px;">Make your hole-in-one attempt</li>
-              <li>Win amazing prizes!</li>
-            </ul>
-          </div>
-
-          <!-- Security Notice -->
-          <div style="background: #fef7f7; border: 1px solid #f1c6c6; border-radius: 8px; padding: 15px; margin: 20px 0;">
-            <p style="color: #c53030; font-size: 13px; margin: 0; text-align: center;">
-              🔒 <strong>Security Notice:</strong> This secure link expires in 6 hours and can be clicked multiple times until you select Won/Missed.
-            </p>
-          </div>
-        </div>
-
-        <!-- Footer -->
-        <div style="background: #f8fffe; padding: 25px 30px; border-top: 1px solid #e2f4f1; text-align: center;">
-          <div style="color: #6b7280; font-size: 14px; line-height: 1.5;">
-            <p style="margin: 0 0 8px 0;">
-              If you didn't request this entry, you can safely ignore this email.
-            </p>
-            <p style="margin: 0; font-size: 12px;">
-              © ${new Date().getFullYear()} Official Hole in 1. All rights reserved.
-            </p>
-          </div>
-        </div>
-
+  return createBrandedEmailTemplate({
+    preheader: `Complete your ${competitionName || 'competition'} entry${clubName ? ` at ${clubName}` : ''}`,
+    heading: `Welcome, ${firstName}!`,
+    body: `
+      <p>You're just one click away from entering <strong>${competitionName || 'the competition'}</strong>${clubName ? ` at ${clubName}` : ''}.</p>
+      
+      <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 20px; border-radius: 8px; margin: 25px 0;">
+        <h3 style="font-family: 'Oswald', 'Arial Black', sans-serif; color: #0F3D2E; margin-bottom: 15px;">📋 Your Entry Details</h3>
+        <table style="width: 100%; font-size: 14px;">
+          <tr>
+            <td style="padding: 8px 0; color: #666;"><strong>Name:</strong></td>
+            <td style="padding: 8px 0;">${firstName} ${lastName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #666;"><strong>Age:</strong></td>
+            <td style="padding: 8px 0;">${ageYears} years</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; color: #666;"><strong>Handicap:</strong></td>
+            <td style="padding: 8px 0;">${handicap === null ? 'No handicap' : handicap}</td>
+          </tr>
+          ${competitionName ? `
+          <tr>
+            <td style="padding: 8px 0; color: #666;"><strong>Competition:</strong></td>
+            <td style="padding: 8px 0;">${competitionName}</td>
+          </tr>` : ''}
+          ${clubName ? `
+          <tr>
+            <td style="padding: 8px 0; color: #666;"><strong>Venue:</strong></td>
+            <td style="padding: 8px 0;">${clubName}</td>
+          </tr>` : ''}
+        </table>
       </div>
-    </body>
-    </html>
-  `;
+      
+      <div style="background: #fffbf0; border-left: 4px solid #C7A24C; padding: 20px; border-radius: 8px; margin: 25px 0;">
+        <h4 style="font-family: 'Oswald', 'Arial Black', sans-serif; color: #0F3D2E; font-size: 16px; margin: 0 0 10px 0;">🎯 What Happens Next?</h4>
+        <ol style="color: #666; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
+          <li>Complete your entry and payment</li>
+          <li>Receive your attempt confirmation</li>
+          <li>Make your hole-in-one attempt</li>
+          <li>Win amazing prizes!</li>
+        </ol>
+      </div>
+      
+      <p style="font-size: 14px; color: #666; text-align: center; margin-top: 25px;">
+        Already entered? <a href="${dashboardMagicLink || magicLink.replace(encodeURIComponent(data.competitionUrl), encodeURIComponent('/player/dashboard'))}" style="color: #C7A24C; font-weight: 600; text-decoration: none;">View your entry history →</a>
+      </p>
+      
+      <div style="background: #fef7f7; border: 1px solid #f1c6c6; border-radius: 8px; padding: 15px; margin: 25px 0; text-align: center;">
+        <p style="color: #c53030; font-size: 13px; margin: 0;">
+          🔒 <strong>Security Notice:</strong> This secure link expires in 6 hours and can be clicked multiple times until you select Won/Missed.
+        </p>
+      </div>
+    `,
+    ctaText: "Complete My Entry →",
+    ctaUrl: magicLink,
+    footerText: competitionName && clubName ? `${clubName} - ${competitionName}` : 'OHIO Golf - Official Hole in 1 Competitions',
+  });
 };
 
 const handler = async (req: Request): Promise<Response> => {
@@ -245,11 +184,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send branded email
     const emailResponse = await resend.emails.send({
-      from: "Official Hole in 1 <entry@demo.holein1challenge.co.uk>",
+      from: "OHIO Golf <entry@demo.holein1challenge.co.uk>",
       reply_to: "entry@demo.holein1challenge.co.uk",
       to: [processedData.email.toLowerCase().trim()],
-      subject: `Complete Your Entry - ${processedData.competitionName || 'Official Hole in 1'}`,
-      html: createBrandedEmailTemplate(processedData, magicLink, dashboardMagicLink),
+      subject: `Complete Your Entry - ${processedData.competitionName || 'OHIO Golf'}`,
+      html: createEmailContent(processedData, magicLink, dashboardMagicLink),
     });
 
     if (emailResponse.error) {

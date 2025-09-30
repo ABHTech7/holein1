@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
+import { createBrandedEmailTemplate } from "../_shared/email-template.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -60,52 +61,60 @@ const handler = async (req: Request): Promise<Response> => {
     const competition = entry.competitions;
     const club = competition.clubs;
 
-    // Format the email content
-    const adminUrl = `https://srnbylbbsdckkwatfqjg.supabase.co/dashboard/admin/claims/${verificationId}`;
+    // Format the email content with branded template
+    const adminUrl = `https://holein1.golf/dashboard/admin/claims/${verificationId}`;
     
-    const emailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">
-          🏌️ New Hole-in-One Claim Submitted!
-        </h2>
-        
-        <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="color: #374151; margin-top: 0;">Claim Details</h3>
-          <ul style="list-style: none; padding: 0;">
-            <li style="margin: 8px 0;"><strong>Player:</strong> ${player.first_name} ${player.last_name} (${player.email})</li>
-            <li style="margin: 8px 0;"><strong>Competition:</strong> ${competition.name}</li>
-            <li style="margin: 8px 0;"><strong>Club:</strong> ${club.name}</li>
-            <li style="margin: 8px 0;"><strong>Hole:</strong> ${competition.hole_number}</li>
-            <li style="margin: 8px 0;"><strong>Claim Status:</strong> <span style="background-color: #fef3c7; padding: 2px 8px; border-radius: 4px;">${verification.status}</span></li>
-            <li style="margin: 8px 0;"><strong>Submitted:</strong> ${new Date(verification.created_at).toLocaleString()}</li>
-          </ul>
+    const emailHtml = createBrandedEmailTemplate({
+      preheader: `New claim from ${player.first_name} ${player.last_name} requires review`,
+      heading: "New Claim Submitted",
+      body: `
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+          <h3 style="font-family: 'Oswald', 'Arial Black', sans-serif; color: #0F3D2E; margin-bottom: 15px;">Claim Details</h3>
+          <table style="width: 100%; font-size: 14px;">
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Player:</strong></td>
+              <td style="padding: 8px 0;">${player.first_name} ${player.last_name}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Email:</strong></td>
+              <td style="padding: 8px 0;">${player.email}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Competition:</strong></td>
+              <td style="padding: 8px 0;">${competition.name}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Club:</strong></td>
+              <td style="padding: 8px 0;">${club.name}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Hole:</strong></td>
+              <td style="padding: 8px 0;">${competition.hole_number}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Status:</strong></td>
+              <td style="padding: 8px 0;"><span style="background-color: #C7A24C; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${verification.status}</span></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Submitted:</strong></td>
+              <td style="padding: 8px 0;">${new Date(verification.created_at).toLocaleString()}</td>
+            </tr>
+          </table>
         </div>
-
-        <div style="background-color: #eff6ff; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
-          <p style="margin: 0; color: #1e40af;">
-            <strong>Action Required:</strong> Please review this claim in the admin dashboard to verify the hole-in-one.
-          </p>
-        </div>
-
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${adminUrl}" 
-             style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-            Review Claim in Admin Dashboard
-          </a>
-        </div>
-
-        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px;">
-          <p>This is an automated notification from the Hole-in-One Challenge system.</p>
-          <p>Verification ID: ${verificationId}</p>
-        </div>
-      </div>
-    `;
+        <p>A player has submitted evidence for a hole-in-one claim. Please review the submission and verify the evidence.</p>
+        <p style="font-size: 14px; color: #666; margin-top: 20px;"><em>Action required: Review and approve or reject this claim.</em></p>
+        <p style="font-size: 12px; color: #999; margin-top: 15px;">Verification ID: ${verificationId}</p>
+      `,
+      ctaText: "Review Claim in Dashboard",
+      ctaUrl: adminUrl,
+      footerText: "OHIO Golf Admin Notifications",
+    });
 
     // Send email notification
     const emailResponse = await resend.emails.send({
-      from: "Hole-in-One Claims <noreply@demo.holein1challenge.co.uk>",
+      from: "OHIO Golf Admin <noreply@demo.holein1challenge.co.uk>",
       to: ["info@demo.holein1challenge.co.uk"],
-      subject: `🏌️ New Hole-in-One Claim: ${player.first_name} ${player.last_name} at ${club.name}`,
+      subject: `🚨 New Hole-in-One Claim: ${player.first_name} ${player.last_name} at ${club.name}`,
       html: emailHtml,
     });
 
