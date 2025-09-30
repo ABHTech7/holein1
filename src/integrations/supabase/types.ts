@@ -1389,6 +1389,19 @@ export type Database = {
           total_profiles: number
         }[]
       }
+      get_entry_for_current_email: {
+        Args: { p_entry_id: string }
+        Returns: {
+          attempt_window_end: string
+          attempt_window_start: string
+          club_name: string
+          competition_name: string
+          hole_number: number
+          id: string
+          outcome_self: string
+          status: string
+        }[]
+      }
       get_incomplete_players: {
         Args: Record<PropertyKey, never>
         Returns: {

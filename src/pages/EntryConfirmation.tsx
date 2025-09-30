@@ -162,30 +162,37 @@ const EntryConfirmation = () => {
         if (!entry) {
           setLoading(true);
         }
-        console.log('🔄 fetchEntry: Querying database...', { entryId, userId });
+        console.log('🔄 fetchEntry: Querying database via RPC...', { entryId, userId });
         
-        const { data, error } = await supabase
-          .from('entries')
-          .select(`
-            id,
-            attempt_window_start,
-            attempt_window_end,
-            status,
-            outcome_self,
-            competitions!inner (
-              name,
-              hole_number,
-              club_id,
-              clubs!inner (
-                name
-              )
-            )
-          `)
-          .eq('id', entryId)
-          .eq('player_id', userId)
-          .single();
+        let data: any = null;
+        let error: any = null;
 
-        console.log('🔍 fetchEntry: Database query result', { 
+        // Use secure RPC function for entry fetch
+        const rpcResult = await supabase.rpc('get_entry_for_current_email', { 
+          p_entry_id: entryId 
+        }).maybeSingle();
+
+        data = rpcResult.data;
+        error = rpcResult.error;
+
+        // Handle "Cannot coerce" error with retry after session refresh
+        if (error && (error.message?.includes('Cannot coerce') || error.code === 'PGRST116')) {
+          console.warn('⚠️ fetchEntry: Cannot coerce error, refreshing session and retrying...', error);
+          
+          // Refresh session
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            console.log('🔄 fetchEntry: Session refreshed, retrying RPC...');
+            const retryResult = await supabase.rpc('get_entry_for_current_email', { 
+              p_entry_id: entryId 
+            }).maybeSingle();
+            
+            data = retryResult.data;
+            error = retryResult.error;
+          }
+        }
+
+        console.log('🔍 fetchEntry: RPC query result', { 
           hasData: !!data, 
           error: error?.message,
           entryStatus: data?.status,
@@ -194,23 +201,20 @@ const EntryConfirmation = () => {
 
         if (error || !data) {
           console.error('❌ fetchEntry: Entry fetch error:', error);
-          toast({
-            title: "Entry not found",
-            description: error?.message || "Could not find your entry",
-            variant: "destructive"
-          });
+          // Don't show red toast for "Cannot coerce" - show branded message instead
+          const isCantCoerce = error?.message?.includes('Cannot coerce') || error?.code === 'PGRST116';
+          if (!isCantCoerce) {
+            console.log('Entry not found - showing branded message without toast');
+          }
           setLoading(false);
           return;
         }
 
-        // Use club name directly since clubs are the venues now
-        console.log('🔄 fetchEntry: Using club as venue...', { clubId: data.competitions.club_id });
-
         const entryData = {
           id: data.id,
-          competition_name: data.competitions.name,
-          hole_number: data.competitions.hole_number,
-          venue_name: data.competitions.clubs?.name || 'Unknown Club',
+          competition_name: data.competition_name,
+          hole_number: data.hole_number,
+          venue_name: data.club_name || 'Unknown Club',
           attempt_window_start: data.attempt_window_start,
           attempt_window_end: data.attempt_window_end,
           status: data.status,
@@ -238,11 +242,15 @@ const EntryConfirmation = () => {
 
       } catch (error: any) {
         console.error('💥 fetchEntry: Unexpected error:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load entry details",
-          variant: "destructive"
-        });
+        // Don't show destructive toast for expected RLS errors
+        const isCantCoerce = error?.message?.includes('Cannot coerce') || error?.code === 'PGRST116';
+        if (!isCantCoerce) {
+          toast({
+            title: "Error",
+            description: "Failed to load entry details",
+            variant: "destructive"
+          });
+        }
       } finally {
         setLoading(false);
       }

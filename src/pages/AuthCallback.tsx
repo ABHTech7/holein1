@@ -135,6 +135,16 @@ export default function AuthCallback() {
             return;
           }
 
+          // Store server redirect info for use after auth completes
+          if (data.redirectTo && data.entryId) {
+            console.log('[AuthCallback] Server provided redirect:', data.redirectTo, 'entryId:', data.entryId);
+            sessionStorage.setItem('auth_server_redirect', JSON.stringify({
+              redirectTo: data.redirectTo,
+              entryId: data.entryId,
+              timestamp: Date.now()
+            }));
+          }
+
           // If the function provided a Supabase action link, redirect there to establish the session
           if (data.action_link) {
             console.log('[AuthCallback] Redirecting to Supabase action_link to complete sign-in');
@@ -153,7 +163,7 @@ export default function AuthCallback() {
           }
 
           // Fallback: if no action_link, navigate to returned redirect_url or default
-          const next = data.redirect_url || '/players/entries';
+          const next = data.redirectTo || data.redirect_url || '/players/entries';
           navigate(next, { replace: true });
           return;
         } catch (e) {
@@ -255,6 +265,27 @@ export default function AuthCallback() {
 
       // Clean URL (remove hash/params) then redirect
       history.replaceState(null, "", window.location.pathname);
+
+      // Check for server-provided redirect first (from verify-magic-link)
+      try {
+        const serverRedirectStr = sessionStorage.getItem('auth_server_redirect');
+        if (serverRedirectStr) {
+          const serverRedirect = JSON.parse(serverRedirectStr);
+          // Check if redirect is recent (within last 2 minutes)
+          if (Date.now() - serverRedirect.timestamp < 2 * 60 * 1000) {
+            console.log('[AuthCallback] Using server redirect:', serverRedirect.redirectTo, serverRedirect.entryId);
+            sessionStorage.removeItem('auth_server_redirect');
+            clearEntryContext(); // Clear local context since server handled it
+            navigate(serverRedirect.redirectTo, { replace: true });
+            return;
+          } else {
+            console.log('[AuthCallback] Server redirect expired, clearing');
+            sessionStorage.removeItem('auth_server_redirect');
+          }
+        }
+      } catch (error) {
+        console.warn('[AuthCallback] Error processing server redirect:', error);
+      }
 
       // Enhanced entry context handling with better validation
       const entryContext = getEntryContext();

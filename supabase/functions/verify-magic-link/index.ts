@@ -584,7 +584,10 @@ const handler = async (req: Request): Promise<Response> => {
     // Return redirect URL and optional action link to complete auth
     const responseData = { 
       success: true,
-      redirect_url: `/entry/${entryId}/confirmation`,
+      redirectTo: `/entry/${entryId}/confirmation`,  // Use redirectTo for client
+      entryId: entryId,  // Use entryId for client
+      next: 'confirmation',  // Flow indicator
+      redirect_url: `/entry/${entryId}/confirmation`,  // Legacy support
       action_link,
       user: {
         id: user.id,
@@ -593,7 +596,7 @@ const handler = async (req: Request): Promise<Response> => {
         last_name: tokenData.last_name,
         role: 'PLAYER'
       },
-      entry_id: entryId,
+      entry_id: entryId,  // Legacy support
       competition_url: tokenData.competition_url
     };
     
