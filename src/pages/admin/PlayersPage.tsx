@@ -201,16 +201,16 @@ const PlayersPage = () => {
   useEffect(() => {
     // Only trigger when auth is fully ready
     if (!authLoading && session && profile && ['ADMIN', 'SUPER_ADMIN'].includes(profile.role)) {
+      let cancel = () => {};
+      
       // Debounce by 250ms to avoid double-calls on rapid state changes
       const timeoutId = setTimeout(() => {
-        const cleanup = fetchPlayers();
-        // Store cleanup for manual abort if needed
-        return cleanup;
+        cancel = fetchPlayers();
       }, 250);
 
       return () => {
         clearTimeout(timeoutId);
-        // Abort controller cleanup is handled by fetchPlayers return
+        cancel();
       };
     }
   }, [authLoading, session?.user?.id, profile?.role, currentPage, searchTerm, fetchPlayers]);
