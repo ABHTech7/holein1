@@ -66,79 +66,102 @@ const PlayersPage = () => {
   
   // Toast spam control - prevent repeated "Session not ready" toasts during debounce
   const sessionNotReadyToastShown = useRef(false);
+  // Log once per mount to avoid noisy dev logs
+  const loggedAuthBlock = useRef(false);
 
   const ITEMS_PER_PAGE = 25;
 
   // Fetch players using the secure RPC function - wrapped in useCallback to prevent stale closures
-  const fetchPlayers = useCallback(async () => {
-    // Hard gate: Only proceed when auth is fully ready
-    if (!session || !profile || authLoading || !['ADMIN', 'SUPER_ADMIN'].includes(profile.role)) {
-      if (import.meta.env.DEV) {
-        console.log('[PlayersPage] fetchPlayers blocked - auth not ready:', {
-          hasSession: !!session,
-          hasProfile: !!profile,
-          authLoading,
-          role: profile?.role
-        });
-      }
-      return;
-    }
-
-    try {
-      setLoading(true);
-      
-      // Reset toast spam control when actually fetching
-      sessionNotReadyToastShown.current = false;
-      
-      // Use the secure RPC function to get players with stats (returns array)
-      const offset = (currentPage - 1) * ITEMS_PER_PAGE;
-      const { data, error } = await supabase
-        .rpc('get_admin_players_with_stats', {
-          p_limit: ITEMS_PER_PAGE,
-          p_offset: offset,
-          p_search: searchTerm || null
-        })
-        .throwOnError();
-
-      setPlayers(data || []);
-      
-      // Total count fallback: handle undefined total_count on empty pages
-      const totalCount = data?.[0]?.total_count;
-      if (totalCount !== undefined) {
-        setTotalPages(Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE)));
-      } else {
-        // Fallback: if no total_count, assume 1 page if empty, else keep current
-        setTotalPages(data?.length === 0 ? 1 : totalPages);
-      }
-      
-    } catch (error: any) {
-      // Explicit handling for "Cannot coerce" / PGRST116 errors
-      if (error?.code === 'PGRST116' || error?.message?.includes('Cannot coerce')) {
-        if (import.meta.env.DEV) {
-          console.warn('[PlayersPage] Session not ready, skipping fetch:', error);
-        }
-        
-        // Toast spam control: only show once during debounce window
-        if (!sessionNotReadyToastShown.current) {
-          sessionNotReadyToastShown.current = true;
-          toast({ 
-            title: "Session not ready yet", 
-            description: "Please wait a moment and try again",
-            variant: "default"
+  // Returns cleanup function for AbortController
+  const fetchPlayers = useCallback(() => {
+    const abortController = new AbortController();
+    
+    (async () => {
+      // Hard gate: Only proceed when auth is fully ready
+      if (!session || !profile || authLoading || !['ADMIN', 'SUPER_ADMIN'].includes(profile.role)) {
+        if (import.meta.env.DEV && !loggedAuthBlock.current) {
+          console.log('[PlayersPage] fetchPlayers blocked - auth not ready:', {
+            hasSession: !!session,
+            hasProfile: !!profile,
+            authLoading,
+            role: profile?.role
           });
+          loggedAuthBlock.current = true;
         }
         return;
       }
 
-      const msg = showSupabaseError(error, 'PlayersPage.fetchPlayers');
-      toast({ 
-        title: "Failed to load players data", 
-        description: msg, 
-        variant: "destructive" 
-      });
-    } finally {
-      setLoading(false);
-    }
+      // Reset log gate when auth is ready
+      loggedAuthBlock.current = false;
+
+      try {
+        setLoading(true);
+        
+        // Reset toast spam control when actually fetching
+        sessionNotReadyToastShown.current = false;
+        
+        // Use the secure RPC function to get players with stats (returns array)
+        const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+        const { data, error } = await supabase
+          .rpc('get_admin_players_with_stats', {
+            p_limit: ITEMS_PER_PAGE,
+            p_offset: offset,
+            p_search: searchTerm || null
+          })
+          .throwOnError();
+
+        // Don't update state if request was aborted (params changed or unmounted)
+        if (abortController.signal.aborted) return;
+
+        setPlayers(data || []);
+        
+        // Total count fallback: handle undefined total_count on empty pages
+        const totalCount = data?.[0]?.total_count;
+        if (totalCount !== undefined) {
+          setTotalPages(Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE)));
+        } else {
+          // Fallback: if no total_count, assume 1 page if empty, else keep current
+          setTotalPages(data?.length === 0 ? 1 : totalPages);
+        }
+        
+      } catch (error: any) {
+        // Don't show errors if aborted
+        if (abortController.signal.aborted) return;
+
+        // Explicit handling for "Cannot coerce" / PGRST116 errors
+        if (error?.code === 'PGRST116' || error?.message?.includes('Cannot coerce')) {
+          if (import.meta.env.DEV) {
+            console.warn('[PlayersPage] Session not ready, skipping fetch:', error);
+          }
+          
+          // Toast spam control: only show once during debounce window
+          if (!sessionNotReadyToastShown.current) {
+            sessionNotReadyToastShown.current = true;
+            toast({ 
+              title: "Session not ready yet", 
+              description: "Please wait a moment and try again",
+              variant: "default"
+            });
+          }
+          return;
+        }
+
+        const msg = showSupabaseError(error, 'PlayersPage.fetchPlayers');
+        toast({ 
+          title: "Failed to load players data", 
+          description: msg, 
+          variant: "destructive" 
+        });
+      } finally {
+        // Only update loading if not aborted
+        if (!abortController.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    // Return cleanup function to abort in-flight request
+    return () => abortController.abort();
   }, [session?.user?.id, profile?.role, currentPage, searchTerm, authLoading, totalPages]);
 
   const handleDeletePlayer = async () => {
@@ -174,18 +197,23 @@ const PlayersPage = () => {
     }
   };
 
-  // Debounced fetch with hard gate
+  // Debounced fetch with hard gate - cleanup handles both timeout and abort
   useEffect(() => {
     // Only trigger when auth is fully ready
     if (!authLoading && session && profile && ['ADMIN', 'SUPER_ADMIN'].includes(profile.role)) {
       // Debounce by 250ms to avoid double-calls on rapid state changes
       const timeoutId = setTimeout(() => {
-        fetchPlayers();
+        const cleanup = fetchPlayers();
+        // Store cleanup for manual abort if needed
+        return cleanup;
       }, 250);
 
-      return () => clearTimeout(timeoutId);
+      return () => {
+        clearTimeout(timeoutId);
+        // Abort controller cleanup is handled by fetchPlayers return
+      };
     }
-  }, [authLoading, session?.user?.id, profile?.role, currentPage, searchTerm]);
+  }, [authLoading, session?.user?.id, profile?.role, currentPage, searchTerm, fetchPlayers]);
 
   // Reset to first page when search changes
   useEffect(() => {
