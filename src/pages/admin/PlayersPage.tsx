@@ -201,7 +201,7 @@ const PlayersPage = () => {
   useEffect(() => {
     // Only trigger when auth is fully ready
     if (!authLoading && session && profile && ['ADMIN', 'SUPER_ADMIN'].includes(profile.role)) {
-      let cancel = () => {};
+      let cancel: () => void = () => {};
       
       // Debounce by 250ms to avoid double-calls on rapid state changes
       const timeoutId = setTimeout(() => {
