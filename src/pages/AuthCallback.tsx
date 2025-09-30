@@ -305,16 +305,30 @@ export default function AuthCallback() {
           console.info('[AuthCallback] Found valid entry context, redirecting to continuation URL');
           const continuationUrl = getEntryContinuationUrl(entryContext);
           
-          // Check if user has existing session to avoid auth loops
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            toast({
-              title: "Welcome back!",
-              description: "Continuing with your competition entry...",
+      // Check if user has existing session to avoid auth loops
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // Backfill email for entry if missing (bulletproof fix for historical NULL emails)
+        if (entryContext.entryId && session.user.email) {
+          await supabase
+            .from('entries')
+            .update({ email: session.user.email })
+            .eq('id', entryContext.entryId)
+            .is('email', null)
+            .then(({ error }) => {
+              if (!error) {
+                console.log('[AuthCallback] Backfilled email for entry:', entryContext.entryId);
+              }
             });
-            
-            navigate(continuationUrl, { replace: true });
-            return;
+        }
+        
+        toast({
+          title: "Welcome back!",
+          description: "Continuing with your competition entry...",
+        });
+        
+        navigate(continuationUrl, { replace: true });
+        return;
           } else {
             console.warn('[AuthCallback] No valid session found despite entry context');
           }

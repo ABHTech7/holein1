@@ -224,14 +224,42 @@ const EntryConfirmation = () => {
 
         if (error || !data) {
           console.error('❌ fetchEntry: Entry fetch error:', error);
-          // Don't show red toast for "Cannot coerce" - show branded message instead
-          const isCantCoerce = error?.message?.includes('Cannot coerce') || error?.code === 'PGRST116';
-          if (!isCantCoerce) {
-            console.log('Entry not found - showing branded message without toast');
+          
+          // Fallback: Try to backfill email if entry exists but has NULL email
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user?.email) {
+            console.log('🔄 fetchEntry: Attempting email backfill for entry:', entryId);
+            const { error: backfillError } = await supabase
+              .from('entries')
+              .update({ email: session.user.email })
+              .eq('id', entryId)
+              .is('email', null);
+            
+            if (!backfillError) {
+              console.log('✅ fetchEntry: Email backfilled, retrying fetch...');
+              // Retry the RPC call once
+              const retryResult = await supabase.rpc('get_entry_for_current_email', { 
+                p_entry_id: entryId 
+              }).maybeSingle();
+              
+              if (retryResult.data) {
+                console.log('✅ fetchEntry: Retry successful after backfill');
+                data = retryResult.data;
+                error = null;
+              }
+            }
           }
-          setShowNoEntry(true);
-          setLoading(false);
-          return;
+          
+          // If still no data after backfill attempt, show no entry
+          if (error || !data) {
+            const isCantCoerce = error?.message?.includes('Cannot coerce') || error?.code === 'PGRST116';
+            if (!isCantCoerce) {
+              console.log('Entry not found - showing branded message without toast');
+            }
+            setShowNoEntry(true);
+            setLoading(false);
+            return;
+          }
         }
 
         const entryData = {
