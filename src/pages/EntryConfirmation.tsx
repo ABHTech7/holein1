@@ -242,15 +242,8 @@ const EntryConfirmation = () => {
 
       } catch (error: any) {
         console.error('💥 fetchEntry: Unexpected error:', error);
-        // Don't show destructive toast for expected RLS errors
-        const isCantCoerce = error?.message?.includes('Cannot coerce') || error?.code === 'PGRST116';
-        if (!isCantCoerce) {
-          toast({
-            title: "Error",
-            description: "Failed to load entry details",
-            variant: "destructive"
-          });
-        }
+        // Don't show any destructive toasts - let the UI show branded "Entry Not Found" state
+        console.log('Entry fetch failed - showing branded message without toast');
       } finally {
         setLoading(false);
       }
