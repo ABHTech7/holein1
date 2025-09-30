@@ -29,6 +29,7 @@ interface EntryData {
   venue_name: string;
   attempt_window_start: string;
   attempt_window_end: string;
+  auto_miss_at: string | null;
   status: string;
   outcome_self: string | null;
 }
@@ -262,6 +263,14 @@ const EntryConfirmation = () => {
           }
         }
 
+        // Check for missing attempt_window_end (legacy or invalid entry)
+        if (!data.attempt_window_end) {
+          console.warn('⚠️ fetchEntry: Entry missing attempt_window_end - showing No Active Entry');
+          setShowNoEntry(true);
+          setLoading(false);
+          return;
+        }
+
         const entryData = {
           id: data.id,
           competition_name: data.competition_name,
@@ -269,6 +278,7 @@ const EntryConfirmation = () => {
           venue_name: data.club_name || 'Unknown Club',
           attempt_window_start: data.attempt_window_start,
           attempt_window_end: data.attempt_window_end,
+          auto_miss_at: data.auto_miss_at,
           status: data.status,
           outcome_self: data.outcome_self
         };
@@ -278,6 +288,13 @@ const EntryConfirmation = () => {
           competitionName: entryData.competition_name,
           hasAttemptWindow: !!(entryData.attempt_window_start && entryData.attempt_window_end),
           outcome: entryData.outcome_self
+        });
+
+        // DEBUG: Log all timing windows
+        console.log('ENTRY WINDOWS', {
+          attempt_window_start: entryData.attempt_window_start,
+          attempt_window_end: entryData.attempt_window_end,
+          auto_miss_at: entryData.auto_miss_at
         });
 
         setEntry(entryData);

@@ -1400,6 +1400,7 @@ export type Database = {
         Returns: {
           attempt_window_end: string
           attempt_window_start: string
+          auto_miss_at: string
           club_name: string
           competition_name: string
           hole_number: number
