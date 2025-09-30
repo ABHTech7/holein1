@@ -23,6 +23,7 @@ const SiteHeader = () => {
   const authNavigation = user ? [
     ...((profile?.role === 'SUPER_ADMIN' || profile?.role === 'ADMIN') ? [{ name: "Admin", href: ROUTES.ADMIN.DASHBOARD }] : []),
     ...(profile?.role === 'CLUB' ? [{ name: "Dashboard", href: ROUTES.CLUB.DASHBOARD }] : []),
+    ...(profile?.role === 'PLAYER' ? [{ name: "Dashboard", href: ROUTES.PLAYER.DASHBOARD }] : []),
     ...(profile?.role === 'INSURANCE_PARTNER' ? [{ name: "Insurance Dashboard", href: ROUTES.INSURANCE.DASHBOARD }] : []),
   ] : [];
 

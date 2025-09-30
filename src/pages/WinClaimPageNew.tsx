@@ -60,7 +60,7 @@ type VerificationStep = 'selfie' | 'id' | 'witness' | 'video' | 'social' | 'succ
 const WinClaimPageNew: React.FC = () => {
   const { entryId } = useParams<{ entryId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   
   const [entryData, setEntryData] = useState<EntryData | null>(null);
@@ -82,6 +82,11 @@ const WinClaimPageNew: React.FC = () => {
       if (!entryId) {
         setError('Entry ID is required');
         setIsLoading(false);
+        return;
+      }
+
+      // Wait for auth to finish loading
+      if (authLoading) {
         return;
       }
 
@@ -161,7 +166,7 @@ const WinClaimPageNew: React.FC = () => {
     };
 
     loadEntryData();
-  }, [entryId, user]);
+  }, [entryId, user, authLoading]);
 
   const handleSelfieCapture = (file: File) => {
     setVerificationData(prev => ({ ...prev, selfie: file }));
@@ -196,8 +201,23 @@ const WinClaimPageNew: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser?.id) throw new Error('User not authenticated');
+      // Auth race-proof: get fresh session
+      let { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      
+      // If auth fails with 401 or coerce error, refresh session and retry once
+      if (authError || !authUser?.id) {
+        console.warn('Auth retry needed:', authError);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const retry = await supabase.auth.getUser();
+          authUser = retry.data.user;
+          authError = retry.error;
+        }
+      }
+      
+      if (!authUser?.id) {
+        throw new Error('User not authenticated. Please log in and try again.');
+      }
 
       // Upload files
       const uploads: Record<string, string> = {};
