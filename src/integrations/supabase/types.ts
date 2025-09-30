@@ -847,10 +847,12 @@ export type Database = {
           deleted_at: string | null
           dob: string | null
           email: string
+          email_norm: string | null
           first_name: string | null
           gender: string | null
           handicap: number | null
           id: string
+          idempotency_key: string | null
           is_demo_data: boolean | null
           last_name: string | null
           location_accuracy: number | null
@@ -859,6 +861,7 @@ export type Database = {
           location_timestamp: string | null
           phone: string | null
           phone_e164: string | null
+          phone_norm: string | null
           role: Database["public"]["Enums"]["user_role"]
           status: string
           updated_at: string
@@ -871,10 +874,12 @@ export type Database = {
           deleted_at?: string | null
           dob?: string | null
           email: string
+          email_norm?: string | null
           first_name?: string | null
           gender?: string | null
           handicap?: number | null
           id: string
+          idempotency_key?: string | null
           is_demo_data?: boolean | null
           last_name?: string | null
           location_accuracy?: number | null
@@ -883,6 +888,7 @@ export type Database = {
           location_timestamp?: string | null
           phone?: string | null
           phone_e164?: string | null
+          phone_norm?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: string
           updated_at?: string
@@ -895,10 +901,12 @@ export type Database = {
           deleted_at?: string | null
           dob?: string | null
           email?: string
+          email_norm?: string | null
           first_name?: string | null
           gender?: string | null
           handicap?: number | null
           id?: string
+          idempotency_key?: string | null
           is_demo_data?: boolean | null
           last_name?: string | null
           location_accuracy?: number | null
@@ -907,6 +915,7 @@ export type Database = {
           location_timestamp?: string | null
           phone?: string | null
           phone_e164?: string | null
+          phone_norm?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           status?: string
           updated_at?: string
@@ -1268,6 +1277,30 @@ export type Database = {
           total_premium: number
         }[]
       }
+      citext: {
+        Args: { "": boolean } | { "": string } | { "": unknown }
+        Returns: string
+      }
+      citext_hash: {
+        Args: { "": string }
+        Returns: number
+      }
+      citextin: {
+        Args: { "": unknown }
+        Returns: string
+      }
+      citextout: {
+        Args: { "": string }
+        Returns: unknown
+      }
+      citextrecv: {
+        Args: { "": unknown }
+        Returns: string
+      }
+      citextsend: {
+        Args: { "": string }
+        Returns: string
+      }
       cleanup_demo_data: {
         Args: { cleanup_all?: boolean }
         Returns: Json
@@ -1278,6 +1311,21 @@ export type Database = {
           p_club_name?: string
           p_lead_id: string
           p_metadata?: Json
+        }
+        Returns: Json
+      }
+      create_player_idempotent: {
+        Args: {
+          p_age_years?: number
+          p_club_id: string
+          p_email: string
+          p_first_name?: string
+          p_gender?: string
+          p_handicap?: number
+          p_idempotency_key?: string
+          p_last_name?: string
+          p_phone?: string
+          p_phone_e164?: string
         }
         Returns: Json
       }
