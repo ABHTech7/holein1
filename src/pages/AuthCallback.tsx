@@ -283,7 +283,7 @@ export default function AuthCallback() {
           const serverRedirect = JSON.parse(serverRedirectStr);
           // Check if redirect is recent (within last 2 minutes)
           if (Date.now() - serverRedirect.timestamp < 2 * 60 * 1000) {
-            console.log('[AuthCallback] Using server redirect:', serverRedirect.redirectTo, serverRedirect.entryId);
+            console.log('Callback using server redirect:', serverRedirect.redirectTo, serverRedirect.entryId);
             sessionStorage.removeItem('auth_server_redirect');
             clearEntryContext(); // Clear local context since server handled it
             navigate(serverRedirect.redirectTo, { replace: true });

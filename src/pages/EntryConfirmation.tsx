@@ -229,6 +229,7 @@ const EntryConfirmation = () => {
           if (!isCantCoerce) {
             console.log('Entry not found - showing branded message without toast');
           }
+          setShowNoEntry(true);
           setLoading(false);
           return;
         }

@@ -444,6 +444,19 @@ const handler = async (req: Request): Promise<Response> => {
       entryId = existingEntry.id;
       console.log("Found existing entry:", entryId, "with status:", existingEntry.status);
       
+      // Backfill email if NULL
+      if (!existingEntry.email) {
+        const { error: backfillError } = await supabaseAdmin
+          .from('entries')
+          .update({ email: normalizedEmail })
+          .eq('id', entryId)
+          .is('email', null);
+        
+        if (!backfillError) {
+          console.log("Backfilled email for entry:", entryId);
+        }
+      }
+      
       // Don't mark token as used - allow continued access until outcome is selected
       if (!existingEntry.outcome_self) {
         console.log("Entry outcome not yet selected, allowing continued access");
@@ -462,6 +475,7 @@ const handler = async (req: Request): Promise<Response> => {
         .insert({
           competition_id: competitionId,
           player_id: user.id,
+          email: normalizedEmail,
           paid: false,
           status: 'pending',
           terms_version: "1.0",
