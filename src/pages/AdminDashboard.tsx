@@ -258,20 +258,24 @@ const AdminDashboard = () => {
           });
         }
 
-        // Extract revenue summaries from RPC response
-        const revenueSummary = revenueRes.data?.[0] || { today_total: 0, mtd_total: 0, ytd_total: 0 };
+        // Extract revenue summaries from RPC response with fallback to old column names
+        const rawSummary = revenueRes.data?.[0] ?? null;
+        const todayRevenue = rawSummary?.today_revenue ?? (rawSummary as any)?.today_total ?? 0;
+        const mtdRevenue = rawSummary?.mtd_revenue ?? (rawSummary as any)?.mtd_total ?? 0;
+        const ytdRevenue = rawSummary?.ytd_revenue ?? (rawSummary as any)?.ytd_total ?? 0;
         
         console.log('Month to date entries count:', monthToDateEntriesRes.data);
-        console.log('UK timezone revenue summaries:', revenueSummary);
+        console.log('UK timezone revenue summaries (raw):', revenueRes.data);
+        console.log('Computed revenues -> Today:', todayRevenue, 'MTD:', mtdRevenue, 'YTD:', ytdRevenue);
         
         setStats({
           totalPlayers: playersRes.count || 0,
           newPlayersThisMonth: newPlayersRes.count || 0,
           totalClubs: clubsRes.count || 0,
           activeCompetitions: activeCompsRes.data?.length || 0,
-          todayRevenue: revenueSummary.today_total || 0,
-          monthlyRevenue: revenueSummary.mtd_total || 0,
-          yearlyRevenue: revenueSummary.ytd_total || 0,
+          todayRevenue,
+          monthlyRevenue: mtdRevenue,
+          yearlyRevenue: ytdRevenue,
           monthToDateEntries: monthToDateEntriesRes.data || 0
         });
 
@@ -410,9 +414,9 @@ const AdminDashboard = () => {
           newPlayersThisMonth: newPlayersRes.count,
           clubs: clubsRes.count,
           activeCompetitions: activeCompsRes.data?.length,
-          todayRevenue: revenueSummary.today_total,
-          monthlyRevenue: revenueSummary.mtd_total,
-          yearlyRevenue: revenueSummary.ytd_total,
+          todayRevenue,
+          monthlyRevenue: mtdRevenue,
+          yearlyRevenue: ytdRevenue,
           competitions: recentComps?.length
         });
       } catch (error) {
