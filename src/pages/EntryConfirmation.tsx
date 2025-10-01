@@ -712,6 +712,19 @@ const EntryConfirmation = () => {
                       <div className="mt-4">
                         <Button 
                           onClick={async () => {
+                            // Check if verification already submitted
+                            const { data: existingVerif } = await supabase
+                              .from('verifications')
+                              .select('status, evidence_captured_at')
+                              .eq('entry_id', entry.id)
+                              .maybeSingle();
+                            
+                            if (existingVerif?.status === 'submitted' || existingVerif?.evidence_captured_at) {
+                              // Already submitted, go to success page
+                              navigate(`/win-claim-success/${entry.id}`);
+                              return;
+                            }
+                            
                             // Ensure verification record exists before navigating
                             await ensureVerificationRecord(entry.id);
                             // Navigate to win claim page
@@ -760,6 +773,13 @@ const EntryConfirmation = () => {
                       <Button 
                         onClick={async () => {
                           await handleReportWin();
+                          
+                          // Update attempt_window_end for wins too
+                          await supabase
+                            .from('entries')
+                            .update({ attempt_window_end: new Date().toISOString() })
+                            .eq('id', entry.id);
+                          
                           // Navigate to evidence collection
                           await ensureVerificationRecord(entry.id);
                           navigate(`/win-claim/${entry.id}`);

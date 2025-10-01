@@ -92,6 +92,24 @@ export default function PlayerDashboardNew() {
       setLoading(true);
       setError(null);
 
+      // Validate authentication before making RPC calls
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (!currentSession) {
+        console.error('❌ PlayerDashboard: No session found');
+        setError('Authentication required');
+        navigate('/auth');
+        return;
+      }
+
+      // Verify JWT has email claim
+      const userEmail = currentSession.user?.email;
+      if (!userEmail) {
+        console.error('❌ PlayerDashboard: No email in JWT');
+        setError('Invalid authentication token');
+        navigate('/auth');
+        return;
+      }
+
       if (import.meta.env.DEV) {
         console.log('🔄 PlayerDashboard: Fetching summary stats...');
       }
@@ -109,11 +127,20 @@ export default function PlayerDashboardNew() {
           description: "Could not load your dashboard statistics",
           variant: "destructive"
         });
-      } else if (summaryData && summaryData.length > 0) {
+        // Don't block the whole dashboard if summary fails
+      } else if (summaryData && Array.isArray(summaryData) && summaryData.length > 0) {
         setSummary(summaryData[0]);
         if (import.meta.env.DEV) {
           console.log('✅ PlayerDashboard: Summary loaded', summaryData[0]);
         }
+      } else {
+        // Set default summary if no data
+        setSummary({
+          total_entries: 0,
+          competitions_played: 0,
+          total_spend: 0,
+          last_played_at: null
+        });
       }
 
       if (import.meta.env.DEV) {
@@ -137,28 +164,32 @@ export default function PlayerDashboardNew() {
           description: "Could not load your entry history",
           variant: "destructive"
         });
+        // Don't block dashboard if entries fail
+        setEntries([]);
       } else {
-        setEntries(entriesData || []);
-        setHasMore((entriesData || []).length === 25);
+        setEntries(Array.isArray(entriesData) ? entriesData : []);
+        setHasMore(Array.isArray(entriesData) && entriesData.length === 25);
         if (import.meta.env.DEV) {
           console.log('✅ PlayerDashboard: Entries loaded', {
             count: entriesData?.length || 0,
-            hasMore: (entriesData || []).length === 25
+            hasMore: Array.isArray(entriesData) && entriesData.length === 25
           });
         }
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Dashboard load error:', error);
       if (import.meta.env.DEV) {
         console.error('💥 PlayerDashboard: Unexpected error', error);
       }
       
-      setError('An unexpected error occurred loading your dashboard');
+      // More specific error messages
+      const errorMessage = error?.message || 'An unexpected error occurred';
+      setError(errorMessage);
       
       toast({
         title: "Dashboard Error",
-        description: "An unexpected error occurred loading your dashboard",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

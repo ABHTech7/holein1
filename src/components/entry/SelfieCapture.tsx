@@ -149,22 +149,21 @@ const SelfieCapture: React.FC<SelfieCaptureProps> = ({
         </p>
       </div>
 
-      {/* Camera/Photo Section */}
+      {/* Simplified Photo Capture */}
       <Card className="overflow-hidden">
-        <CardContent className="p-0">
+        <CardContent className="p-6">
           {capturedPhoto ? (
             /* Photo Preview */
-            <div className="relative">
+            <div className="space-y-4">
               <img
                 src={capturedPhoto}
                 alt="Captured selfie"
-                className="w-full h-80 object-cover"
+                className="w-full h-64 object-cover rounded-lg"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-              <div className="absolute bottom-4 left-4 right-4 flex gap-2">
+              <div className="flex gap-2">
                 <Button
                   onClick={retakePhoto}
-                  variant="secondary"
+                  variant="outline"
                   className="flex-1"
                 >
                   <RefreshCw className="w-4 h-4 mr-2" />
@@ -180,96 +179,94 @@ const SelfieCapture: React.FC<SelfieCaptureProps> = ({
                 </Button>
               </div>
             </div>
-          ) : hasPermission && isSupported ? (
-            /* Camera View */
-            <div className="relative">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                webkit-playsinline="true"
-                className="w-full h-80 object-cover bg-muted"
-              />
-              
-              {/* Camera Controls Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-              <div className="absolute bottom-4 left-4 right-4 flex justify-center gap-4">
-                <Button
-                  onClick={switchCamera}
-                  variant="secondary"
-                  size="lg"
-                  className="rounded-full w-12 h-12 p-0"
-                >
-                  <RefreshCw className="w-5 h-5" />
-                </Button>
-                
-                <Button
-                  onClick={capturePhoto}
-                  size="lg"
-                  className="rounded-full w-16 h-16 p-0 bg-white text-primary hover:bg-white/90"
-                >
-                  <Camera className="w-6 h-6" />
-                </Button>
-              </div>
-            </div>
           ) : (
-            /* Camera Setup/Error */
-            <div className="h-80 flex flex-col items-center justify-center p-8 bg-muted/30">
-              {cameraError ? (
-                <>
-                  <AlertCircle className="w-12 h-12 text-warning mb-4" />
-                  <p className="text-center text-muted-foreground mb-4">{cameraError}</p>
-                  <Button onClick={handleStartCamera}>
-                    Try Again
-                  </Button>
-                </>
-              ) : !isSupported ? (
-                <>
-                  <Upload className="w-12 h-12 text-muted-foreground mb-4" />
-                  <p className="text-center text-muted-foreground mb-4">
-                    Camera not supported on this device
-                  </p>
-                </>
-              ) : (
-                <>
-                  <Camera className="w-12 h-12 text-primary mb-4" />
-                  <p className="text-center text-muted-foreground mb-4">
-                    Allow camera access to take your selfie
-                  </p>
-                  <Button onClick={handleStartCamera}>
-                    Enable Camera
-                  </Button>
-                </>
+            /* Photo Upload Options */
+            <div className="space-y-4">
+              {/* Primary: Upload from Gallery (works everywhere) */}
+              <div className="text-center p-8 border-2 border-dashed rounded-lg">
+                <Upload className="w-12 h-12 text-primary mx-auto mb-4" />
+                <h3 className="font-semibold mb-2">Upload a Photo</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Choose a clear selfie from your device
+                </p>
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full"
+                  size="lg"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Choose Photo
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </div>
+
+              {/* Secondary: Camera option (if supported) */}
+              {isSupported && !cameraError && (
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Or use camera</span>
+                  </div>
+                </div>
+              )}
+
+              {hasPermission && isSupported ? (
+                <div className="space-y-3">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-48 object-cover rounded-lg bg-muted"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={switchCamera}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Switch
+                    </Button>
+                    <Button
+                      onClick={capturePhoto}
+                      className="flex-1"
+                    >
+                      <Camera className="w-4 h-4 mr-2" />
+                      Take Photo
+                    </Button>
+                  </div>
+                </div>
+              ) : isSupported && !hasPermission && !cameraError && (
+                <Button
+                  onClick={handleStartCamera}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  Enable Camera
+                </Button>
+              )}
+
+              {cameraError && (
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                  <AlertCircle className="w-8 h-8 text-warning mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">{cameraError}</p>
+                </div>
               )}
             </div>
           )}
         </CardContent>
       </Card>
-
-      {/* Alternative Upload Option */}
-      {!capturedPhoto && (
-        <div className="text-center">
-          <p className="text-sm text-muted-foreground mb-4">
-            Can't use the camera? Upload a photo instead
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full"
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            Upload from Gallery
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
-        </div>
-      )}
 
       {/* Navigation */}
       <div className="flex gap-4 pt-4">
