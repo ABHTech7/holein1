@@ -147,7 +147,7 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
             
             <div class="footer">
-              <p><strong>Need help?</strong> Contact us at support@holein1.test</p>
+              <p><strong>Need help?</strong> Contact us at support@demo.holein1challenge.co.uk</p>
             </div>
           </div>
         </body>
@@ -161,7 +161,7 @@ const handler = async (req: Request): Promise<Response> => {
         'Authorization': `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: 'OHIO Golf <claims@holein1.test>',
+        from: 'OHIO Golf <claims@demo.holein1challenge.co.uk>',
         to: playerEmail,
         subject: `🏆 Claim Submitted - Ref: ${claimRef}`,
         html: emailHtml,

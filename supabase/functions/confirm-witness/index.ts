@@ -115,7 +115,7 @@ serve(async (req) => {
           <body>
             <h1 class="error">Link Expired</h1>
             <p>This confirmation link has expired (48-hour limit).</p>
-            <p>Please contact support@holein1.test for assistance.</p>
+            <p>Please contact support@demo.holein1challenge.co.uk for assistance.</p>
           </body>
         </html>`,
         { 
@@ -230,7 +230,7 @@ serve(async (req) => {
         <body>
           <h1 class="error">An Error Occurred</h1>
           <p>We encountered an error processing your confirmation.</p>
-          <p>Please contact support@holein1.test for assistance.</p>
+          <p>Please contact support@demo.holein1challenge.co.uk for assistance.</p>
         </body>
       </html>`,
       { 

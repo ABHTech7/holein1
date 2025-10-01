@@ -136,7 +136,7 @@ serve(async (req) => {
             </div>
             
             <div class="footer">
-              <p><strong>Questions?</strong> Contact us at support@holein1.test</p>
+              <p><strong>Questions?</strong> Contact us at support@demo.holein1challenge.co.uk</p>
               <p style="margin-top: 20px; color: #9ca3af; font-size: 12px;">
                 If you did not witness this shot or believe you've received this email in error, please contact us immediately.
               </p>
@@ -153,7 +153,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
-        from: 'OHIO Golf <claims@holein1.test>',
+        from: 'OHIO Golf <claims@demo.holein1challenge.co.uk>',
         to: witnessEmail,
         subject: `Witness Confirmation: Hole-in-One at ${verification.entry?.competition?.club?.name}`,
         html: emailHtml,
