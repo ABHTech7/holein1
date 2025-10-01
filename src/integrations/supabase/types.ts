@@ -1419,6 +1419,10 @@ export type Database = {
           total_profiles: number
         }[]
       }
+      get_entries_count_uk: {
+        Args: { include_demo?: boolean; month_start: string }
+        Returns: number
+      }
       get_entry_for_current_email: {
         Args: { p_entry_id: string }
         Returns: {

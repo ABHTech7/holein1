@@ -150,10 +150,10 @@ const AdminDashboard = () => {
         
         let competitionsQuery = supabase.from('competitions').select('id, name, status').eq('status', 'ACTIVE');
         
-        let entriesQuery = supabase.from('entries').select('id', {
-          count: 'exact',
-          head: true
-        }).gte('entry_date', monthStartStr);
+        let entriesQuery = supabase.rpc('get_entries_count_uk', { 
+          month_start: monthStartStr,
+          include_demo: !filterDemoData
+        });
         
         // Apply demo filtering if needed
         if (filterDemoData) {
@@ -161,7 +161,6 @@ const AdminDashboard = () => {
           newPlayersQuery = newPlayersQuery.neq('is_demo_data', true);
           clubsQuery = clubsQuery.neq('is_demo_data', true);
           competitionsQuery = competitionsQuery.neq('is_demo_data', true);
-          entriesQuery = entriesQuery.neq('is_demo_data', true);
         }
         
         const [playersRes, newPlayersRes, clubsRes, activeCompsRes, monthToDateEntriesRes] = await Promise.all([
@@ -275,50 +274,35 @@ const AdminDashboard = () => {
         const feeMap = new Map<string, number>((compsForFees || []).map((c: any) => [c.id, parseFloat((c as any).entry_fee?.toString() || '0')]));
         const paidYtdEntries = (allYtdEntries || []).filter((e: any) => e.paid);
         
-        // Use UK timezone boundaries for accurate revenue calculations
-        const ukStartOfToday = `${todayStr}T00:00:00`;
-        const ukStartOfTomorrow = `${tomorrowStr}T00:00:00`;
-        const ukStartOfMonth = `${monthStartStr}T00:00:00`;
-        
         const getAmount = (e: any) => {
           const price = typeof e.price_paid === 'number' ? e.price_paid : null;
           if (price !== null && !isNaN(price)) return price;
           return feeMap.get(e.competition_id) || 0;
         };
         
-        // Convert entry dates to UK timezone for comparison
+        // Filter entries based on UK timezone dates
         const todayRevenue = paidYtdEntries
           .filter((e: any) => {
-            // Convert UTC entry date to UK date string for comparison
-            const entryDate = new Date(e.entry_date);
-            const ukDateStr = entryDate.toLocaleString('en-GB', { 
-              timeZone: 'Europe/London',
-              year: 'numeric',
-              month: '2-digit', 
-              day: '2-digit'
-            }).split('/').reverse().join('-'); // Convert DD/MM/YYYY to YYYY-MM-DD
-            
-            return ukDateStr === todayStr;
+            // Convert UTC entry date to UK date for comparison
+            const entryUKDate = new Date(e.entry_date).toLocaleDateString('en-CA', { 
+              timeZone: 'Europe/London'
+            }); // Returns YYYY-MM-DD format
+            return entryUKDate === todayStr;
           })
           .reduce((sum: number, e: any) => sum + getAmount(e), 0);
           
         const monthlyRevenue = paidYtdEntries
           .filter((e: any) => {
-            // Convert UTC entry date to UK date string for comparison
-            const entryDate = new Date(e.entry_date);
-            const ukDateStr = entryDate.toLocaleString('en-GB', { 
-              timeZone: 'Europe/London',
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit'
-            }).split('/').reverse().join('-'); // Convert DD/MM/YYYY to YYYY-MM-DD
-            
-            return ukDateStr >= monthStartStr;
+            // Convert UTC entry date to UK date for comparison  
+            const entryUKDate = new Date(e.entry_date).toLocaleDateString('en-CA', { 
+              timeZone: 'Europe/London'
+            }); // Returns YYYY-MM-DD format
+            return entryUKDate >= monthStartStr;
           })
           .reduce((sum: number, e: any) => sum + getAmount(e), 0);
           
         const yearlyRevenue = paidYtdEntries.reduce((sum: number, e: any) => sum + getAmount(e), 0);
-        console.log('Month to date entries count:', monthToDateEntriesRes.count);
+        console.log('Month to date entries count:', monthToDateEntriesRes.data);
         setStats({
           totalPlayers: playersRes.count || 0,
           newPlayersThisMonth: newPlayersRes.count || 0,
@@ -327,7 +311,7 @@ const AdminDashboard = () => {
           todayRevenue: todayRevenue,
           monthlyRevenue: monthlyRevenue,
           yearlyRevenue: yearlyRevenue,
-          monthToDateEntries: monthToDateEntriesRes.count || 0
+          monthToDateEntries: monthToDateEntriesRes.data || 0
         });
 
         // Fetch recent competitions with entry counts and club info
