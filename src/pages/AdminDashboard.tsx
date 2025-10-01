@@ -85,6 +85,7 @@ const AdminDashboard = () => {
     monthToDate: 0,
     currentRate: 1.15
   });
+  const [ukMonthBoundaries, setUkMonthBoundaries] = useState<{ month_start: string; month_end: string } | null>(null);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -109,6 +110,31 @@ const AdminDashboard = () => {
                 paid: true
               }
             }
+          });
+        }
+
+        // Fetch UK month boundaries once and reuse for all MTD calculations
+        const { data: monthBoundaries, error: boundariesError } = await supabase.rpc('get_uk_month_boundaries');
+        
+        if (boundariesError) {
+          console.error('Failed to fetch UK month boundaries:', boundariesError);
+          throw boundariesError;
+        }
+        
+        if (!monthBoundaries || monthBoundaries.length === 0) {
+          console.error('No UK month boundaries returned');
+          throw new Error('Failed to get UK month boundaries');
+        }
+        
+        const { month_start, month_end } = monthBoundaries[0];
+        setUkMonthBoundaries({ month_start, month_end });
+        
+        // DEV logging for UK month boundaries
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('📅 [AdminDashboard] UK Month Boundaries:', {
+            month_start,
+            month_end,
+            timezone: 'Europe/London'
           });
         }
 
@@ -151,7 +177,7 @@ const AdminDashboard = () => {
         let competitionsQuery = supabase.from('competitions').select('id, name, status').eq('status', 'ACTIVE');
         
         let entriesQuery = supabase.rpc('get_entries_count_uk', { 
-          month_start: monthStartStr,
+          month_start: month_start,
           include_demo: !filterDemoData
         });
         
@@ -171,31 +197,7 @@ const AdminDashboard = () => {
           entriesQuery
         ]);
 
-        // Fetch revenue baseline dataset (YTD entries + competition fees) with pagination to avoid row limits
-        let allYtdEntries: any[] = [];
-        {
-          let offset = 0;
-          const pageSize = 1000;
-          while (true) {
-            const { data: entriesPage, error } = await supabase
-              .from('entries')
-              .select('id, entry_date, paid, price_paid, competition_id')
-              .gte('entry_date', yearStartStr)
-              .order('entry_date', { ascending: false })
-              .range(offset, offset + pageSize - 1);
-            if (error) {
-              if (process.env.NODE_ENV !== 'production') {
-                console.error('ADMIN DASHBOARD REVENUE ERROR (entries page)', { offset, error });
-              }
-              break;
-            }
-            if (!entriesPage || entriesPage.length === 0) break;
-            allYtdEntries = allYtdEntries.concat(entriesPage);
-            if (entriesPage.length < pageSize) break;
-            offset += pageSize;
-          }
-        }
-        // Fetch competitions fees once
+        // Fetch competitions fees once for revenue calculations
         const { data: compsForFees, error: ytdCompsError } = await supabase
           .from('competitions')
           .select('id, entry_fee');
@@ -270,38 +272,49 @@ const AdminDashboard = () => {
           });
         }
 
-        // Calculate revenue (pence) mirroring Revenue pages: use price_paid if present, else competition entry_fee
+        // Calculate revenue using server-side queries with UK month boundaries
         const feeMap = new Map<string, number>((compsForFees || []).map((c: any) => [c.id, parseFloat((c as any).entry_fee?.toString() || '0')]));
-        const paidYtdEntries = (allYtdEntries || []).filter((e: any) => e.paid);
         
-        const getAmount = (e: any) => {
+        // Today's revenue - server-side calculation
+        const { data: todayEntries } = await supabase
+          .from('entries')
+          .select('price_paid, competition_id')
+          .eq('paid', true)
+          .gte('entry_date', todayStr)
+          .lt('entry_date', tomorrowStr);
+        
+        const todayRevenue = (todayEntries || []).reduce((sum: number, e: any) => {
           const price = typeof e.price_paid === 'number' ? e.price_paid : null;
-          if (price !== null && !isNaN(price)) return price;
-          return feeMap.get(e.competition_id) || 0;
-        };
+          if (price !== null && !isNaN(price)) return sum + price;
+          return sum + (feeMap.get(e.competition_id) || 0);
+        }, 0);
         
-        // Filter entries based on UK timezone dates
-        const todayRevenue = paidYtdEntries
-          .filter((e: any) => {
-            // Convert UTC entry date to UK date for comparison
-            const entryUKDate = new Date(e.entry_date).toLocaleDateString('en-CA', { 
-              timeZone: 'Europe/London'
-            }); // Returns YYYY-MM-DD format
-            return entryUKDate === todayStr;
-          })
-          .reduce((sum: number, e: any) => sum + getAmount(e), 0);
-          
-        const monthlyRevenue = paidYtdEntries
-          .filter((e: any) => {
-            // Convert UTC entry date to UK date for comparison  
-            const entryUKDate = new Date(e.entry_date).toLocaleDateString('en-CA', { 
-              timeZone: 'Europe/London'
-            }); // Returns YYYY-MM-DD format
-            return entryUKDate >= monthStartStr;
-          })
-          .reduce((sum: number, e: any) => sum + getAmount(e), 0);
-          
-        const yearlyRevenue = paidYtdEntries.reduce((sum: number, e: any) => sum + getAmount(e), 0);
+        // Month-to-date revenue - server-side calculation with UK boundaries
+        const { data: monthlyEntries } = await supabase
+          .from('entries')
+          .select('price_paid, competition_id')
+          .eq('paid', true)
+          .gte('entry_date', month_start)
+          .lt('entry_date', month_end);
+        
+        const monthlyRevenue = (monthlyEntries || []).reduce((sum: number, e: any) => {
+          const price = typeof e.price_paid === 'number' ? e.price_paid : null;
+          if (price !== null && !isNaN(price)) return sum + price;
+          return sum + (feeMap.get(e.competition_id) || 0);
+        }, 0);
+        
+        // Year-to-date revenue - server-side calculation
+        const { data: yearlyEntries } = await supabase
+          .from('entries')
+          .select('price_paid, competition_id')
+          .eq('paid', true)
+          .gte('entry_date', yearStartStr);
+        
+        const yearlyRevenue = (yearlyEntries || []).reduce((sum: number, e: any) => {
+          const price = typeof e.price_paid === 'number' ? e.price_paid : null;
+          if (price !== null && !isNaN(price)) return sum + price;
+          return sum + (feeMap.get(e.competition_id) || 0);
+        }, 0);
         console.log('Month to date entries count:', monthToDateEntriesRes.data);
         setStats({
           totalPlayers: playersRes.count || 0,
@@ -415,7 +428,7 @@ const AdminDashboard = () => {
         }
         setMembershipData(membershipTrendData);
         
-        // Fetch insurance premium calculations
+        // Fetch insurance premium calculations using UK month boundaries
         try {
           // Get active insurance company and calculate month-to-date premiums
           const { data: insuranceCompany } = await supabase
@@ -425,11 +438,12 @@ const AdminDashboard = () => {
             .maybeSingle();
 
           if (insuranceCompany) {
-            // Get month-to-date entries count
+            // Get month-to-date entries count using UK month boundaries
             const { count: monthlyEntries } = await supabase
               .from('entries')
               .select('id', { count: 'exact', head: true })
-              .gte('entry_date', monthStartStr);
+              .gte('entry_date', month_start)
+              .lt('entry_date', month_end);
 
             const monthlyPremium = (monthlyEntries || 0) * insuranceCompany.premium_rate_per_entry;
             
