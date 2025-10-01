@@ -628,15 +628,15 @@ const EntryConfirmation = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <SiteHeader />
       
-      <main className="flex-1 py-12">
+      <main className="flex-1 py-4 md:py-12">
         <Container>
-          <div className="max-w-2xl mx-auto space-y-8">
+          <div className="max-w-2xl mx-auto space-y-4 sm:space-y-8">
             {/* Entry Confirmation Card */}
             <Card>
-              <CardHeader className="text-center pb-6">
+              <CardHeader className="text-center pb-4 sm:pb-6 p-4 sm:p-6">
                 <div className="flex justify-center mb-4">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-                    <Trophy className="w-8 h-8 text-primary" />
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
                   </div>
                 </div>
                 
@@ -649,40 +649,40 @@ const EntryConfirmation = () => {
                   />
                 )}
                 
-                <CardTitle className="text-2xl font-['Montserrat'] text-primary">
+                <CardTitle className="text-xl sm:text-2xl font-['Montserrat'] text-primary">
                   Entry Confirmed!
                 </CardTitle>
-                <p className="text-muted-foreground">
+                <p className="text-sm sm:text-base text-muted-foreground">
                   Good luck with your Hole in 1 attempt
                 </p>
               </CardHeader>
               
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
                 {/* Entry Details */}
-                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/20 rounded-lg">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-muted/20 rounded-lg">
                   <div>
-                    <p className="text-sm text-muted-foreground">Entry ID</p>
-                    <p className="font-mono text-sm">{entry.id.slice(0, 8)}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Entry ID</p>
+                    <p className="font-mono text-xs sm:text-sm">{entry.id.slice(0, 8)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Hole</p>
-                    <p className="font-semibold">{entry.hole_number} at {entry.venue_name}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Hole</p>
+                    <p className="font-semibold text-xs sm:text-base">{entry.hole_number} at {entry.venue_name}</p>
                   </div>
                 </div>
 
                 {/* Timer Section */}
                 {!hasReportedOutcome && (
-                  <div className="text-center p-6 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/20">
+                  <div className="text-center p-4 sm:p-6 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/20">
                     <div className="flex justify-center mb-4">
-                      <Clock className={`w-8 h-8 ${isTimeUp ? 'text-destructive' : 'text-primary'}`} />
+                      <Clock className={`w-6 h-6 sm:w-8 sm:h-8 ${isTimeUp ? 'text-destructive' : 'text-primary'}`} />
                     </div>
-                    <h3 className="text-lg font-semibold mb-2">
+                    <h3 className="text-base sm:text-lg font-semibold mb-2">
                       {isTimeUp ? 'Time Up' : 'Time Remaining'}
                     </h3>
-                    <div className={`text-3xl font-mono font-bold mb-2 ${isTimeUp ? 'text-destructive' : 'text-primary'}`}>
+                    <div className={`text-2xl sm:text-3xl font-mono font-bold mb-2 ${isTimeUp ? 'text-destructive' : 'text-primary'}`}>
                       {isTimeUp ? '00:00' : formatTime(timeRemaining)}
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       {isTimeUp ? 'Take your shot and report your result' : 'to complete your attempt'}
                     </p>
                   </div>

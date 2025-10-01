@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +61,7 @@ const EnhancedWinClaimForm: React.FC<EnhancedWinClaimFormProps> = ({
   const [witnessName, setWitnessName] = useState('');
   const [witnessContact, setWitnessContact] = useState('');
   const [notes, setNotes] = useState('');
+  const [gender, setGender] = useState<Gender>(player.gender || 'male');
   
   // Upload state
   const [uploadedFiles, setUploadedFiles] = useState<{
@@ -486,6 +488,39 @@ const EnhancedWinClaimForm: React.FC<EnhancedWinClaimFormProps> = ({
 
         {currentStep === 'evidence' && (
           <>
+            {/* Player Details */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Player Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label className="mb-3 block">Gender *</Label>
+                  <RadioGroup 
+                    value={gender} 
+                    onValueChange={(value) => setGender(value as Gender)}
+                    className="flex gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="male" id="male" />
+                      <Label htmlFor="male" className="font-normal cursor-pointer">Male</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="female" id="female" />
+                      <Label htmlFor="female" className="font-normal cursor-pointer">Female</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="other" id="other" />
+                      <Label htmlFor="other" className="font-normal cursor-pointer">Other</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Witness Information */}
             <Card>
               <CardHeader>

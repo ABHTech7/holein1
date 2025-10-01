@@ -227,6 +227,17 @@ export default function PlayerDashboardNew() {
         console.log('🔄 PlayerDashboard: Play again clicked', { competitionId });
       }
 
+      // Belt + braces: Validate competition ID
+      if (!competitionId) {
+        console.error('❌ PlayerDashboard: No competition ID provided');
+        toast({
+          title: "Error",
+          description: "Competition information missing",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Call RPC to create new entry (no cooldown, just 60-second duplicate guard)
       const { data, error } = await supabase
         .rpc('create_new_entry_for_current_email', {
