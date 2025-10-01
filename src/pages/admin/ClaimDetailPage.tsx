@@ -2,9 +2,19 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ArrowLeft, Camera, ExternalLink, User, Trophy, MapPin, Calendar, CheckCircle, XCircle, Mail, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -24,10 +34,12 @@ const ClaimDetailPage = () => {
   const [entryData, setEntryData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [newStatus, setNewStatus] = useState<VerificationStatus>('pending');
   const [witnessConfirmation, setWitnessConfirmation] = useState<any>(null);
   const [isResendingWitness, setIsResendingWitness] = useState(false);
   const [signedUrls, setSignedUrls] = useState<{ selfie?: string; id?: string; handicap?: string }>({});
+  const [showAcceptDialog, setShowAcceptDialog] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   useEffect(() => {
     if (verificationId) {
@@ -123,7 +135,6 @@ const ClaimDetailPage = () => {
         };
 
         setClaim(claimRow);
-        setNewStatus(claimRow.status);
 
         // Generate signed URLs for evidence files
         const urls: { selfie?: string; id?: string; handicap?: string } = {};
@@ -178,32 +189,24 @@ const ClaimDetailPage = () => {
     }
   };
 
-  const handleStatusUpdate = async () => {
-    if (!claim || newStatus === claim.status) return;
+  const handleAcceptClaim = async () => {
+    if (!claim) return;
 
     try {
       setIsUpdating(true);
 
-      // Development diagnostic logging
       if (process.env.NODE_ENV !== 'production') {
-        console.log('🔍 [ClaimDetailPage.handleStatusUpdate] Starting status update', {
-          userProfile: { 
-            role: profile?.role, 
-            id: profile?.id, 
-            club_id: profile?.club_id 
-          },
-          operation: `Updating claim status from ${claim.status} to ${newStatus}`,
-          queryParams: { table: 'verifications', action: 'update status and verification metadata' }
+        console.log('🔍 [ClaimDetailPage.handleAcceptClaim] Accepting claim', {
+          userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+          operation: `Accepting claim ${claim.id}`,
         });
       }
-      
-      const updateData: any = { status: newStatus };
-      
-      // Add verification metadata for final statuses
-      if (newStatus === 'verified' || newStatus === 'rejected') {
-        updateData.verified_at = new Date().toISOString();
-        updateData.verified_by = (await supabase.auth.getUser()).data.user?.id;
-      }
+
+      const updateData = {
+        status: 'verified',
+        verified_at: new Date().toISOString(),
+        verified_by: (await supabase.auth.getUser()).data.user?.id,
+      };
 
       const { error } = await supabase
         .from('verifications')
@@ -212,31 +215,86 @@ const ClaimDetailPage = () => {
 
       if (error) throw error;
 
-      setClaim(prev => prev ? { ...prev, status: newStatus } : null);
+      setClaim(prev => prev ? { ...prev, status: 'verified' } : null);
+      setShowAcceptDialog(false);
       
       toast({
-        title: "Success",
-        description: "Claim status updated successfully.",
+        title: "Claim Accepted",
+        description: "The claim has been successfully verified and accepted.",
       });
+
+      fetchClaimDetails();
     } catch (error) {
-      // Enhanced error handling with comprehensive logging
       if (process.env.NODE_ENV !== 'production') {
         console.error("ADMIN PAGE ERROR:", {
-          location: "ClaimDetailPage.handleStatusUpdate",
+          location: "ClaimDetailPage.handleAcceptClaim",
           userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
-          operation: `Updating claim status from ${claim.status} to ${newStatus}`,
-          queryParams: { table: 'verifications', action: 'update status and verification metadata' },
-          code: (error as any)?.code,
-          message: (error as any)?.message,
-          details: (error as any)?.details,
-          hint: (error as any)?.hint,
           fullError: error
         });
       }
 
-      const errorMessage = showSupabaseError(error, 'ClaimDetailPage.handleStatusUpdate');
+      const errorMessage = showSupabaseError(error, 'ClaimDetailPage.handleAcceptClaim');
       toast({
-        title: "Failed to update claim status",
+        title: "Failed to accept claim",
+        description: `${errorMessage}${(error as any)?.code ? ` (Code: ${(error as any).code})` : ''}`,
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleRejectClaim = async () => {
+    if (!claim) return;
+
+    try {
+      setIsUpdating(true);
+
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('🔍 [ClaimDetailPage.handleRejectClaim] Rejecting claim', {
+          userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+          operation: `Rejecting claim ${claim.id}`,
+          reason: rejectionReason,
+        });
+      }
+
+      const updateData = {
+        status: 'rejected',
+        verified_at: new Date().toISOString(),
+        verified_by: (await supabase.auth.getUser()).data.user?.id,
+      };
+
+      const { error } = await supabase
+        .from('verifications')
+        .update(updateData)
+        .eq('id', claim.id);
+
+      if (error) throw error;
+
+      setClaim(prev => prev ? { ...prev, status: 'rejected' } : null);
+      setShowRejectDialog(false);
+      
+      toast({
+        title: "Claim Rejected",
+        description: rejectionReason 
+          ? `The claim has been rejected. Reason: ${rejectionReason}`
+          : "The claim has been rejected.",
+      });
+
+      setRejectionReason('');
+      fetchClaimDetails();
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error("ADMIN PAGE ERROR:", {
+          location: "ClaimDetailPage.handleRejectClaim",
+          userProfile: { role: profile?.role, id: profile?.id, club_id: profile?.club_id },
+          fullError: error
+        });
+      }
+
+      const errorMessage = showSupabaseError(error, 'ClaimDetailPage.handleRejectClaim');
+      toast({
+        title: "Failed to reject claim",
         description: `${errorMessage}${(error as any)?.code ? ` (Code: ${(error as any).code})` : ''}`,
         variant: "destructive"
       });
@@ -253,16 +311,9 @@ const ClaimDetailPage = () => {
     return claim.player_email;
   };
 
-  const getAvailableStatuses = (): VerificationStatus[] => {
-    if (!profile) return [];
-    
-    if (profile.role === 'SUPER_ADMIN' || profile.role === 'ADMIN') {
-      return ['initiated', 'pending', 'under_review', 'verified', 'rejected'];
-    } else if (profile.role === 'CLUB') {
-      return ['under_review'];
-    }
-    
-    return [];
+  const canReviewClaim = () => {
+    if (!profile) return false;
+    return profile.role === 'SUPER_ADMIN' || profile.role === 'ADMIN' || profile.role === 'CLUB';
   };
 
   const getBackPath = () => {
@@ -342,8 +393,6 @@ const ClaimDetailPage = () => {
     );
   }
 
-  const availableStatuses = getAvailableStatuses();
-
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
@@ -367,42 +416,54 @@ const ClaimDetailPage = () => {
             <StatusBadge status={claim.status} />
           </div>
 
-          {/* Status Update - Only for authorized roles */}
-          {availableStatuses.length > 0 && (
+          {/* Action Buttons - Only show for pending claims that authorized users can review */}
+          {canReviewClaim() && claim.status === 'pending' && (
             <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <label className="text-sm font-medium">Update Status:</label>
-                    <Select value={newStatus} onValueChange={(value) => setNewStatus(value as VerificationStatus)}>
-                      <SelectTrigger className="w-full md:w-[200px] mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableStatuses.map(status => (
-                          <SelectItem key={status} value={status}>
-                            {status === 'initiated' ? 'Initiated' : 
-                             status === 'pending' ? 'Pending' :
-                             status === 'under_review' ? 'Under Review' :
-                             status === 'verified' ? 'Verified' :
-                             status === 'rejected' ? 'Rejected' : status}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button 
-                    onClick={handleStatusUpdate}
-                    disabled={isUpdating || newStatus === claim.status}
-                    className="gap-2"
+              <CardContent className="p-6">
+                <h2 className="text-xl font-semibold mb-2">Review Claim</h2>
+                <p className="text-sm text-muted-foreground mb-6">
+                  Please review all evidence and verify the claim is legitimate before making a decision.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button
+                    onClick={() => setShowAcceptDialog(true)}
+                    disabled={isUpdating}
+                    size="lg"
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white h-14 text-base font-semibold"
                   >
-                    {newStatus === 'verified' ? (
-                      <CheckCircle className="w-4 h-4" />
-                    ) : newStatus === 'rejected' ? (
-                      <XCircle className="w-4 h-4" />
-                    ) : null}
-                    Update Status
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    Accept Claim
                   </Button>
+                  <Button
+                    onClick={() => setShowRejectDialog(true)}
+                    disabled={isUpdating}
+                    variant="destructive"
+                    size="lg"
+                    className="flex-1 h-14 text-base font-semibold"
+                  >
+                    <XCircle className="w-5 h-5 mr-2" />
+                    Reject Claim
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Status Display - Show for already processed claims */}
+          {claim.status !== 'pending' && (
+            <Card>
+              <CardContent className="p-6">
+                <h2 className="text-xl font-semibold mb-4">Claim Status</h2>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Status:</span>
+                    <StatusBadge status={claim.status} />
+                  </div>
+                  {claim.evidence_captured_at && (
+                    <p className="text-sm text-muted-foreground">
+                      Evidence captured: {formatDateTime(claim.evidence_captured_at)}
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -637,6 +698,62 @@ const ClaimDetailPage = () => {
           </div>
         </div>
       </Section>
+
+      {/* Accept Confirmation Dialog */}
+      <AlertDialog open={showAcceptDialog} onOpenChange={setShowAcceptDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Accept this claim?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark the claim as verified and accepted. The player will be notified of the successful verification.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isUpdating}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleAcceptClaim}
+              disabled={isUpdating}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isUpdating ? 'Processing...' : 'Accept Claim'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reject Confirmation Dialog */}
+      <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reject this claim?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark the claim as rejected. The player will be notified that their claim was not accepted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <label className="text-sm font-medium mb-2 block">
+              Rejection Reason (Optional)
+            </label>
+            <Textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="Provide a reason for rejecting this claim..."
+              className="min-h-[100px]"
+              disabled={isUpdating}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isUpdating}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRejectClaim}
+              disabled={isUpdating}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isUpdating ? 'Processing...' : 'Reject Claim'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
