@@ -20,7 +20,7 @@ export function createBrandedEmailTemplate(options: EmailTemplateOptions): strin
     body,
     ctaText,
     ctaUrl,
-    footerText = 'OHIO Golf - Official Hole in 1 Competitions',
+    footerText = 'Official Hole in 1 - Professional Golf Competitions',
     includeSecurityNote = false,
   } = options;
 
@@ -70,14 +70,6 @@ export function createBrandedEmailTemplate(options: EmailTemplateOptions): strin
       margin-bottom: 10px;
     }
     
-    .header-tagline {
-      font-family: 'Oswald', 'Arial Black', sans-serif;
-      font-size: 14px;
-      color: #0F3D2E;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      margin-top: 10px;
-    }
     
     .email-content {
       padding: 40px 30px;
@@ -185,8 +177,7 @@ export function createBrandedEmailTemplate(options: EmailTemplateOptions): strin
   <div class="email-wrapper">
     <!-- Header with Logo -->
     <div class="email-header">
-      <img src="${Deno.env.get('APP_BASE_URL') || 'https://demo.holein1challenge.co.uk'}/brand/holeinone-logo.png" alt="Official Hole in One" class="logo" style="max-width: 200px; height: auto; margin-bottom: 10px;" />
-      <div class="header-tagline">Official Hole in 1</div>
+      <img src="${Deno.env.get('APP_BASE_URL') || 'https://demo.holein1challenge.co.uk'}/brand/holeinone-logo.png" alt="Official Hole in One" class="logo" style="max-width: 200px; height: auto;" />
     </div>
     
     <!-- Main Content -->
@@ -230,7 +221,7 @@ export function createPlainTextVersion(heading: string, body: string, ctaUrl?: s
     plainText += `Link: ${ctaUrl}\n\n`;
   }
   
-  plainText += '---\nOHIO Golf - Official Hole in 1 Competitions\n';
+  plainText += '---\nOfficial Hole in 1 - Professional Golf Competitions\n';
   plainText += 'Visit: https://holein1.golf\n';
   
   return plainText;
