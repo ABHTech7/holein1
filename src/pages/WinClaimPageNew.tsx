@@ -256,18 +256,33 @@ const WinClaimPageNew: React.FC = () => {
         uploads.video_url = await uploadToVerificationsBucket(verificationData.videoEvidence, 'video');
       }
 
-      // Create/update verification
-      await supabase.rpc('create_or_upsert_verification', {
+      // Create/update verification and get verification_id
+      const { data: verificationResult, error: rpcError } = await supabase.rpc('create_or_upsert_verification', {
         p_entry_id: entryId,
         p_payload: uploads
       });
 
-      // Send emails
+      if (rpcError) {
+        throw new Error(`Verification creation failed: ${rpcError.message}`);
+      }
+
+      // Type-safe extraction of verification_id from RPC response
+      const verificationId = (verificationResult as any)?.verification_id;
+      if (!verificationId || typeof verificationId !== 'string') {
+        console.error('Invalid verification response:', verificationResult);
+        throw new Error('Verification ID not returned from database');
+      }
+
+      // Send emails with correct verificationId
       try {
-        await supabase.functions.invoke('send-claim-confirmation', { body: { entryId } });
+        await supabase.functions.invoke('send-claim-confirmation', { body: { entryId, verificationId } });
         if (verificationData.witness.email) {
           await supabase.functions.invoke('send-witness-request', {
-            body: { verificationId: entryId, witnessEmail: verificationData.witness.email, witnessName: verificationData.witness.name }
+            body: { 
+              verificationId, // ✅ FIX: Use actual verification_id instead of entryId
+              witnessEmail: verificationData.witness.email, 
+              witnessName: verificationData.witness.name 
+            }
           });
         }
       } catch (e) { console.warn('Email error:', e); }

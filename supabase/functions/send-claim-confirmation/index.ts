@@ -39,7 +39,13 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    const appBaseUrl = Deno.env.get('APP_BASE_URL') || supabaseUrl;
+    const appBaseUrl = Deno.env.get('APP_BASE_URL');
+
+    // ✅ FIX: Require APP_BASE_URL for proper web app links
+    if (!appBaseUrl) {
+      console.error('APP_BASE_URL not configured - email links will not work correctly');
+      console.warn('Please set APP_BASE_URL secret to your web app domain (e.g., https://demo.holein1challenge.co.uk)');
+    }
 
     if (!resendApiKey) {
       console.warn('RESEND_API_KEY not configured, skipping email');
@@ -48,6 +54,9 @@ const handler = async (req: Request): Promise<Response> => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Use APP_BASE_URL for web app links, fallback to supabaseUrl for asset links
+    const webAppUrl = appBaseUrl || supabaseUrl;
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -111,7 +120,7 @@ const handler = async (req: Request): Promise<Response> => {
         <body>
           <div class="container">
             <div class="header">
-              <img src="${appBaseUrl}/brand/ohio-logo-white.svg" alt="OHIO Golf" class="logo" />
+              <img src="${supabaseUrl}/storage/v1/object/public/brand/ohio-logo-white.svg" alt="OHIO Golf" class="logo" />
               <h1>🏆 Claim Submitted Successfully!</h1>
             </div>
             
@@ -133,7 +142,7 @@ const handler = async (req: Request): Promise<Response> => {
               </div>
               
               <p style="margin-top: 30px;">
-                <a href="${appBaseUrl}/player/dashboard" class="button">View My Dashboard</a>
+                <a href="${webAppUrl}/player/dashboard" class="button">View My Dashboard</a>
               </p>
             </div>
             

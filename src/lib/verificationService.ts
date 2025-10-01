@@ -1,5 +1,56 @@
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * Generate signed URLs for private verification files
+ * @param storagePath - Full storage path (e.g., "verifications/entry-id/selfie-uuid.jpg")
+ * @param expiresIn - Expiry time in seconds (default: 1 hour)
+ * @returns Public signed URL or null if error
+ */
+export async function getSignedVerificationUrl(
+  storagePath: string,
+  expiresIn: number = 3600
+): Promise<string | null> {
+  try {
+    // Extract path after "verifications/" bucket name
+    const path = storagePath.replace(/^verifications\//, '');
+    
+    const { data, error } = await supabase.storage
+      .from('verifications')
+      .createSignedUrl(path, expiresIn);
+
+    if (error) {
+      console.error('Failed to generate signed URL:', error);
+      return null;
+    }
+
+    return data.signedUrl;
+  } catch (err) {
+    console.error('Error generating signed URL:', err);
+    return null;
+  }
+}
+
+/**
+ * Batch generate signed URLs for multiple verification files
+ * @param paths - Array of storage paths
+ * @param expiresIn - Expiry time in seconds (default: 1 hour)
+ * @returns Object mapping original paths to signed URLs
+ */
+export async function getBatchSignedUrls(
+  paths: string[],
+  expiresIn: number = 3600
+): Promise<Record<string, string | null>> {
+  const results: Record<string, string | null> = {};
+  
+  await Promise.all(
+    paths.map(async (path) => {
+      results[path] = await getSignedVerificationUrl(path, expiresIn);
+    })
+  );
+  
+  return results;
+}
+
 export async function ensureVerificationRecord(entryId: string) {
   const { data, error } = await supabase
     .from('verifications')
