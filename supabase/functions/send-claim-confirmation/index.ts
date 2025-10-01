@@ -116,7 +116,7 @@ const handler = async (req: Request): Promise<Response> => {
           If you have any questions about your claim, please contact us and quote your reference number.
         </p>
       `,
-      ctaText: "View My Dashboard",
+      ctaText: "Complete My Entry",
       ctaUrl: `${new URL(Deno.env.get("SUPABASE_URL") ?? "").origin}/player/dashboard`,
       includeSecurityNote: false,
     });
