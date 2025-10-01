@@ -46,6 +46,15 @@ export const useCamera = (options: CameraOptions = {}) => {
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        
+        // Safari/macOS compatibility: wait for metadata and explicitly play
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play().catch(error => {
+              console.error('Error playing video:', error);
+            });
+          }
+        };
       }
       
       streamRef.current = stream;

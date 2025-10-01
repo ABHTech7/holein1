@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCamera } from "@/hooks/useCamera";
@@ -44,6 +44,13 @@ const SelfieCapture: React.FC<SelfieCaptureProps> = ({
     switchCamera,
     cleanup
   } = useCamera({ quality: 'medium' });
+
+  // Cleanup camera on unmount or when navigating away
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
 
   const handleStartCamera = async () => {
     setCameraError(null);
@@ -181,6 +188,7 @@ const SelfieCapture: React.FC<SelfieCaptureProps> = ({
                 autoPlay
                 playsInline
                 muted
+                webkit-playsinline="true"
                 className="w-full h-80 object-cover bg-muted"
               />
               

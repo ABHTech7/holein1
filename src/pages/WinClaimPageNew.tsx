@@ -249,7 +249,7 @@ const WinClaimPageNew: React.FC = () => {
         witness_email: verificationData.witness.email,
         witness_phone: verificationData.witness.phone,
         social_consent: verificationData.socialConsent,
-        status: 'submitted'
+        status: 'pending'
       };
 
       if (verificationData.videoEvidence) {
