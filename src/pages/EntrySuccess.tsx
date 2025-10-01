@@ -192,43 +192,43 @@ const EntrySuccess: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <SiteHeader />
       
-      <main className="flex-1 py-8 px-4">
-        <div className="max-w-2xl mx-auto space-y-8">
+      <main className="flex-1 py-6 sm:py-8 px-4">
+        <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8">
           {/* Success Header */}
           <div className="text-center animate-fade-in">
-            <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-6 shadow-medium">
-              <CheckCircle2 className="w-10 h-10 text-primary-foreground" />
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-medium">
+              <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10 text-primary-foreground" />
             </div>
-            <h1 className="text-3xl font-display font-bold text-foreground mb-2">
+            <h1 className="text-2xl sm:text-3xl font-display font-bold text-foreground mb-2">
               Entry Confirmed! 🎯
             </h1>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-base sm:text-lg text-muted-foreground px-4">
               You're officially entered into the competition
             </p>
           </div>
 
           {/* Competition Details Card */}
           <Card className="shadow-soft animate-slide-up">
-            <CardContent className="p-6 space-y-6">
+            <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
               {/* Competition Info */}
-              <div className="text-center border-b border-border pb-6">
-                <h2 className="text-xl font-semibold text-foreground mb-2">
+              <div className="text-center border-b border-border pb-4 sm:pb-6">
+                <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">
                   {entryData.competition.name}
                 </h2>
-                <div className="flex items-center justify-center gap-2 text-muted-foreground mb-4">
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4">
                   <MapPin className="w-4 h-4" />
-                  <span>{entryData.competition.club_name}</span>
+                  <span className="truncate">{entryData.competition.club_name}</span>
                 </div>
-                <div className="flex justify-center gap-6 text-sm">
+                <div className="flex justify-center gap-4 sm:gap-6 text-sm">
                   <div className="text-center">
                     <div className="font-semibold text-foreground">Hole #{entryData.competition.hole_number}</div>
-                    <div className="text-muted-foreground">Target</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground">Target</div>
                   </div>
                   <div className="text-center">
                     <div className="font-semibold text-foreground">
                       £{(entryData.competition.prize_pool / 100).toFixed(2)}
                     </div>
-                    <div className="text-muted-foreground">Prize Pool</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground">Prize Pool</div>
                   </div>
                 </div>
               </div>
@@ -275,11 +275,11 @@ const EntrySuccess: React.FC = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <Button
                   onClick={() => handleReportOutcome('win')}
                   disabled={actionLoading !== null}
-                  className="w-full h-16 text-lg font-semibold bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground shadow-medium transition-all duration-200 hover:scale-[1.02]"
+                  className="w-full h-14 sm:h-16 text-base sm:text-lg font-semibold bg-gradient-primary hover:bg-gradient-primary/90 text-primary-foreground shadow-medium transition-all duration-200 hover:scale-[1.02]"
                 >
                   {actionLoading === 'win' ? (
                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
@@ -293,7 +293,7 @@ const EntrySuccess: React.FC = () => {
                   onClick={() => handleReportOutcome('miss')}
                   disabled={actionLoading !== null}
                   variant="outline"
-                  className="w-full h-16 text-lg font-semibold border-2 border-border hover:border-primary/30 transition-all duration-200 hover:scale-[1.02]"
+                  className="w-full h-14 sm:h-16 text-base sm:text-lg font-semibold border-2 border-border hover:border-primary/30 transition-all duration-200 hover:scale-[1.02]"
                 >
                   {actionLoading === 'miss' ? (
                     <Loader2 className="w-5 h-5 animate-spin mr-2" />

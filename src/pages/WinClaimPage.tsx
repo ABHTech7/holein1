@@ -60,6 +60,19 @@ const WinClaimPage: React.FC = () => {
           return;
         }
 
+        // Check if verification already exists
+        const { data: existingVerification } = await supabase
+          .from('verifications')
+          .select('id, status')
+          .eq('entry_id', entryId)
+          .maybeSingle();
+
+        if (existingVerification) {
+          console.log('Verification already submitted, redirecting to success page');
+          navigate(`/win-claim-success/${entryId}`);
+          return;
+        }
+
         // Check if user is authorized to claim this entry
         // Allow the PLAYER who owns the entry, and also allow ADMIN/CLUB users to assist
         if (user && entryRecord.player_id !== user.id) {
