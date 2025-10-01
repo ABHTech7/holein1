@@ -40,7 +40,7 @@ export const formatDate = (date: string | Date, format: 'short' | 'medium' | 'lo
     return new Intl.DateTimeFormat('en-GB', {
       month: 'short',
       day: 'numeric',
-      timeZone: 'UTC',
+      timeZone: 'Europe/London',
     }).format(dateObj);
   }
   
@@ -50,7 +50,7 @@ export const formatDate = (date: string | Date, format: 'short' | 'medium' | 'lo
       year: 'numeric',
       month: 'long',
       day: 'numeric',
-      timeZone: 'UTC',
+      timeZone: 'Europe/London',
     }).format(dateObj);
   }
   
@@ -59,7 +59,7 @@ export const formatDate = (date: string | Date, format: 'short' | 'medium' | 'lo
     year: 'numeric',
     month: 'short',
     day: 'numeric',
-    timeZone: 'UTC',
+    timeZone: 'Europe/London',
   }).format(dateObj);
 };
 
@@ -74,7 +74,7 @@ export const formatDateTime = (date: string | Date): string => {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    timeZone: 'UTC',
+    timeZone: 'Europe/London',
   }).format(dateObj);
 };
 

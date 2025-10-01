@@ -33,25 +33,30 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { company_id, month, year } = body;
 
-    let periodStart: Date;
-    let periodEnd: Date;
+    let periodStartStr: string;
+    let periodEndStr: string;
 
     if (month && year) {
-      // Calculate for specific month/year
-      periodStart = new Date(year, month - 1, 1);
-      periodEnd = new Date(year, month, 0);
-    } else {
-      // Default to previous month
-      const now = new Date();
-      const targetYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-      const targetMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+      // Calculate for specific month/year in UK timezone
+      const startDate = new Date(`${year}-${String(month).padStart(2, '0')}-01T00:00:00Z`);
+      const endDate = new Date(year, month, 0); // Last day of month
       
-      periodStart = new Date(targetYear, targetMonth, 1);
-      periodEnd = new Date(targetYear, targetMonth + 1, 0);
+      periodStartStr = startDate.toISOString().split('T')[0];
+      periodEndStr = endDate.toISOString().split('T')[0];
+    } else {
+      // Default to previous month in UK timezone
+      const ukNowStr = new Date().toLocaleString('en-US', { timeZone: 'Europe/London' });
+      const ukNow = new Date(ukNowStr);
+      
+      const targetYear = ukNow.getMonth() === 0 ? ukNow.getFullYear() - 1 : ukNow.getFullYear();
+      const targetMonth = ukNow.getMonth() === 0 ? 12 : ukNow.getMonth(); // 1-indexed
+      
+      const startDate = new Date(`${targetYear}-${String(targetMonth).padStart(2, '0')}-01T00:00:00Z`);
+      const endDate = new Date(targetYear, targetMonth, 0); // Last day of month
+      
+      periodStartStr = startDate.toISOString().split('T')[0];
+      periodEndStr = endDate.toISOString().split('T')[0];
     }
-    
-    const periodStartStr = periodStart.toISOString().split('T')[0];
-    const periodEndStr = periodEnd.toISOString().split('T')[0];
 
     console.log(`Calculating premiums for period: ${periodStartStr} to ${periodEndStr}`);
 
