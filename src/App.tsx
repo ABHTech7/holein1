@@ -19,6 +19,8 @@ import PlayerJourneyEntryPage from "./pages/PlayerJourneyEntryPage";
 import EntryConfirmation from "./pages/EntryConfirmation";
 import EntrySuccess from "./pages/EntrySuccess";
 import WinClaimPage from "./pages/WinClaimPage";
+import WinClaimSuccessPage from "./pages/WinClaimSuccessPage";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import WinClaimPageNew from "./pages/WinClaimPageNew";
 
 

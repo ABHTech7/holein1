@@ -333,6 +333,7 @@ const EnhancedWinClaimForm: React.FC<EnhancedWinClaimFormProps> = ({
                 ref={refs[purpose as keyof typeof refs]}
                 type="file"
                 accept={acceptedTypes}
+                capture={acceptedTypes.includes('image') ? 'environment' : undefined}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) handleFileUpload(file, purpose as any);

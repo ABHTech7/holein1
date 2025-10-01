@@ -71,7 +71,7 @@ export function PlayAgainPanel({ recentMisses, onPlayAgain }: PlayAgainPanelProp
   };
 
   return (
-    <Card className="p-6 mb-6 border-orange-200 bg-gradient-to-r from-orange-50/50 to-yellow-50/50">
+    <Card className="p-4 sm:p-6 mb-6 border-orange-200 bg-gradient-to-r from-orange-50/50 to-yellow-50/50">
       <div className="flex items-center space-x-2 mb-4">
         <RotateCcw className="h-5 w-5 text-orange-600" />
         <h3 className="text-lg font-semibold text-orange-900">Try Again</h3>
@@ -87,7 +87,7 @@ export function PlayAgainPanel({ recentMisses, onPlayAgain }: PlayAgainPanelProp
       <div className="space-y-3">
         {/* Available entries */}
         {availableEntries.slice(0, 3).map((entry) => (
-          <div key={entry.id} className="flex items-center justify-between p-3 bg-white/60 rounded-lg border border-orange-100">
+          <div key={entry.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 bg-white/60 rounded-lg border border-orange-100">
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-1">
                 <Trophy className="h-4 w-4 text-orange-600" />
@@ -103,7 +103,7 @@ export function PlayAgainPanel({ recentMisses, onPlayAgain }: PlayAgainPanelProp
               </div>
             </div>
             
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 w-full sm:w-auto">
               <div className="text-right">
                 <div className="text-sm font-medium text-orange-900">
                   {formatCurrency(entry.price_paid || 7.50)}
@@ -112,7 +112,7 @@ export function PlayAgainPanel({ recentMisses, onPlayAgain }: PlayAgainPanelProp
               </div>
               
               <Button 
-                className="bg-orange-600 hover:bg-orange-700 text-white"
+                className="bg-orange-600 hover:bg-orange-700 text-white w-full sm:w-auto"
                 onClick={() => onPlayAgain(entry.competition_id)}
                 data-testid={`player-play-again-btn-${entry.competition_id}`}
               >

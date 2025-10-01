@@ -140,8 +140,8 @@ const WinClaimPage: React.FC = () => {
       description: "Your hole-in-one claim has been submitted for review",
     });
     
-    // Navigate to success page or back to entry
-    navigate(`/entry-success/${entryId}`);
+    // Navigate to dedicated success page
+    navigate(`/win-claim-success/${entryId}`);
   };
 
   const handleCancel = () => {
