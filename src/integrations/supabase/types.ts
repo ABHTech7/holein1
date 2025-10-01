@@ -1632,6 +1632,15 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_uk_month_boundaries: {
+        Args: { p_month?: number; p_year?: number }
+        Returns: {
+          month_end: string
+          month_end_ts: string
+          month_start: string
+          month_start_ts: string
+        }[]
+      }
       get_user_role_safe: {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["user_role"]

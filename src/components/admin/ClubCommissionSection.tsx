@@ -88,10 +88,10 @@ const ClubCommissionSection = ({ clubId }: CommissionSectionProps) => {
 
       if (compError) throw compError;
 
-      // Calculate commission stats
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      // Calculate commission stats using UK timezone
+      const { getUKMonthStart, getUKYearStart } = await import('@/lib/timezoneUtils');
+      const ukMonthStart = getUKMonthStart();
+      const ukYearStart = getUKYearStart();
 
       let totalCommission = 0;
       let monthToDate = 0;
@@ -107,11 +107,11 @@ const ClubCommissionSection = ({ clubId }: CommissionSectionProps) => {
           
           totalCommission += commission;
           
-          if (entryDate >= startOfMonth) {
+          if (entryDate >= ukMonthStart) {
             monthToDate += commission;
           }
           
-          if (entryDate >= startOfYear) {
+          if (entryDate >= ukYearStart) {
             yearToDate += commission;
           }
         });

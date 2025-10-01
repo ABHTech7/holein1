@@ -53,10 +53,15 @@ const ClubRevenue = () => {
     try {
       setLoading(true);
 
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const yearStart = new Date(now.getFullYear(), 0, 1);
+      // Use UK timezone for all date calculations
+      const { getUKNow, getUKMonthStart, getUKYearStart } = await import('@/lib/timezoneUtils');
+      const ukNow = getUKNow();
+      const todayStart = new Date(
+        new Date(`${ukNow.getFullYear()}-${String(ukNow.getMonth() + 1).padStart(2, '0')}-${String(ukNow.getDate()).padStart(2, '0')}T00:00:00`)
+          .toLocaleString('en-US', { timeZone: 'Europe/London' })
+      );
+      const monthStart = getUKMonthStart();
+      const yearStart = getUKYearStart();
 
       // Fetch all paid entries for the club (matching dashboard query structure)
       const { data: entriesData, error } = await supabase

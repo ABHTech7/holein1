@@ -252,10 +252,10 @@ const RevenueBreakdown = () => {
 
       setEntries(transformedEntries);
 
-      // Calculate stats using full dataset
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      // Calculate stats using UK timezone
+      const { getUKMonthStart, getUKYearStart } = await import('@/lib/timezoneUtils');
+      const ukMonthStart = getUKMonthStart();
+      const ukYearStart = getUKYearStart();
       
       // Filter paid entries for revenue calculations
       const paidEntries = transformedEntries.filter(e => e.paid);
@@ -264,17 +264,11 @@ const RevenueBreakdown = () => {
       const totalRevenue = paidEntries.reduce((sum, e) => sum + e.entry_fee, 0);
       
       const monthToDateRevenue = paidEntries
-        .filter(e => {
-          const entryDate = new Date(e.entry_date);
-          return entryDate >= startOfMonth && entryDate <= now;
-        })
+        .filter(e => new Date(e.entry_date) >= ukMonthStart)
         .reduce((sum, e) => sum + e.entry_fee, 0);
         
       const yearToDateRevenue = paidEntries
-        .filter(e => {
-          const entryDate = new Date(e.entry_date);
-          return entryDate >= startOfYear && entryDate <= now;
-        })
+        .filter(e => new Date(e.entry_date) >= ukYearStart)
         .reduce((sum, e) => sum + e.entry_fee, 0);
 
       setStats({

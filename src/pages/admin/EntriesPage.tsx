@@ -327,13 +327,20 @@ const EntriesPage = () => {
     }
   };
 
-  // Server-side accurate counters
+  // Server-side accurate counters using UK timezone
   const fetchCounts = async () => {
     try {
       setCountsLoading(true);
-      const now = new Date();
-      const startOfMonthIso = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      const startOfYearIso = new Date(now.getFullYear(), 0, 1).toISOString();
+      
+      // Get UK timezone boundaries via RPC
+      const { data: boundaries } = await supabase.rpc('get_uk_month_boundaries');
+      const { data: yearBoundaries } = await supabase.rpc('get_uk_month_boundaries', { 
+        p_year: new Date().getFullYear(), 
+        p_month: 1 
+      });
+      
+      const startOfMonthIso = boundaries?.[0]?.month_start_ts;
+      const startOfYearIso = yearBoundaries?.[0]?.month_start_ts;
 
       const [totalRes, paidRes, mtdRes, ytdRes, wonRes] = await Promise.all([
         supabase.from('entries').select('id', { count: 'exact', head: true }),

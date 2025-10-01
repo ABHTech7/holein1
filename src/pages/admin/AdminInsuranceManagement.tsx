@@ -66,30 +66,33 @@ const AdminInsuranceManagement = () => {
     if (!currentCompany) return;
 
     try {
-      const now = new Date();
-      // Use UTC date boundaries to avoid timezone issues
-      const monthStartUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-      const yearStartUTC = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
-      const todayUTCStr = now.toISOString().slice(0, 10);
-      const monthStartStr = monthStartUTC.toISOString().slice(0, 10);
-      const yearStartStr = yearStartUTC.toISOString().slice(0, 10);
+      // Use DB helper for UK timezone-aware boundaries
+      const { data: monthBoundaries } = await supabase.rpc('get_uk_month_boundaries');
+      const { data: yearBoundaries } = await supabase.rpc('get_uk_month_boundaries', {
+        p_year: new Date().getFullYear(),
+        p_month: 1
+      });
 
-      // Get month-to-date entries count via new count RPC
+      const monthStartStr = monthBoundaries?.[0]?.month_start;
+      const monthEndStr = monthBoundaries?.[0]?.month_end;
+      const yearStartStr = yearBoundaries?.[0]?.month_start;
+
+      // Get month-to-date entries count via RPC with UK boundaries
       const { data: mtdCount, error: monthError } = await supabase
         .rpc('get_insurance_entries_count', {
           company_id: currentCompany.id,
           month_start: monthStartStr,
-          month_end: todayUTCStr,
+          month_end: monthEndStr,
           include_demo: true,
         });
       if (monthError) throw monthError;
 
-      // Get year-to-date entries count via new count RPC
+      // Get year-to-date entries count via RPC with UK boundaries
       const { data: ytdCount, error: ytdError } = await supabase
         .rpc('get_insurance_entries_count', {
           company_id: currentCompany.id,
           month_start: yearStartStr,
-          month_end: todayUTCStr,
+          month_end: monthEndStr,
           include_demo: true,
         });
       if (ytdError) throw ytdError;

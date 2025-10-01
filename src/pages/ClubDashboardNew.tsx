@@ -167,11 +167,15 @@ const ClubDashboardNew = () => {
           entries_count: 0 // Will be calculated separately
         }));
 
-        // Calculate stats with resilient queries
-        const now = new Date();
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const yearStart = new Date(now.getFullYear(), 0, 1);
+        // Calculate stats using UK timezone
+        const { getUKNow, getUKMonthStart, getUKYearStart } = await import('@/lib/timezoneUtils');
+        const ukNow = getUKNow();
+        const todayStart = new Date(
+          new Date(`${ukNow.getFullYear()}-${String(ukNow.getMonth() + 1).padStart(2, '0')}-${String(ukNow.getDate()).padStart(2, '0')}T00:00:00`)
+            .toLocaleString('en-US', { timeZone: 'Europe/London' })
+        );
+        const monthStart = getUKMonthStart();
+        const yearStart = getUKYearStart();
 
         // Entries today count (use count head; fallback to minimal select)
         let entriesToday = 0;
@@ -181,7 +185,7 @@ const ClubDashboardNew = () => {
             .select('id', { count: 'exact', head: true })
             .in('competition_id', compIds)
             .gte('entry_date', todayStart.toISOString())
-            .lte('entry_date', now.toISOString());
+            .lte('entry_date', ukNow.toISOString());
 
           if (error) {
             const { data, error: fallbackError } = await supabase
@@ -189,7 +193,7 @@ const ClubDashboardNew = () => {
               .select('id')
               .in('competition_id', compIds)
               .gte('entry_date', todayStart.toISOString())
-              .lte('entry_date', now.toISOString());
+              .lte('entry_date', ukNow.toISOString());
             if (fallbackError) throw fallbackError;
             entriesToday = data?.length ?? 0;
           } else {

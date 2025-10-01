@@ -36,27 +36,29 @@ Deno.serve(async (req) => {
     let periodStartStr: string;
     let periodEndStr: string;
 
+    // Use DB helper for UK timezone-aware month boundaries
+    let boundariesResult;
     if (month && year) {
-      // Calculate for specific month/year in UK timezone
-      const startDate = new Date(`${year}-${String(month).padStart(2, '0')}-01T00:00:00Z`);
-      const endDate = new Date(year, month, 0); // Last day of month
-      
-      periodStartStr = startDate.toISOString().split('T')[0];
-      periodEndStr = endDate.toISOString().split('T')[0];
+      // Calculate for specific month/year
+      boundariesResult = await supabase.rpc('get_uk_month_boundaries', {
+        p_year: year,
+        p_month: month
+      });
     } else {
-      // Default to previous month in UK timezone
-      const ukNowStr = new Date().toLocaleString('en-US', { timeZone: 'Europe/London' });
-      const ukNow = new Date(ukNowStr);
-      
-      const targetYear = ukNow.getMonth() === 0 ? ukNow.getFullYear() - 1 : ukNow.getFullYear();
-      const targetMonth = ukNow.getMonth() === 0 ? 12 : ukNow.getMonth(); // 1-indexed
-      
-      const startDate = new Date(`${targetYear}-${String(targetMonth).padStart(2, '0')}-01T00:00:00Z`);
-      const endDate = new Date(targetYear, targetMonth, 0); // Last day of month
-      
-      periodStartStr = startDate.toISOString().split('T')[0];
-      periodEndStr = endDate.toISOString().split('T')[0];
+      // Default to current UK month
+      boundariesResult = await supabase.rpc('get_uk_month_boundaries');
     }
+
+    if (boundariesResult.error || !boundariesResult.data || boundariesResult.data.length === 0) {
+      console.error('Error fetching UK month boundaries:', boundariesResult.error);
+      throw new Error('Failed to calculate UK month boundaries');
+    }
+
+    const boundaries = boundariesResult.data[0];
+    periodStartStr = boundaries.month_start;
+    periodEndStr = boundaries.month_end;
+
+    console.log(`[UK Timezone] Calculated boundaries: ${periodStartStr} to ${periodEndStr}`);
 
     console.log(`Calculating premiums for period: ${periodStartStr} to ${periodEndStr}`);
 

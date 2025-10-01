@@ -71,3 +71,27 @@ export function getUKPreviousMonth(): { year: number; month: number } {
   const month = ukNow.getMonth() === 0 ? 12 : ukNow.getMonth();
   return { year, month };
 }
+
+/**
+ * Get start of current month in UK timezone
+ * Use this for client-side MTD filtering when RPC isn't available
+ */
+export function getUKMonthStart(): Date {
+  const ukNow = getUKNow();
+  return new Date(
+    new Date(`${ukNow.getFullYear()}-${String(ukNow.getMonth() + 1).padStart(2, '0')}-01T00:00:00`)
+      .toLocaleString('en-US', { timeZone: UK_TIMEZONE })
+  );
+}
+
+/**
+ * Get start of current year in UK timezone
+ * Use this for client-side YTD filtering when RPC isn't available
+ */
+export function getUKYearStart(): Date {
+  const ukNow = getUKNow();
+  return new Date(
+    new Date(`${ukNow.getFullYear()}-01-01T00:00:00`)
+      .toLocaleString('en-US', { timeZone: UK_TIMEZONE })
+  );
+}
