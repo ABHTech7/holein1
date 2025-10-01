@@ -1569,6 +1569,14 @@ export type Database = {
           start_date: string
         }[]
       }
+      get_revenue_summaries_uk: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          mtd_total: number
+          today_total: number
+          ytd_total: number
+        }[]
+      }
       get_safe_club_info: {
         Args: { club_uuid: string }
         Returns: {

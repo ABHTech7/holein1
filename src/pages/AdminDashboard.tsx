@@ -24,7 +24,7 @@ import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate, formatRelativeTime } from "@/lib/formatters";
 import { showSupabaseError } from "@/lib/showSupabaseError";
 import { useAuth } from "@/hooks/useAuth";
-import { getUKNow, getUKCurrentMonth, getUKMonthBoundaries } from "@/lib/timezoneUtils";
+import { getUKCurrentMonth, getUKMonthBoundaries } from "@/lib/timezoneUtils";
 import { useNotificationCounts } from "@/hooks/useNotificationCounts";
 import { ROUTES } from "@/routes";
 import { getDemoModeDisplayConfig } from "@/lib/demoMode";
@@ -138,22 +138,12 @@ const AdminDashboard = () => {
           });
         }
 
-        // Get current dates for revenue calculations using UK timezone
-        const now = new Date(); // Keep for membership data calculations
-        const ukNow = getUKNow();
-        const yyyy = ukNow.getFullYear();
-        const mm = String(ukNow.getMonth() + 1).padStart(2, '0');
-        const dd = String(ukNow.getDate()).padStart(2, '0');
-        const yearStartStr = `${yyyy}-01-01`;
+        // Get current dates for membership data calculations (chart still needs browser timezone)
+        const now = new Date();
         
         // Get UK month boundaries for accurate month-to-date calculations
         const { year: currentYear, month: currentMonth } = getUKCurrentMonth();
         const { start: monthStartStr } = getUKMonthBoundaries(currentYear, currentMonth);
-        
-        // Use date-only strings to avoid timezone drift and ensure inclusive daily windows
-        const todayStr = `${yyyy}-${mm}-${dd}`;
-        const tomorrowDate = new Date(ukNow.getFullYear(), ukNow.getMonth(), ukNow.getDate() + 1);
-        const tomorrowStr = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
 
         // Fetch basic stats with proper error handling and demo filtering
         console.log('Fetching admin dashboard stats...');
@@ -181,6 +171,9 @@ const AdminDashboard = () => {
           include_demo: !filterDemoData
         });
         
+        // Fetch UK timezone revenue summaries (today, MTD, YTD) in single RPC call
+        let revenueQuery = supabase.rpc('get_revenue_summaries_uk');
+        
         // Apply demo filtering if needed
         if (filterDemoData) {
           playersQuery = playersQuery.neq('is_demo_data', true);
@@ -189,21 +182,14 @@ const AdminDashboard = () => {
           competitionsQuery = competitionsQuery.neq('is_demo_data', true);
         }
         
-        const [playersRes, newPlayersRes, clubsRes, activeCompsRes, monthToDateEntriesRes] = await Promise.all([
+        const [playersRes, newPlayersRes, clubsRes, activeCompsRes, monthToDateEntriesRes, revenueRes] = await Promise.all([
           playersQuery,
           newPlayersQuery, 
           clubsQuery,
           competitionsQuery,
-          entriesQuery
+          entriesQuery,
+          revenueQuery
         ]);
-
-        // Fetch competitions fees once for revenue calculations
-        const { data: compsForFees, error: ytdCompsError } = await supabase
-          .from('competitions')
-          .select('id, entry_fee');
-        if (ytdCompsError && process.env.NODE_ENV !== 'production') {
-          console.error('ADMIN DASHBOARD REVENUE ERROR (competitions)', { ytdCompsError });
-        }
 
         // Enhanced error logging with comprehensive diagnostic details
         if (playersRes.error && process.env.NODE_ENV !== 'production') {
@@ -272,58 +258,20 @@ const AdminDashboard = () => {
           });
         }
 
-        // Calculate revenue using server-side queries with UK month boundaries
-        const feeMap = new Map<string, number>((compsForFees || []).map((c: any) => [c.id, parseFloat((c as any).entry_fee?.toString() || '0')]));
+        // Extract revenue summaries from RPC response
+        const revenueSummary = revenueRes.data?.[0] || { today_total: 0, mtd_total: 0, ytd_total: 0 };
         
-        // Today's revenue - server-side calculation
-        const { data: todayEntries } = await supabase
-          .from('entries')
-          .select('price_paid, competition_id')
-          .eq('paid', true)
-          .gte('entry_date', todayStr)
-          .lt('entry_date', tomorrowStr);
-        
-        const todayRevenue = (todayEntries || []).reduce((sum: number, e: any) => {
-          const price = typeof e.price_paid === 'number' ? e.price_paid : null;
-          if (price !== null && !isNaN(price)) return sum + price;
-          return sum + (feeMap.get(e.competition_id) || 0);
-        }, 0);
-        
-        // Month-to-date revenue - server-side calculation with UK boundaries
-        const { data: monthlyEntries } = await supabase
-          .from('entries')
-          .select('price_paid, competition_id')
-          .eq('paid', true)
-          .gte('entry_date', month_start)
-          .lt('entry_date', month_end);
-        
-        const monthlyRevenue = (monthlyEntries || []).reduce((sum: number, e: any) => {
-          const price = typeof e.price_paid === 'number' ? e.price_paid : null;
-          if (price !== null && !isNaN(price)) return sum + price;
-          return sum + (feeMap.get(e.competition_id) || 0);
-        }, 0);
-        
-        // Year-to-date revenue - server-side calculation
-        const { data: yearlyEntries } = await supabase
-          .from('entries')
-          .select('price_paid, competition_id')
-          .eq('paid', true)
-          .gte('entry_date', yearStartStr);
-        
-        const yearlyRevenue = (yearlyEntries || []).reduce((sum: number, e: any) => {
-          const price = typeof e.price_paid === 'number' ? e.price_paid : null;
-          if (price !== null && !isNaN(price)) return sum + price;
-          return sum + (feeMap.get(e.competition_id) || 0);
-        }, 0);
         console.log('Month to date entries count:', monthToDateEntriesRes.data);
+        console.log('UK timezone revenue summaries:', revenueSummary);
+        
         setStats({
           totalPlayers: playersRes.count || 0,
           newPlayersThisMonth: newPlayersRes.count || 0,
           totalClubs: clubsRes.count || 0,
           activeCompetitions: activeCompsRes.data?.length || 0,
-          todayRevenue: todayRevenue,
-          monthlyRevenue: monthlyRevenue,
-          yearlyRevenue: yearlyRevenue,
+          todayRevenue: revenueSummary.today_total || 0,
+          monthlyRevenue: revenueSummary.mtd_total || 0,
+          yearlyRevenue: revenueSummary.ytd_total || 0,
           monthToDateEntries: monthToDateEntriesRes.data || 0
         });
 
@@ -462,9 +410,9 @@ const AdminDashboard = () => {
           newPlayersThisMonth: newPlayersRes.count,
           clubs: clubsRes.count,
           activeCompetitions: activeCompsRes.data?.length,
-          todayRevenue: todayRevenue,
-          monthlyRevenue: monthlyRevenue,
-          yearlyRevenue: yearlyRevenue,
+          todayRevenue: revenueSummary.today_total,
+          monthlyRevenue: revenueSummary.mtd_total,
+          yearlyRevenue: revenueSummary.ytd_total,
           competitions: recentComps?.length
         });
       } catch (error) {
