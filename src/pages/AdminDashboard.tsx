@@ -24,6 +24,7 @@ import { toast } from "@/hooks/use-toast";
 import { formatCurrency, formatDate, formatRelativeTime } from "@/lib/formatters";
 import { showSupabaseError } from "@/lib/showSupabaseError";
 import { useAuth } from "@/hooks/useAuth";
+import { getUKNow, getUKCurrentMonth, getUKMonthBoundaries } from "@/lib/timezoneUtils";
 import { useNotificationCounts } from "@/hooks/useNotificationCounts";
 import { ROUTES } from "@/routes";
 import { getDemoModeDisplayConfig } from "@/lib/demoMode";
@@ -111,17 +112,22 @@ const AdminDashboard = () => {
           });
         }
 
-        // Get current dates for revenue calculations
-        const now = new Date();
-        const yyyy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
+        // Get current dates for revenue calculations using UK timezone
+        const now = new Date(); // Keep for membership data calculations
+        const ukNow = getUKNow();
+        const yyyy = ukNow.getFullYear();
+        const mm = String(ukNow.getMonth() + 1).padStart(2, '0');
+        const dd = String(ukNow.getDate()).padStart(2, '0');
         const yearStartStr = `${yyyy}-01-01`;
-        const monthStartStr = `${yyyy}-${mm}-01`;
+        
+        // Get UK month boundaries for accurate month-to-date calculations
+        const { year: currentYear, month: currentMonth } = getUKCurrentMonth();
+        const { start: monthStartStr } = getUKMonthBoundaries(currentYear, currentMonth);
+        
         // Use date-only strings to avoid timezone drift and ensure inclusive daily windows
         const todayStr = `${yyyy}-${mm}-${dd}`;
-        const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-        const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+        const tomorrowDate = new Date(ukNow.getFullYear(), ukNow.getMonth(), ukNow.getDate() + 1);
+        const tomorrowStr = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth() + 1).padStart(2, '0')}-${String(tomorrowDate.getDate()).padStart(2, '0')}`;
 
         // Fetch basic stats with proper error handling and demo filtering
         console.log('Fetching admin dashboard stats...');
@@ -268,26 +274,49 @@ const AdminDashboard = () => {
         // Calculate revenue (pence) mirroring Revenue pages: use price_paid if present, else competition entry_fee
         const feeMap = new Map<string, number>((compsForFees || []).map((c: any) => [c.id, parseFloat((c as any).entry_fee?.toString() || '0')]));
         const paidYtdEntries = (allYtdEntries || []).filter((e: any) => e.paid);
-        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-        const startOfMonthDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        
+        // Use UK timezone boundaries for accurate revenue calculations
+        const ukStartOfToday = `${todayStr}T00:00:00`;
+        const ukStartOfTomorrow = `${tomorrowStr}T00:00:00`;
+        const ukStartOfMonth = `${monthStartStr}T00:00:00`;
+        
         const getAmount = (e: any) => {
           const price = typeof e.price_paid === 'number' ? e.price_paid : null;
           if (price !== null && !isNaN(price)) return price;
           return feeMap.get(e.competition_id) || 0;
         };
+        
+        // Convert entry dates to UK timezone for comparison
         const todayRevenue = paidYtdEntries
           .filter((e: any) => {
-            const d = new Date(e.entry_date);
-            return d >= startOfToday && d < startOfTomorrow;
+            // Convert UTC entry date to UK date string for comparison
+            const entryDate = new Date(e.entry_date);
+            const ukDateStr = entryDate.toLocaleString('en-GB', { 
+              timeZone: 'Europe/London',
+              year: 'numeric',
+              month: '2-digit', 
+              day: '2-digit'
+            }).split('/').reverse().join('-'); // Convert DD/MM/YYYY to YYYY-MM-DD
+            
+            return ukDateStr === todayStr;
           })
           .reduce((sum: number, e: any) => sum + getAmount(e), 0);
+          
         const monthlyRevenue = paidYtdEntries
           .filter((e: any) => {
-            const d = new Date(e.entry_date);
-            return d >= startOfMonthDate;
+            // Convert UTC entry date to UK date string for comparison
+            const entryDate = new Date(e.entry_date);
+            const ukDateStr = entryDate.toLocaleString('en-GB', { 
+              timeZone: 'Europe/London',
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit'
+            }).split('/').reverse().join('-'); // Convert DD/MM/YYYY to YYYY-MM-DD
+            
+            return ukDateStr >= monthStartStr;
           })
           .reduce((sum: number, e: any) => sum + getAmount(e), 0);
+          
         const yearlyRevenue = paidYtdEntries.reduce((sum: number, e: any) => sum + getAmount(e), 0);
         console.log('Month to date entries count:', monthToDateEntriesRes.count);
         setStats({
