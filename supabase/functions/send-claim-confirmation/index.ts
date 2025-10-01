@@ -120,7 +120,7 @@ const handler = async (req: Request): Promise<Response> => {
         <body>
           <div class="container">
             <div class="header">
-              <img src="${supabaseUrl}/storage/v1/object/public/brand/ohio-logo-white.svg" alt="OHIO Golf" class="logo" />
+              <img src="${webAppUrl}/brand/holeinone-logo.png" alt="Official Hole in One" class="logo" />
               <h1>🏆 Claim Submitted Successfully!</h1>
             </div>
             

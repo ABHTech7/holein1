@@ -185,7 +185,7 @@ export function createBrandedEmailTemplate(options: EmailTemplateOptions): strin
   <div class="email-wrapper">
     <!-- Header with Logo -->
     <div class="email-header">
-      <img src="https://srnbylbbsdckkwatfqjg.supabase.co/storage/v1/object/public/assets/ohio-logo-black.svg" alt="OHIO Golf" class="logo" style="max-width: 200px; height: auto; margin-bottom: 10px;" />
+      <img src="${Deno.env.get('APP_BASE_URL') || 'https://demo.holein1challenge.co.uk'}/brand/holeinone-logo.png" alt="Official Hole in One" class="logo" style="max-width: 200px; height: auto; margin-bottom: 10px;" />
       <div class="header-tagline">Official Hole in 1</div>
     </div>
     
