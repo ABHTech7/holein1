@@ -227,7 +227,7 @@ export default function PlayerDashboardNew() {
         console.log('🔄 PlayerDashboard: Play again clicked', { competitionId });
       }
 
-      // Call RPC to create new entry with cooldown check
+      // Call RPC to create new entry (no cooldown, just 60-second duplicate guard)
       const { data, error } = await supabase
         .rpc('create_new_entry_for_current_email', {
           p_competition_id: competitionId
@@ -240,21 +240,18 @@ export default function PlayerDashboardNew() {
         success?: boolean;
         code?: string;
         entry_id?: string; 
-        duplicate_prevented?: boolean;
         message?: string;
       } | null;
 
-      // Check for cooldown_active response
-      if (result?.success === false && result?.code === 'cooldown_active') {
-        clearAllEntryContext();
-        
+      // Check for duplicate_recent response (60-second guard)
+      if (result?.success === false && result?.code === 'duplicate_recent') {
         if (import.meta.env.DEV) {
-          console.log('⏰ PlayerDashboard: Cooldown active', result.message);
+          console.log('⏰ PlayerDashboard: Duplicate recent click detected', result.message);
         }
         
         toast({
-          title: "Cooldown Active",
-          description: result.message || "You've already played in the last 12 hours. Please try again later.",
+          title: "Hold on",
+          description: "Processing your last click. Try again in a few seconds.",
           variant: "destructive"
         });
         return;

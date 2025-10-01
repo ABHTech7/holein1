@@ -401,8 +401,11 @@ const EntryConfirmation = () => {
       setEntry(prev => prev ? { ...prev, outcome_self: 'auto_miss', status: 'completed' } : null);
       setShowPlayAgain(true);
       
+      // Clear entry context to prevent stale loops
+      clearAllEntryContext();
+      
       if (import.meta.env.DEV) {
-        console.log('⏰ EntryConfirmation: Auto-miss applied, showing Play Again panel');
+        console.log('⏰ EntryConfirmation: Auto-miss applied, context cleared, showing Play Again panel');
       }
       
       toast({
@@ -517,29 +520,26 @@ const EntryConfirmation = () => {
 
       if (error) throw error;
 
-      // Type cast the response - now includes success flag and code
+      // Type cast the response
       const result = data as { 
         success?: boolean;
         code?: string;
         entry_id?: string; 
-        duplicate_prevented?: boolean;
         message?: string;
       } | null;
 
-      // Check for cooldown_active response
-      if (result?.success === false && result?.code === 'cooldown_active') {
-        clearAllEntryContext();
-        
+      // Check for duplicate_recent response (60-second guard)
+      if (result?.success === false && result?.code === 'duplicate_recent') {
         if (import.meta.env.DEV) {
-          console.log('⏰ EntryConfirmation: Cooldown active, not navigating', result.message);
+          console.log('⏰ EntryConfirmation: Duplicate recent click detected', result.message);
         }
         
         toast({
-          title: "Cooldown Active",
-          description: result.message || "You've already played in the last 12 hours. Please try again later.",
+          title: "Hold on",
+          description: "Processing your last click. Try again in a few seconds.",
           variant: "destructive"
         });
-        return; // Don't navigate - same competition retry is allowed immediately
+        return;
       }
 
       if (!result?.entry_id) {

@@ -246,7 +246,7 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
         return;
       }
 
-      // Use RPC to create entry (includes cooldown check)
+      // Use RPC to create entry (60-second duplicate guard only)
       const { data: rpcData, error: rpcError } = await supabase
         .rpc('create_new_entry_for_current_email', {
           p_competition_id: competition.id
@@ -258,18 +258,13 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
         code?: string; 
         message?: string;
         entry_id?: string; 
-        duplicate_prevented?: boolean;
-        cooldown_ends_at?: string;
       } | null;
 
-      // Handle cooldown active response
-      if (result?.code === 'cooldown_active') {
-        const { clearAllEntryContext } = await import('@/lib/entryContextPersistence');
-        clearAllEntryContext();
-        
+      // Handle duplicate_recent response (60-second guard)
+      if (result?.code === 'duplicate_recent') {
         toast({
-          title: "Cooldown Active",
-          description: result.message || "You've already played in the last 12 hours. Please try again later.",
+          title: "Hold on",
+          description: "Processing your last click. Try again in a few seconds.",
           variant: "destructive"
         });
         return;
