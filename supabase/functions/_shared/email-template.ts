@@ -58,9 +58,10 @@ export function createBrandedEmailTemplate(options: EmailTemplateOptions): strin
     }
     
     .email-header {
-      background: linear-gradient(135deg, #0F3D2E 0%, #1a5a44 100%);
+      background: #ffffff;
       padding: 40px 20px;
       text-align: center;
+      border-bottom: 1px solid #e5e5e5;
     }
     
     .logo {
@@ -72,7 +73,7 @@ export function createBrandedEmailTemplate(options: EmailTemplateOptions): strin
     .header-tagline {
       font-family: 'Oswald', 'Arial Black', sans-serif;
       font-size: 14px;
-      color: #C7A24C;
+      color: #0F3D2E;
       letter-spacing: 2px;
       text-transform: uppercase;
       margin-top: 10px;
@@ -184,7 +185,7 @@ export function createBrandedEmailTemplate(options: EmailTemplateOptions): strin
   <div class="email-wrapper">
     <!-- Header with Logo -->
     <div class="email-header">
-      <img src="https://srnbylbbsdckkwatfqjg.supabase.co/storage/v1/object/public/assets/ohio-logo-white.svg" alt="OHIO Golf" class="logo" style="max-width: 200px; height: auto; margin-bottom: 10px;" />
+      <img src="https://srnbylbbsdckkwatfqjg.supabase.co/storage/v1/object/public/assets/ohio-logo-black.svg" alt="OHIO Golf" class="logo" style="max-width: 200px; height: auto; margin-bottom: 10px;" />
       <div class="header-tagline">Official Hole in 1</div>
     </div>
     
