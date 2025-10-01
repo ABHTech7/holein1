@@ -72,3 +72,6 @@ verify_jwt = true
 
 [functions.admin-find-user]
 verify_jwt = true
+
+[functions.confirm-witness]
+verify_jwt = false

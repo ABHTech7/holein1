@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+import { createBrandedEmailTemplate } from "../_shared/email-template.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,6 +26,7 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const appBaseUrl = Deno.env.get('APP_BASE_URL') || 'https://demo.holein1challenge.co.uk';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Fetch verification and related data
@@ -78,8 +80,8 @@ serve(async (req) => {
       throw insertError;
     }
 
-    // Generate confirmation URL
-    const confirmationUrl = `${supabaseUrl.replace('.supabase.co', '')}.supabase.co/functions/v1/confirm-witness?token=${newToken}`;
+    // Use domain URL for confirmation link
+    const confirmationUrl = `${appBaseUrl}/functions/v1/confirm-witness?id=${verificationId}&token=${newToken}`;
 
     // Get Resend API key
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
@@ -92,58 +94,33 @@ serve(async (req) => {
       ? `${verification.entry.player.first_name} ${verification.entry.player.last_name || ''}`
       : verification.entry?.player?.email || 'A golfer';
 
-    const emailHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-            .content { background: white; padding: 30px; border: 1px solid #e5e7eb; }
-            .button { display: inline-block; background: #10b981; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: bold; }
-            .details { background: #f9fafb; padding: 20px; border-radius: 6px; margin: 20px 0; }
-            .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 14px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🏌️ Witness Confirmation Request (Resent)</h1>
-            </div>
-            
-            <div class="content">
-              <p>Hello ${witnessName || 'there'},</p>
-              
-              <p>This is a resent request to confirm that you witnessed a hole-in-one by <strong>${playerName}</strong>.</p>
-              
-              <div class="details">
-                <h3>Claim Details:</h3>
-                <p><strong>Player:</strong> ${playerName}</p>
-                <p><strong>Competition:</strong> ${verification.entry?.competition?.name}</p>
-                <p><strong>Club:</strong> ${verification.entry?.competition?.club?.name}</p>
-                <p><strong>Hole:</strong> ${verification.entry?.competition?.hole_number}</p>
-              </div>
-              
-              <p>To confirm you witnessed this incredible shot, please click the button below:</p>
-              
-              <div style="text-align: center;">
-                <a href="${confirmationUrl}" class="button">✅ Confirm Witness</a>
-              </div>
-              
-              <p style="font-size: 14px; color: #6b7280;">This confirmation link will expire in 48 hours.</p>
-            </div>
-            
-            <div class="footer">
-              <p><strong>Questions?</strong> Contact us at support@demo.holein1challenge.co.uk</p>
-              <p style="margin-top: 20px; color: #9ca3af; font-size: 12px;">
-                If you did not witness this shot or believe you've received this email in error, please contact us immediately.
-              </p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
+    // Create branded email using template
+    const emailHtml = createBrandedEmailTemplate({
+      preheader: `Reminder: Please confirm you witnessed ${playerName}'s hole-in-one`,
+      heading: 'Witness Confirmation (Resent)',
+      body: `
+        <p>Hello <strong>${witnessName || 'there'}</strong>,</p>
+        
+        <p>This is a resent request to confirm that you witnessed a hole-in-one by <strong>${playerName}</strong>.</p>
+        
+        <div style="background-color: #f8f9fa; border-left: 4px solid #C7A24C; padding: 15px 20px; margin: 20px 0;">
+          <strong style="color: #0F3D2E;">Claim Details:</strong><br>
+          <strong>Player:</strong> ${playerName}<br>
+          <strong>Competition:</strong> ${verification.entry?.competition?.name}<br>
+          <strong>Club:</strong> ${verification.entry?.competition?.club?.name}<br>
+          <strong>Hole:</strong> ${verification.entry?.competition?.hole_number}
+        </div>
+        
+        <p>To confirm you witnessed this incredible shot, please click the button below:</p>
+        
+        <p style="margin-top: 30px; font-size: 14px; color: #666;">
+          <strong>Important:</strong> This confirmation link expires in <strong>48 hours</strong>.
+        </p>
+      `,
+      ctaText: '✅ Confirm Witness',
+      ctaUrl: confirmationUrl,
+      includeSecurityNote: true
+    });
 
     // Send email via Resend
     const resendResponse = await fetch('https://api.resend.com/emails', {

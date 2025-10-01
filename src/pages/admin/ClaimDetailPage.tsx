@@ -592,32 +592,30 @@ const ClaimDetailPage = () => {
                 {signedUrls.id && (
                   <div>
                     <p className="text-sm font-medium mb-2">ID Document</p>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => window.open(signedUrls.id, '_blank')}
-                        className="gap-2"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        View ID
-                      </Button>
-                    </div>
+                    <img 
+                      src={signedUrls.id} 
+                      alt="ID document"
+                      className="w-full max-w-sm rounded-lg border"
+                      onError={(e) => {
+                        console.error('Failed to load ID document');
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
                   </div>
                 )}
 
                 {signedUrls.handicap && (
                   <div>
                     <p className="text-sm font-medium mb-2">Handicap Proof</p>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => window.open(signedUrls.handicap, '_blank')}
-                        className="gap-2"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        View Handicap Proof
-                      </Button>
-                    </div>
+                    <img 
+                      src={signedUrls.handicap} 
+                      alt="Handicap proof"
+                      className="w-full max-w-sm rounded-lg border"
+                      onError={(e) => {
+                        console.error('Failed to load handicap proof');
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
                   </div>
                 )}
 
