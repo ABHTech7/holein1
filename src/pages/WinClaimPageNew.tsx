@@ -16,6 +16,7 @@ import WitnessForm from "@/components/entry/WitnessForm";
 import VerificationSuccess from "@/components/entry/VerificationSuccess";
 import { VideoEvidenceCapture } from '@/components/entry/VideoEvidenceCapture';
 import { SocialConsent } from '@/components/entry/SocialConsent';
+import HandicapProofCapture from "@/components/entry/HandicapProofCapture";
 import { updateVerificationEvidence } from '@/lib/verificationService';
 import { getFileUrl } from '@/lib/fileUploadService';
 import type { Gender } from '@/lib/copyEngine';
@@ -37,6 +38,7 @@ interface EntryData {
     first_name?: string;
     last_name?: string;
     gender?: Gender;
+    handicap?: number | null;
   };
 }
 
@@ -50,12 +52,13 @@ interface WitnessData {
 interface VerificationData {
   selfie?: File;
   idDocument?: File;
+  handicapProof?: File;
   witness?: WitnessData;
   videoEvidence?: File;
   socialConsent: boolean;
 }
 
-type VerificationStep = 'selfie' | 'id' | 'witness' | 'video' | 'social' | 'success';
+type VerificationStep = 'selfie' | 'id' | 'handicap' | 'witness' | 'video' | 'social' | 'success';
 
 const WinClaimPageNew: React.FC = () => {
   const { entryId } = useParams<{ entryId: string }>();
@@ -74,8 +77,28 @@ const WinClaimPageNew: React.FC = () => {
     socialConsent: false
   });
 
-  const stepLabels = ['Take Selfie', 'Upload ID', 'Add Witness', 'Video Evidence', 'Social Consent', 'Complete'];
-  const stepIndex = ['selfie', 'id', 'witness', 'video', 'social', 'success'].indexOf(currentStep) + 1;
+  // Dynamically build steps based on player's handicap
+  const getSteps = () => {
+    const steps: VerificationStep[] = ['selfie', 'id'];
+    if (entryData?.player?.handicap) {
+      steps.push('handicap');
+    }
+    steps.push('witness', 'video', 'social', 'success');
+    return steps;
+  };
+
+  const getStepLabels = () => {
+    const labels = ['Take Selfie', 'Upload ID'];
+    if (entryData?.player?.handicap) {
+      labels.push('Handicap Proof');
+    }
+    labels.push('Add Witness', 'Video Evidence', 'Social Consent', 'Complete');
+    return labels;
+  };
+
+  const stepLabels = getStepLabels();
+  const steps = getSteps();
+  const stepIndex = steps.indexOf(currentStep) + 1;
 
   useEffect(() => {
     const loadEntryData = async () => {
@@ -128,7 +151,8 @@ const WinClaimPageNew: React.FC = () => {
               id,
               first_name,
               last_name,
-              gender
+              gender,
+              handicap
             )
           `)
           .eq('id', entryId)
@@ -186,6 +210,10 @@ const WinClaimPageNew: React.FC = () => {
 
   const handleIdCapture = (file: File) => {
     setVerificationData(prev => ({ ...prev, idDocument: file }));
+  };
+
+  const handleHandicapCapture = (file: File) => {
+    setVerificationData(prev => ({ ...prev, handicapProof: file }));
   };
 
   const handleWitnessSubmit = (witness: WitnessData) => {
@@ -252,6 +280,10 @@ const WinClaimPageNew: React.FC = () => {
         status: 'pending'
       };
 
+      if (verificationData.handicapProof) {
+        uploads.handicap_proof_url = await uploadToVerificationsBucket(verificationData.handicapProof, 'handicap');
+      }
+
       if (verificationData.videoEvidence) {
         uploads.video_url = await uploadToVerificationsBucket(verificationData.videoEvidence, 'video');
       }
@@ -305,13 +337,13 @@ const WinClaimPageNew: React.FC = () => {
   };
 
   const handleStepNavigation = (direction: 'next' | 'back') => {
-    const steps: VerificationStep[] = ['selfie', 'id', 'witness', 'video', 'social', 'success'];
-    const currentIndex = steps.indexOf(currentStep);
+    const currentSteps = getSteps();
+    const currentIndex = currentSteps.indexOf(currentStep);
     
-    if (direction === 'next' && currentIndex < steps.length - 1) {
-      setCurrentStep(steps[currentIndex + 1]);
+    if (direction === 'next' && currentIndex < currentSteps.length - 1) {
+      setCurrentStep(currentSteps[currentIndex + 1]);
     } else if (direction === 'back' && currentIndex > 0) {
-      setCurrentStep(steps[currentIndex - 1]);
+      setCurrentStep(currentSteps[currentIndex - 1]);
     }
   };
 
@@ -431,6 +463,16 @@ const WinClaimPageNew: React.FC = () => {
                 onDocumentCapture={handleIdCapture}
                 onNext={() => handleStepNavigation('next')}
                 onBack={() => handleStepNavigation('back')}
+              />
+            )}
+
+            {currentStep === 'handicap' && (
+              <HandicapProofCapture
+                onDocumentCapture={handleHandicapCapture}
+                onNext={() => handleStepNavigation('next')}
+                onBack={() => handleStepNavigation('back')}
+                capturedDocument={verificationData.handicapProof}
+                onRemove={() => setVerificationData(prev => ({ ...prev, handicapProof: undefined }))}
               />
             )}
 

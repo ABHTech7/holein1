@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Camera, ExternalLink, User, Trophy, MapPin, Calendar, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, Camera, ExternalLink, User, Trophy, MapPin, Calendar, CheckCircle, XCircle, Mail, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDate, formatDateTime } from "@/lib/formatters";
@@ -25,6 +25,9 @@ const ClaimDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [newStatus, setNewStatus] = useState<VerificationStatus>('pending');
+  const [witnessConfirmation, setWitnessConfirmation] = useState<any>(null);
+  const [isResendingWitness, setIsResendingWitness] = useState(false);
+  const [signedUrls, setSignedUrls] = useState<{ selfie?: string; id?: string; handicap?: string }>({});
 
   useEffect(() => {
     if (verificationId) {
@@ -56,7 +59,8 @@ const ClaimDetailPage = () => {
         .from('verifications')
         .select(`
           id, created_at, status, evidence_captured_at, entry_id,
-          selfie_url, id_document_url, verified_at, verified_by,
+          selfie_url, id_document_url, handicap_proof_url, verified_at, verified_by,
+          witness_name, witness_email, witness_phone,
           entries!inner(
             id, player_id, entry_date,
             profiles!inner(id, first_name, last_name, email, age_years, handicap, phone, phone_e164, gender),
@@ -69,6 +73,19 @@ const ClaimDetailPage = () => {
         .eq('id', verificationId)
         .single();
 
+      // Fetch witness confirmation status
+      const { data: witnessData } = await supabase
+        .from('witness_confirmations')
+        .select('*')
+        .eq('verification_id', verificationId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (witnessData) {
+        setWitnessConfirmation(witnessData);
+      }
+
       if (error) throw error;
 
       if (data) {
@@ -77,8 +94,13 @@ const ClaimDetailPage = () => {
         const competition = entry.competitions;
         const club = competition.clubs;
         
-        // Store entry data for access in render
-        setEntryData(entry);
+        // Store entry data (including witness data from verification) for access in render
+        setEntryData({
+          ...entry,
+          witness_name: data.witness_name,
+          witness_email: data.witness_email,
+          witness_phone: data.witness_phone
+        });
 
         const claimRow: ClaimRow = {
           id: data.id,
@@ -97,11 +119,37 @@ const ClaimDetailPage = () => {
           club_name: club.name,
           selfie_url: data.selfie_url,
           id_document_url: data.id_document_url,
-          photos_count: [data.selfie_url, data.id_document_url].filter(Boolean).length
+          photos_count: [data.selfie_url, data.id_document_url, data.handicap_proof_url].filter(Boolean).length
         };
 
         setClaim(claimRow);
         setNewStatus(claimRow.status);
+
+        // Generate signed URLs for evidence files
+        const urls: { selfie?: string; id?: string; handicap?: string } = {};
+        
+        if (data.selfie_url) {
+          const { data: signedData } = await supabase.storage
+            .from('verifications')
+            .createSignedUrl(data.selfie_url.replace('verifications/', ''), 3600);
+          if (signedData) urls.selfie = signedData.signedUrl;
+        }
+        
+        if (data.id_document_url) {
+          const { data: signedData } = await supabase.storage
+            .from('verifications')
+            .createSignedUrl(data.id_document_url.replace('verifications/', ''), 3600);
+          if (signedData) urls.id = signedData.signedUrl;
+        }
+
+        if (data.handicap_proof_url) {
+          const { data: signedData } = await supabase.storage
+            .from('verifications')
+            .createSignedUrl(data.handicap_proof_url.replace('verifications/', ''), 3600);
+          if (signedData) urls.handicap = signedData.signedUrl;
+        }
+        
+        setSignedUrls(urls);
       }
     } catch (error) {
       // Enhanced error handling with comprehensive logging
@@ -224,6 +272,40 @@ const ClaimDetailPage = () => {
       return '/dashboard/club/claims';
     }
     return '/';
+  };
+
+  const handleResendWitnessEmail = async () => {
+    if (!claim || !entryData) return;
+
+    setIsResendingWitness(true);
+    try {
+      const { error } = await supabase.functions.invoke('resend-witness-request', {
+        body: {
+          verificationId: claim.id,
+          witnessEmail: entryData.witness_email || claim.player_email,
+          witnessName: entryData.witness_name || 'Witness'
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Witness email resent",
+        description: "The witness confirmation email has been sent again."
+      });
+
+      // Refresh witness confirmation data
+      fetchClaimDetails();
+    } catch (error) {
+      console.error('Resend witness email error:', error);
+      toast({
+        title: "Failed to resend email",
+        description: "Please try again or contact support.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsResendingWitness(false);
+    }
   };
 
   if (isLoading) {
@@ -431,42 +513,127 @@ const ClaimDetailPage = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {claim.selfie_url && (
+                {signedUrls.selfie && (
                   <div>
                     <p className="text-sm font-medium mb-2">Player Selfie</p>
                     <img 
-                      src={claim.selfie_url} 
+                      src={signedUrls.selfie} 
                       alt="Player selfie"
                       className="w-full max-w-sm rounded-lg border"
+                      onError={(e) => {
+                        console.error('Failed to load selfie image');
+                        e.currentTarget.style.display = 'none';
+                      }}
                     />
                   </div>
                 )}
                 
-                {claim.id_document_url && (
+                {signedUrls.id && (
                   <div>
                     <p className="text-sm font-medium mb-2">ID Document</p>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
-                        size="sm"
-                        onClick={() => window.open(claim.id_document_url, '_blank')}
+                        onClick={() => window.open(signedUrls.id, '_blank')}
                         className="gap-2"
                       >
                         <ExternalLink className="w-4 h-4" />
-                        View Document
+                        View ID
                       </Button>
                     </div>
                   </div>
                 )}
 
-                {(!claim.selfie_url && !claim.id_document_url) && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Camera className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>No evidence files uploaded yet</p>
+                {signedUrls.handicap && (
+                  <div>
+                    <p className="text-sm font-medium mb-2">Handicap Proof</p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open(signedUrls.handicap, '_blank')}
+                        className="gap-2"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        View Handicap Proof
+                      </Button>
+                    </div>
                   </div>
+                )}
+
+                {!signedUrls.selfie && !signedUrls.id && !signedUrls.handicap && (
+                  <p className="text-muted-foreground text-center py-8">
+                    No evidence files uploaded yet
+                  </p>
                 )}
               </CardContent>
             </Card>
+
+            {/* Witness Confirmation Status */}
+            {entryData && (entryData.witness_email || entryData.witness_name) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="w-5 h-5" />
+                    Witness Confirmation
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Witness Name</p>
+                    <p>{entryData.witness_name || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Witness Email</p>
+                    <p>{entryData.witness_email || 'Not provided'}</p>
+                  </div>
+                  {entryData.witness_phone && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Witness Phone</p>
+                      <p>{entryData.witness_phone}</p>
+                    </div>
+                  )}
+                  
+                  {witnessConfirmation && (
+                    <>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Email Status</p>
+                        <Badge variant={witnessConfirmation.confirmed_at ? "default" : "secondary"}>
+                          {witnessConfirmation.confirmed_at ? "Confirmed" : "Pending"}
+                        </Badge>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Email Sent</p>
+                        <p>{formatDateTime(witnessConfirmation.created_at)}</p>
+                      </div>
+                      {witnessConfirmation.confirmed_at && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Confirmed At</p>
+                          <p>{formatDateTime(witnessConfirmation.confirmed_at)}</p>
+                        </div>
+                      )}
+                      {!witnessConfirmation.confirmed_at && (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Expires At</p>
+                          <p>{formatDateTime(witnessConfirmation.expires_at)}</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {entryData.witness_email && !witnessConfirmation?.confirmed_at && (
+                    <Button
+                      variant="outline"
+                      onClick={handleResendWitnessEmail}
+                      disabled={isResendingWitness}
+                      className="w-full gap-2"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isResendingWitness ? 'animate-spin' : ''}`} />
+                      {isResendingWitness ? 'Sending...' : 'Resend Witness Email'}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </Section>
