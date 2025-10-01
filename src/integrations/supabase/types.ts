@@ -1572,9 +1572,9 @@ export type Database = {
       get_revenue_summaries_uk: {
         Args: Record<PropertyKey, never>
         Returns: {
-          mtd_total: number
-          today_total: number
-          ytd_total: number
+          mtd_revenue: number
+          today_revenue: number
+          ytd_revenue: number
         }[]
       }
       get_safe_club_info: {
