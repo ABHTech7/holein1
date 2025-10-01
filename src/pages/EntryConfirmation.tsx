@@ -269,8 +269,20 @@ const EntryConfirmation = () => {
         }
 
         // Check for missing attempt_window_end (legacy or invalid entry)
-        if (!data.attempt_window_end) {
-          console.warn('⚠️ fetchEntry: Entry missing attempt_window_end - showing No Active Entry');
+        if (!data.attempt_window_end || !data.attempt_window_start) {
+          console.warn('⚠️ fetchEntry: Entry missing attempt windows - showing No Active Entry');
+          setShowNoEntry(true);
+          setLoading(false);
+          return;
+        }
+
+        // Validate timing windows exist and make sense
+        const windowStart = new Date(data.attempt_window_start);
+        const windowEnd = new Date(data.attempt_window_end);
+        const now = new Date();
+        
+        if (windowEnd <= windowStart) {
+          console.warn('⚠️ fetchEntry: Invalid window times - end before start');
           setShowNoEntry(true);
           setLoading(false);
           return;
@@ -475,20 +487,32 @@ const EntryConfirmation = () => {
   };
 
   const handlePlayAgain = async () => {
-    if (!entry?.competition_id) {
-      toast({
-        title: "Error",
-        description: "Competition information not found",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setSubmitting(true);
     try {
+      // Belt + braces: fetch competition_id if missing from state
+      let compId = entry?.competition_id;
+      if (!compId && entry?.id) {
+        console.log('Competition ID missing, fetching from database...');
+        const { data: entryData } = await supabase
+          .from('entries')
+          .select('competition_id')
+          .eq('id', entry.id)
+          .single();
+        compId = entryData?.competition_id;
+      }
+
+      if (!compId) {
+        toast({
+          title: "Error",
+          description: "Competition information not found",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { data, error } = await supabase
         .rpc('create_new_entry_for_current_email', {
-          p_competition_id: entry.competition_id
+          p_competition_id: compId
         });
 
       if (error) throw error;

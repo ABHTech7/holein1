@@ -229,6 +229,19 @@ const EnhancedWinClaimForm: React.FC<EnhancedWinClaimFormProps> = ({
         throw new Error('Failed to update entry status');
       }
 
+      // Trigger claim confirmation email (don't block on failure)
+      try {
+        await supabase.functions.invoke('send-claim-confirmation', {
+          body: {
+            verificationId: null, // Will be populated by trigger
+            entryId: entryId,
+            playerId: user?.id
+          }
+        });
+      } catch (emailError) {
+        console.warn('Email notification failed (non-blocking):', emailError);
+      }
+
       toast({
         title: "Verification submitted!",
         description: "Your hole-in-one claim is now under review"
@@ -333,7 +346,7 @@ const EnhancedWinClaimForm: React.FC<EnhancedWinClaimFormProps> = ({
                 ref={refs[purpose as keyof typeof refs]}
                 type="file"
                 accept={acceptedTypes}
-                capture={acceptedTypes.includes('image') ? 'environment' : undefined}
+                capture={purpose === 'selfie' ? 'user' : acceptedTypes.includes('image') ? 'environment' : undefined}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) handleFileUpload(file, purpose as any);
@@ -372,17 +385,17 @@ const EnhancedWinClaimForm: React.FC<EnhancedWinClaimFormProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 p-4">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <Card>
-          <CardContent className="p-6">
+        <Card className="rounded-2xl shadow-sm">
+          <CardContent className="p-4 sm:p-6">
             <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trophy className="w-8 h-8 text-white" />
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </div>
-              <h1 className="text-2xl font-bold mb-2">{winMessage}</h1>
-              <p className="text-muted-foreground mb-4">{verificationPrompt}</p>
+              <h1 className="text-xl sm:text-2xl font-bold mb-2">{winMessage}</h1>
+              <p className="text-sm sm:text-base text-muted-foreground mb-4">{verificationPrompt}</p>
               
               <div className="flex justify-center gap-4 text-sm">
                 <div className="flex items-center gap-1">
@@ -456,14 +469,14 @@ const EnhancedWinClaimForm: React.FC<EnhancedWinClaimFormProps> = ({
                 />
               </div>
 
-              <div className="flex justify-between gap-4">
-                <Button variant="outline" onClick={onCancel} className="flex-1">
+              <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
+                <Button variant="outline" onClick={onCancel} className="w-full sm:flex-1">
                   Cancel
                 </Button>
                 <Button 
                   onClick={() => setCurrentStep('evidence')}
                   disabled={!canProceedToEvidence()}
-                  className="flex-1"
+                  className="w-full sm:flex-1"
                 >
                   Continue to Witness Details
                 </Button>
@@ -542,18 +555,18 @@ const EnhancedWinClaimForm: React.FC<EnhancedWinClaimFormProps> = ({
             </Card>
 
             {/* Action Buttons */}
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <Button 
                 variant="outline" 
                 onClick={() => setCurrentStep('verification')}
-                className="flex-1"
+                className="w-full sm:flex-1"
               >
                 Back
               </Button>
               <Button
                 onClick={handleSubmit}
                 disabled={!canSubmit() || isSubmitting}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                className="w-full sm:flex-1 bg-green-600 hover:bg-green-700 text-white"
               >
                 {isSubmitting ? (
                   <>

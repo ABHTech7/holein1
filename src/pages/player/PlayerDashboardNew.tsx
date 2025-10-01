@@ -296,7 +296,52 @@ export default function PlayerDashboardNew() {
     )
     .slice(0, 5);
 
-  if (authLoading || loading) {
+  // Show loading state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center">
+            <Skeleton className="h-8 w-8 rounded-full mx-auto mb-4" />
+            <Skeleton className="h-4 w-48 mx-auto" />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Ensure user is authenticated and is a player
+  if (!user || !session) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <main className="flex-1 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md p-8 text-center">
+            <Target className="w-12 h-12 text-primary mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Please Sign In</h2>
+            <p className="text-muted-foreground mb-6">You need to be signed in to view your dashboard</p>
+            <Button onClick={() => navigate('/player/login')}>Sign In</Button>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  if (profile && profile.role !== 'PLAYER') {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <main className="flex-1 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md p-8 text-center">
+            <Target className="w-12 h-12 text-warning mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+            <p className="text-muted-foreground mb-6">This dashboard is for players only</p>
+            <Button onClick={() => navigate('/')}>Go Home</Button>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <main className="flex-1 flex items-center justify-center p-4">
@@ -334,15 +379,15 @@ export default function PlayerDashboardNew() {
         </p>
       </div>
 
-      <PlayerSummaryCards data={summary} loading={loading} />
+      <PlayerSummaryCards data={summary ?? undefined} loading={loading} />
 
       <PlayAgainPanel 
-        recentMisses={recentMisses} 
+        recentMisses={recentMisses ?? []} 
         onPlayAgain={handlePlayAgain}
       />
 
       <PlayerEntriesTable
-        entries={entries}
+        entries={entries ?? []}
         loading={loading}
         onLoadMore={loadMoreEntries}
         hasMore={hasMore}

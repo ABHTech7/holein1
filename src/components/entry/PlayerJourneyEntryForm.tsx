@@ -749,25 +749,46 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
             </div>
           </div>
 
-          {/* Row 5: Gender */}
-          <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3 focus-within:border-emerald-300 focus-within:ring-2 focus-within:ring-emerald-500/10">
-            <Label htmlFor="gender" className="text-xs uppercase font-medium text-slate-500 mb-1 block">
+          {/* Row 5: Gender (Radio Buttons) */}
+          <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3">
+            <Label className="text-xs uppercase font-medium text-slate-500 mb-3 block">
               Gender
             </Label>
-            <Select
-              value={formData.gender} 
-              onValueChange={(value) => handleInputChange('gender', value)}
-            >
-              <SelectTrigger className="border-0 p-0 text-base font-semibold text-slate-900 focus:ring-0 bg-transparent h-auto">
-                <SelectValue placeholder="Select gender" />
-              </SelectTrigger>
-              <SelectContent className="bg-white border-emerald-200">
-                <SelectItem value="male">Male</SelectItem>
-                <SelectItem value="female">Female</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-                <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <input 
+                  type="radio" 
+                  name="gender" 
+                  value="male" 
+                  checked={formData.gender === 'male'} 
+                  onChange={(e) => handleInputChange('gender', e.target.value)}
+                  className="w-4 h-4 text-emerald-700 border-emerald-300 focus:ring-emerald-500"
+                />
+                <span className="text-base font-medium text-slate-900 group-hover:text-emerald-700">Male</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <input 
+                  type="radio" 
+                  name="gender" 
+                  value="female" 
+                  checked={formData.gender === 'female'} 
+                  onChange={(e) => handleInputChange('gender', e.target.value)}
+                  className="w-4 h-4 text-emerald-700 border-emerald-300 focus:ring-emerald-500"
+                />
+                <span className="text-base font-medium text-slate-900 group-hover:text-emerald-700">Female</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <input 
+                  type="radio" 
+                  name="gender" 
+                  value="prefer_not_to_say" 
+                  checked={formData.gender === 'prefer_not_to_say'} 
+                  onChange={(e) => handleInputChange('gender', e.target.value)}
+                  className="w-4 h-4 text-emerald-700 border-emerald-300 focus:ring-emerald-500"
+                />
+                <span className="text-base font-medium text-slate-900 group-hover:text-emerald-700">Prefer not to say</span>
+              </label>
+            </div>
           </div>
 
           {/* Terms Checkbox */}
