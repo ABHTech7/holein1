@@ -296,33 +296,32 @@ export default function PlayerDashboardNew() {
     )
     .slice(0, 5);
 
-  if (authLoading) {
+  if (authLoading || loading) {
     return (
-      <Container className="py-8">
-        <div className="space-y-6">
-          <Skeleton className="h-8 w-64" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="h-24" />
-            ))}
+      <div className="min-h-screen flex flex-col bg-background">
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center">
+            <Skeleton className="h-8 w-8 rounded-full mx-auto mb-4" />
+            <Skeleton className="h-4 w-48 mx-auto" />
           </div>
-          <Skeleton className="h-96" />
-        </div>
-      </Container>
+        </main>
+      </div>
     );
   }
 
   // Show error state if data load failed
   if (error && !loading) {
     return (
-      <Container className="py-8">
-        <Card className="p-8 text-center">
-          <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Unable to Load Dashboard</h2>
-          <p className="text-muted-foreground mb-4">{error}</p>
-          <Button onClick={() => loadDashboardData()}>Try Again</Button>
-        </Card>
-      </Container>
+      <div className="min-h-screen flex flex-col bg-background">
+        <main className="flex-1 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md p-8 text-center">
+            <Target className="w-12 h-12 text-warning mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Unable to Load Dashboard</h2>
+            <p className="text-muted-foreground mb-6">{error}</p>
+            <Button onClick={() => loadDashboardData()}>Try Again</Button>
+          </Card>
+        </main>
+      </div>
     );
   }
 
