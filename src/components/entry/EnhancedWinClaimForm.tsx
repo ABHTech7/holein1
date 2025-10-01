@@ -187,32 +187,27 @@ const EnhancedWinClaimForm: React.FC<EnhancedWinClaimFormProps> = ({
       const config = getConfig();
       const autoMissAt = new Date(Date.now() + config.verificationTimeoutHours * 60 * 60 * 1000);
 
-      // Create verification record with file storage references (bucket/path format)
-      const { error: verificationError } = await supabase
-        .from('verifications')
-        .insert({
-          entry_id: entryId,
-          witnesses: {
-            name: witnessName.trim(),
-            contact: witnessContact.trim()
-          },
-          // Store as bucket/path format for signed URL generation
+      // Create/update verification using RPC
+      const verificationResult = await supabase.rpc('create_or_upsert_verification', {
+        p_entry_id: entryId,
+        p_payload: {
           selfie_url: `${uploadedFiles.selfie!.storage_bucket}/${uploadedFiles.selfie!.storage_path}`,
           id_document_url: `${uploadedFiles.idDocument!.storage_bucket}/${uploadedFiles.idDocument!.storage_path}`,
           handicap_proof_url: `${uploadedFiles.handicapProof!.storage_bucket}/${uploadedFiles.handicapProof!.storage_path}`,
           video_url: uploadedFiles.videoEvidence ? 
-            `${uploadedFiles.videoEvidence.storage_bucket}/${uploadedFiles.videoEvidence.storage_path}` : 
-            null,
-          status: 'pending',
-          evidence_captured_at: new Date().toISOString(),
-          auto_miss_at: autoMissAt.toISOString(),
-          auto_miss_applied: false,
-        });
+            `${uploadedFiles.videoEvidence.storage_bucket}/${uploadedFiles.videoEvidence.storage_path}` : null,
+          witness_name: witnessName.trim(),
+          witness_email: witnessContact.includes('@') ? witnessContact.trim() : null,
+          witness_phone: !witnessContact.includes('@') ? witnessContact.trim() : null,
+          status: 'submitted'
+        }
+      });
 
-      if (verificationError) {
-        console.error('Verification creation failed:', verificationError);
+      if (verificationResult.error) {
         throw new Error('Failed to create verification record');
       }
+
+      const verificationData = verificationResult.data as any;
 
       // Update entry status
       const { error: entryError } = await supabase
@@ -229,25 +224,29 @@ const EnhancedWinClaimForm: React.FC<EnhancedWinClaimFormProps> = ({
         throw new Error('Failed to update entry status');
       }
 
-      // Trigger claim confirmation email (don't block on failure)
+      // Send emails asynchronously
       try {
         await supabase.functions.invoke('send-claim-confirmation', {
-          body: {
-            verificationId: null, // Will be populated by trigger
-            entryId: entryId,
-            playerId: user?.id
-          }
+          body: { verificationId: verificationData?.verification_id, entryId }
         });
+        
+        // Send witness email if email provided
+        const witnessEmail = witnessContact.includes('@') ? witnessContact.trim() : null;
+        if (witnessEmail) {
+          await supabase.functions.invoke('send-witness-request', {
+            body: {
+              verificationId: verificationData?.verification_id,
+              witnessEmail,
+              witnessName: witnessName.trim()
+            }
+          });
+        }
       } catch (emailError) {
-        console.warn('Email notification failed (non-blocking):', emailError);
+        console.warn('Email failed (non-blocking):', emailError);
       }
 
-      toast({
-        title: "Verification submitted!",
-        description: "Your hole-in-one claim is now under review"
-      });
-
-      onSuccess();
+      // Navigate to success page
+      window.location.href = `/win-claim-success/${entryId}`;
       
     } catch (error) {
       console.error('Submission error:', error);

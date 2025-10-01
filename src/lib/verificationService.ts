@@ -1,7 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export async function ensureVerificationRecord(entryId: string) {
-  // Upsert verification record (create or update if exists)
   const { data, error } = await supabase
     .from('verifications')
     .upsert({
@@ -44,16 +43,83 @@ export async function updateVerificationEvidence(
   return { data, error };
 }
 
+export async function createOrUpsertVerification(
+  entryId: string,
+  payload: {
+    selfie_url?: string;
+    id_document_url?: string;
+    handicap_proof_url?: string;
+    video_url?: string;
+    witness_name?: string;
+    witness_email?: string;
+    witness_phone?: string;
+    social_consent?: boolean;
+    status?: string;
+  }
+) {
+  const { data, error } = await supabase.rpc('create_or_upsert_verification', {
+    p_entry_id: entryId,
+    p_payload: payload as any
+  });
+
+  if (error) {
+    console.error('Error creating/updating verification:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function uploadVerificationEvidence(
+  entryId: string,
+  files: {
+    selfie: File;
+    idDocument: File;
+    handicapProof?: File;
+    video?: File;
+  }
+): Promise<{ [key: string]: string }> {
+  const uploadedUrls: { [key: string]: string } = {};
+
+  // Upload files to verifications bucket using structured path
+  const uploadToVerificationsBucket = async (file: File, role: string) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${entryId}/${role}-${crypto.randomUUID()}.${fileExt}`;
+
+    const { data, error } = await supabase.storage
+      .from('verifications')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) throw error;
+    return `verifications/${data.path}`;
+  };
+
+  // Upload required files
+  uploadedUrls.selfie_url = await uploadToVerificationsBucket(files.selfie, 'selfie');
+  uploadedUrls.id_document_url = await uploadToVerificationsBucket(files.idDocument, 'id-document');
+  
+  if (files.handicapProof) {
+    uploadedUrls.handicap_proof_url = await uploadToVerificationsBucket(files.handicapProof, 'handicap-proof');
+  }
+  
+  if (files.video) {
+    uploadedUrls.video_url = await uploadToVerificationsBucket(files.video, 'video');
+  }
+
+  return uploadedUrls;
+}
+
 export async function ensureAllWinVerifications() {
   try {
-    // Get all existing verification entry IDs to avoid duplicates
     const { data: existingVerifications } = await supabase
       .from('verifications')
       .select('entry_id');
 
     const existingEntryIds = new Set(existingVerifications?.map(v => v.entry_id) || []);
 
-    // Get all wins without verification records
     const { data: winsWithoutVerification } = await supabase
       .from('entries')
       .select('id, outcome_reported_at')
@@ -63,14 +129,12 @@ export async function ensureAllWinVerifications() {
       return [];
     }
 
-    // Filter out entries that already have verification records
     const missingWins = winsWithoutVerification.filter(entry => !existingEntryIds.has(entry.id));
 
     if (!missingWins.length) {
       return [];
     }
 
-    // Create verification records for all missing wins
     const verifications = missingWins.map(entry => ({
       entry_id: entry.id,
       status: 'pending',
@@ -98,7 +162,6 @@ export async function ensureAllWinVerifications() {
 
 export async function ensureWinVerificationForEntry(entryId: string) {
   try {
-    // Check if verification already exists
     const { data: existing } = await supabase
       .from('verifications')
       .select('id')
@@ -109,7 +172,6 @@ export async function ensureWinVerificationForEntry(entryId: string) {
       return existing;
     }
 
-    // Create new verification record
     const { data, error } = await supabase
       .from('verifications')
       .insert({

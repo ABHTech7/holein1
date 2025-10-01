@@ -85,14 +85,26 @@ const WinClaimPageNew: React.FC = () => {
         return;
       }
 
-      // Wait for auth to finish loading
+      // CRITICAL: Wait for auth to finish loading before checking user
       if (authLoading) {
-        return;
+        return; // Stay in loading state
       }
 
       if (!user) {
         setError('Please log in to continue');
         setIsLoading(false);
+        return;
+      }
+
+      // Check if verification already exists - redirect to success if so
+      const { data: existingVerification } = await supabase
+        .from('verifications')
+        .select('id')
+        .eq('entry_id', entryId)
+        .maybeSingle();
+
+      if (existingVerification) {
+        navigate(`/win-claim-success/${entryId}`);
         return;
       }
 
@@ -219,46 +231,48 @@ const WinClaimPageNew: React.FC = () => {
         throw new Error('User not authenticated. Please log in and try again.');
       }
 
-      // Upload files
-      const uploads: Record<string, string> = {};
+      // Upload files to verifications bucket
+      const uploadToVerificationsBucket = async (file: File, role: string) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${entryId}/${role}-${crypto.randomUUID()}.${fileExt}`;
+        const { data, error } = await supabase.storage
+          .from('verifications')
+          .upload(fileName, file);
+        if (error) throw error;
+        return `verifications/${data.path}`;
+      };
 
-      // Upload selfie
-      const selfieFile = await uploadFile(verificationData.selfie, authUser.id, {
-        purpose: 'selfie',
-        expiresInHours: 24
-      });
-      uploads.selfie_url = `${selfieFile.storage_bucket}/${selfieFile.storage_path}`;
-
-      // Upload ID document
-      const idFile = await uploadFile(verificationData.idDocument, authUser.id, {
-        purpose: 'id_document', 
-        expiresInHours: 24
-      });
-      uploads.id_document_url = `${idFile.storage_bucket}/${idFile.storage_path}`;
-
-      // Upload video if provided
-      if (verificationData.videoEvidence) {
-        const videoFile = await uploadFile(verificationData.videoEvidence, authUser.id, {
-          purpose: 'shot_video',
-          expiresInHours: 24
-        });
-        uploads.video_url = `${videoFile.storage_bucket}/${videoFile.storage_path}`;
-      }
-
-      // Update verification with all evidence
-      await updateVerificationEvidence(entryId!, {
-        ...uploads,
-        witnesses: verificationData.witness,
+      const uploads: any = {
+        selfie_url: await uploadToVerificationsBucket(verificationData.selfie, 'selfie'),
+        id_document_url: await uploadToVerificationsBucket(verificationData.idDocument, 'id'),
+        witness_name: verificationData.witness.name,
+        witness_email: verificationData.witness.email,
+        witness_phone: verificationData.witness.phone,
         social_consent: verificationData.socialConsent,
         status: 'submitted'
+      };
+
+      if (verificationData.videoEvidence) {
+        uploads.video_url = await uploadToVerificationsBucket(verificationData.videoEvidence, 'video');
+      }
+
+      // Create/update verification
+      await supabase.rpc('create_or_upsert_verification', {
+        p_entry_id: entryId,
+        p_payload: uploads
       });
 
-      toast({
-        title: "🏆 Verification Submitted!",
-        description: "Your legendary shot is now under review. We'll be in touch soon!",
-      });
-      
-      setCurrentStep('success');
+      // Send emails
+      try {
+        await supabase.functions.invoke('send-claim-confirmation', { body: { entryId } });
+        if (verificationData.witness.email) {
+          await supabase.functions.invoke('send-witness-request', {
+            body: { verificationId: entryId, witnessEmail: verificationData.witness.email, witnessName: verificationData.witness.name }
+          });
+        }
+      } catch (e) { console.warn('Email error:', e); }
+
+      navigate(`/win-claim-success/${entryId}`);
     } catch (error) {
       console.error('Verification submission error:', error);
       toast({
@@ -272,7 +286,7 @@ const WinClaimPageNew: React.FC = () => {
   };
 
   const handleComplete = () => {
-    navigate('/entry-success');
+    navigate(`/win-claim-success/${entryId}`);
   };
 
   const handleStepNavigation = (direction: 'next' | 'back') => {

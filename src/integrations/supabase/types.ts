@@ -1185,6 +1185,10 @@ export type Database = {
           verified_at: string | null
           verified_by: string | null
           video_url: string | null
+          witness_confirmed_at: string | null
+          witness_email: string | null
+          witness_name: string | null
+          witness_phone: string | null
           witnesses: Json
         }
         Insert: {
@@ -1204,6 +1208,10 @@ export type Database = {
           verified_at?: string | null
           verified_by?: string | null
           video_url?: string | null
+          witness_confirmed_at?: string | null
+          witness_email?: string | null
+          witness_name?: string | null
+          witness_phone?: string | null
           witnesses: Json
         }
         Update: {
@@ -1223,6 +1231,10 @@ export type Database = {
           verified_at?: string | null
           verified_by?: string | null
           video_url?: string | null
+          witness_confirmed_at?: string | null
+          witness_email?: string | null
+          witness_name?: string | null
+          witness_phone?: string | null
           witnesses?: Json
         }
         Relationships: [
@@ -1238,6 +1250,47 @@ export type Database = {
             columns: ["verified_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      witness_confirmations: {
+        Row: {
+          confirmed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          meta: Json | null
+          token: string
+          updated_at: string
+          verification_id: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          meta?: Json | null
+          token: string
+          updated_at?: string
+          verification_id: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          meta?: Json | null
+          token?: string
+          updated_at?: string
+          verification_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "witness_confirmations_verification_id_fkey"
+            columns: ["verification_id"]
+            isOneToOne: false
+            referencedRelation: "verifications"
             referencedColumns: ["id"]
           },
         ]
@@ -1318,6 +1371,10 @@ export type Database = {
       }
       create_new_entry_for_current_email: {
         Args: { p_competition_id: string }
+        Returns: Json
+      }
+      create_or_upsert_verification: {
+        Args: { p_entry_id: string; p_payload: Json }
         Returns: Json
       }
       create_player_idempotent: {
@@ -1517,6 +1574,7 @@ export type Database = {
           competition_name: string
           created_at: string
           entry_date: string
+          entry_fee: number
           id: string
           is_repeat_attempt: boolean
           outcome_self: string

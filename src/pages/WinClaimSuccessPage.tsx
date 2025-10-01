@@ -3,23 +3,28 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Clock, Trophy, Mail, Loader2 } from "lucide-react";
+import { CheckCircle2, Clock, Trophy, Mail, Loader2, FileCheck } from "lucide-react";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { getConfig } from "@/lib/featureFlags";
 
 const WinClaimSuccessPage: React.FC = () => {
   const { entryId } = useParams<{ entryId: string }>();
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [verificationId, setVerificationId] = useState<string | null>(null);
   const [competitionName, setCompetitionName] = useState<string>('');
+  const [prizeAmount, setPrizeAmount] = useState<number>(0);
 
   useEffect(() => {
     const loadVerificationData = async () => {
-      if (!entryId) {
-        navigate('/');
+      if (!entryId || authLoading) return;
+      
+      if (!user) {
+        navigate('/auth');
         return;
       }
 
@@ -31,22 +36,23 @@ const WinClaimSuccessPage: React.FC = () => {
             id,
             entry:entries!inner(
               competition:competitions!inner(
-                name
+                name,
+                prize_pool
               )
             )
           `)
           .eq('entry_id', entryId)
-          .order('created_at', { ascending: false })
-          .limit(1)
           .maybeSingle();
 
         if (error || !verification) {
           console.error('Failed to load verification:', error);
+          navigate('/player/dashboard');
           return;
         }
 
         setVerificationId(verification.id);
         setCompetitionName((verification.entry as any)?.competition?.name || '');
+        setPrizeAmount((verification.entry as any)?.competition?.prize_pool || 0);
       } catch (error) {
         console.error('Error loading verification:', error);
       } finally {
@@ -55,9 +61,9 @@ const WinClaimSuccessPage: React.FC = () => {
     };
 
     loadVerificationData();
-  }, [entryId, navigate]);
+  }, [entryId, user, authLoading, navigate]);
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <SiteHeader />

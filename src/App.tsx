@@ -139,7 +139,9 @@ const App = () => {
               path="/player/dashboard" 
               element={
                 <EnhancedRoleGuard allowedRoles={['PLAYER']}>
-                  <PlayerDashboardNew />
+                  <ErrorBoundary>
+                    <PlayerDashboardNew />
+                  </ErrorBoundary>
                 </EnhancedRoleGuard>
               } 
             />
@@ -185,6 +187,14 @@ const App = () => {
               element={
                 <EnhancedRoleGuard allowedRoles={['ADMIN', 'CLUB', 'PLAYER']} showUnauthorizedToast={false}>
                   <WinClaimPageNew />
+                </EnhancedRoleGuard>
+              } 
+            />
+            <Route 
+              path="/win-claim-success/:entryId" 
+              element={
+                <EnhancedRoleGuard allowedRoles={['ADMIN', 'CLUB', 'PLAYER']} showUnauthorizedToast={false}>
+                  <WinClaimSuccessPage />
                 </EnhancedRoleGuard>
               } 
             />
