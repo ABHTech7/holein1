@@ -58,6 +58,9 @@ verify_jwt = false
 [functions.send-claim-notification]
 verify_jwt = false
 
+[functions.send-claim-rejection]
+verify_jwt = false
+
 [functions.send-premium-notification]
 verify_jwt = true
 

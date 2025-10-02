@@ -262,6 +262,7 @@ const ClaimDetailPage = () => {
         status: 'rejected',
         verified_at: new Date().toISOString(),
         verified_by: (await supabase.auth.getUser()).data.user?.id,
+        rejection_reason: rejectionReason || null,
       };
 
       const { error } = await supabase
@@ -270,6 +271,20 @@ const ClaimDetailPage = () => {
         .eq('id', claim.id);
 
       if (error) throw error;
+
+      // Send rejection email to player
+      try {
+        await supabase.functions.invoke('send-claim-rejection', {
+          body: {
+            verificationId: claim.id,
+            entryId: claim.entry_id,
+            rejectionReason: rejectionReason || 'No reason provided'
+          }
+        });
+      } catch (emailError) {
+        console.error('Failed to send rejection email:', emailError);
+        // Don't block rejection if email fails
+      }
 
       setClaim(prev => prev ? { ...prev, status: 'rejected' } : null);
       setShowRejectDialog(false);

@@ -374,6 +374,7 @@ export type Database = {
           hole_number: number
           id: string
           is_demo_data: boolean | null
+          is_highlighted: boolean
           is_year_round: boolean
           name: string
           prize_pool: number | null
@@ -395,6 +396,7 @@ export type Database = {
           hole_number?: number
           id?: string
           is_demo_data?: boolean | null
+          is_highlighted?: boolean
           is_year_round?: boolean
           name: string
           prize_pool?: number | null
@@ -416,6 +418,7 @@ export type Database = {
           hole_number?: number
           id?: string
           is_demo_data?: boolean | null
+          is_highlighted?: boolean
           is_year_round?: boolean
           name?: string
           prize_pool?: number | null
@@ -1177,6 +1180,7 @@ export type Database = {
           handicap_proof_url: string | null
           id: string
           id_document_url: string | null
+          rejection_reason: string | null
           selfie_url: string | null
           social_consent: boolean | null
           staff_code: string | null
@@ -1200,6 +1204,7 @@ export type Database = {
           handicap_proof_url?: string | null
           id?: string
           id_document_url?: string | null
+          rejection_reason?: string | null
           selfie_url?: string | null
           social_consent?: boolean | null
           staff_code?: string | null
@@ -1223,6 +1228,7 @@ export type Database = {
           handicap_proof_url?: string | null
           id?: string
           id_document_url?: string | null
+          rejection_reason?: string | null
           selfie_url?: string | null
           social_consent?: boolean | null
           staff_code?: string | null

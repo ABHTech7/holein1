@@ -105,7 +105,7 @@ const CompetitionsBrowse = () => {
       case 'CLUB': 
         return "/dashboard/club";
       case 'PLAYER': 
-        return "/players/entries";
+        return "/player/dashboard";
       default: 
         return "/";
     }

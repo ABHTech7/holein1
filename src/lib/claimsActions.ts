@@ -11,13 +11,14 @@ export async function approveClaim(id: string) {
     .eq('id', id);
 }
 
-export async function rejectClaim(id: string) {
+export async function rejectClaim(id: string, rejectionReason?: string) {
   return supabase
     .from('verifications')
     .update({ 
       status: 'rejected',
       verified_at: new Date().toISOString(),
-      verified_by: (await supabase.auth.getUser()).data.user?.id
+      verified_by: (await supabase.auth.getUser()).data.user?.id,
+      rejection_reason: rejectionReason || null
     })
     .eq('id', id);
 }

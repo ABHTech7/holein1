@@ -78,7 +78,7 @@ import Accessibility from "./pages/policies/Accessibility";
 import Index from "./pages/Index";
 import ClubCompetitions from "./pages/ClubCompetitions";
 import NotFound from "./pages/NotFound";
-import CompetitionsBrowse from "./pages/CompetitionsBrowse";
+import CompetitionsBrowseNew from "./pages/CompetitionsBrowseNew";
 import ExpiredLinkPage from "./pages/ExpiredLinkPage";
 
 const queryClient = new QueryClient();
@@ -149,7 +149,7 @@ const App = () => {
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/auth/expired-link" element={<ExpiredLinkPage />} />
             <Route path="/auth/expired" element={<Navigate to="/auth/expired-link" replace />} />
-            <Route path="/competitions" element={<CompetitionsBrowse />} />
+            <Route path="/competitions" element={<CompetitionsBrowseNew />} />
             
             {/* New competition entry route with clear structure */}
             <Route 
