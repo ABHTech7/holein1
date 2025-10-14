@@ -17,6 +17,7 @@ import { SimpleResetDemoButton } from "@/components/admin/SimpleResetDemoButton"
 import { TopUpClubsButton } from "@/components/admin/TopUpClubsButton";
 import { TopUpPlayersButton } from "@/components/admin/TopUpPlayersButton";
 import { TopUpEntriesButton } from "@/components/admin/TopUpEntriesButton";
+import { TargetedClubDemoData } from "@/components/admin/TargetedClubDemoData";
 import { SuperAdminProfileModal } from "@/components/admin/SuperAdminProfileModal";
 import { Users, Calendar, Trophy, TrendingUp, Plus, Settings, PoundSterling, UserPlus, Edit3, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -605,6 +606,9 @@ const AdminDashboard = () => {
             {showDemoTools && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Demo Data Management</h3>
+                <div className="mb-6">
+                  <TargetedClubDemoData />
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <TopUpClubsButton />
                   <TopUpPlayersButton />
