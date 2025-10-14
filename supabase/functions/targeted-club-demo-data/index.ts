@@ -133,6 +133,8 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
+      let competitionsToUse: any[] = [];
+      let createdCompetitionsCount = 0;
       const { data: createdCompetitions, error: compError } = await supabaseAdmin
         .from('competitions')
         .insert(competitions)
@@ -140,11 +142,28 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (compError) {
         console.error('Error creating competitions:', compError);
-        continue;
+        // Fallback: use existing competitions for this club
+        const { data: existingComps, error: existingCompErr } = await supabaseAdmin
+          .from('competitions')
+          .select('id, entry_fee')
+          .eq('club_id', club.id)
+          .eq('archived', false)
+          .in('status', ['ACTIVE', 'SCHEDULED']);
+        if (existingCompErr) {
+          console.error('Fallback fetch competitions failed:', existingCompErr);
+        }
+        competitionsToUse = existingComps || [];
+      } else {
+        competitionsToUse = createdCompetitions || [];
+        createdCompetitionsCount = competitionsToUse.length;
+        totalCompetitions += createdCompetitionsCount;
+        console.log(`Created ${createdCompetitionsCount} competitions for ${club.name}`);
       }
 
-      totalCompetitions += createdCompetitions.length;
-      console.log(`Created ${createdCompetitions.length} competitions for ${club.name}`);
+      if (competitionsToUse.length === 0) {
+        console.warn('No competitions available for club:', club.name);
+        continue;
+      }
 
       // Create players for this club
       const players = [];
@@ -160,7 +179,7 @@ const handler = async (req: Request): Promise<Response> => {
           last_name: lastName,
           phone: generateUKPhone(),
           age_years: getRandomInt(18, 75),
-          gender: getRandomElement(['Male', 'Female']),
+          gender: getRandomElement(['male', 'female']),
           handicap: getRandomInt(0, 36),
           club_id: club.id,
           role: 'PLAYER',
@@ -169,21 +188,43 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
-      const { data: createdPlayers, error: playersError } = await supabaseAdmin
+      let playersToUse: any[] = [];
+      let createdPlayers: any[] = [];
+      let playersCreatedCount = 0;
+      const { data: insertedPlayers, error: playersError } = await supabaseAdmin
         .from('profiles')
         .insert(players)
         .select();
 
       if (playersError) {
         console.error('Error creating players:', playersError);
+        // Fallback: use existing players for this club
+        const { data: existingPlayers, error: existingPlayersErr } = await supabaseAdmin
+          .from('profiles')
+          .select('id, email')
+          .eq('club_id', club.id)
+          .eq('role', 'PLAYER')
+          .eq('status', 'active')
+          .limit(playersPerClub);
+        if (existingPlayersErr) {
+          console.error('Fallback fetch players failed:', existingPlayersErr);
+        }
+        playersToUse = existingPlayers || [];
+      } else {
+        createdPlayers = insertedPlayers || [];
+        playersToUse = createdPlayers;
+        playersCreatedCount = createdPlayers.length;
+        totalPlayers += playersCreatedCount;
+        console.log(`Created ${playersCreatedCount} players for ${club.name}`);
+      }
+
+      if (playersToUse.length === 0) {
+        console.warn('No players available for club:', club.name);
         continue;
       }
 
-      totalPlayers += createdPlayers.length;
-      console.log(`Created ${createdPlayers.length} players for ${club.name}`);
-
       // Create entries for each competition
-      for (const competition of createdCompetitions) {
+      for (const competition of competitionsToUse) {
         const entries = [];
         const usedPlayers = new Set<string>();
 
@@ -191,7 +232,7 @@ const handler = async (req: Request): Promise<Response> => {
           let player;
           let attempts = 0;
           do {
-            player = getRandomElement(createdPlayers);
+            player = getRandomElement(playersToUse);
             attempts++;
           } while (usedPlayers.has(player.id) && attempts < 100);
 
