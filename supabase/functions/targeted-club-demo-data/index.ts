@@ -114,11 +114,13 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Create competitions for this club
       const competitions = [];
+      const timestamp = Date.now();
       for (let i = 0; i < competitionsPerClub; i++) {
         const startDate = generatePastDate(30, 90);
+        const uniqueSuffix = `${timestamp}-${i}`;
         competitions.push({
           club_id: club.id,
-          name: `${club.name} - Hole in One Challenge ${i + 1}`,
+          name: `${club.name} - Challenge ${uniqueSuffix}`,
           description: `Demo competition at ${club.name}`,
           start_date: startDate.toISOString(),
           end_date: new Date(startDate.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
@@ -148,10 +150,11 @@ const handler = async (req: Request): Promise<Response> => {
       const players = [];
       for (let i = 0; i < playersPerClub; i++) {
         const { firstName, lastName } = generatePlayerName();
-        const email = `${sanitizeForEmail(firstName)}.${sanitizeForEmail(lastName)}.${getRandomInt(1, 999)}@demo-golfer.test`;
+        const email = `${sanitizeForEmail(firstName)}.${sanitizeForEmail(lastName)}.${getRandomInt(1, 9999)}@demo-golfer.test`;
         const registrationDate = generatePastDate(1, 90);
 
         players.push({
+          id: crypto.randomUUID(),
           email,
           first_name: firstName,
           last_name: lastName,
