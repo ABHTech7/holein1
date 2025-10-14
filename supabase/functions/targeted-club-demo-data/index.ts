@@ -125,7 +125,7 @@ const handler = async (req: Request): Promise<Response> => {
           start_date: startDate.toISOString(),
           end_date: new Date(startDate.getTime() + 90 * 24 * 60 * 60 * 1000).toISOString(),
           status: 'ACTIVE',
-          entry_fee: getRandomElement([10, 15, 20, 25]),
+          entry_fee: getRandomElement([1000, 2000, 5000]), // stored in minor units (pence): £10, £20, £50
           prize_pool: getRandomElement([1000, 5000, 10000]),
           hole_number: getRandomInt(1, 18),
           is_demo_data: true,
@@ -173,7 +173,7 @@ const handler = async (req: Request): Promise<Response> => {
         const registrationDate = generatePastDate(1, 90);
 
         players.push({
-          id: crypto.randomUUID(),
+          // id will be set after creating the auth user
           email,
           first_name: firstName,
           last_name: lastName,
@@ -191,9 +191,31 @@ const handler = async (req: Request): Promise<Response> => {
       let playersToUse: any[] = [];
       let createdPlayers: any[] = [];
       let playersCreatedCount = 0;
+
+      // Create auth users first to satisfy profiles.id FK -> auth.users(id)
+      const playersWithAuth: any[] = [];
+      for (const p of players) {
+        const { data: userRes, error: userErr } = await supabaseAdmin.auth.admin.createUser({
+          email: p.email,
+          email_confirm: true,
+          user_metadata: {
+            first_name: p.first_name,
+            last_name: p.last_name,
+            club_id: p.club_id,
+            role: p.role,
+            is_demo_data: true,
+          },
+        });
+        if (userErr || !userRes?.user) {
+          console.error('Error creating auth user for player', p.email, userErr);
+          continue;
+        }
+        playersWithAuth.push({ ...p, id: userRes.user.id });
+      }
+
       const { data: insertedPlayers, error: playersError } = await supabaseAdmin
         .from('profiles')
-        .insert(players)
+        .insert(playersWithAuth)
         .select();
 
       if (playersError) {
@@ -204,7 +226,6 @@ const handler = async (req: Request): Promise<Response> => {
           .select('id, email')
           .eq('club_id', club.id)
           .eq('role', 'PLAYER')
-          .eq('status', 'active')
           .limit(playersPerClub);
         if (existingPlayersErr) {
           console.error('Fallback fetch players failed:', existingPlayersErr);
