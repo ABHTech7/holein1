@@ -90,6 +90,7 @@ export const ROUTES = {
     COOKIES: '/policies/cookies',
     INSURANCE: '/policies/insurance',
     ACCESSIBILITY: '/policies/accessibility',
+    PLAYER_TERMS: '/policies/player-terms',
   },
   
   // Error Routes

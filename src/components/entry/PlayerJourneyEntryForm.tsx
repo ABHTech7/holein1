@@ -795,7 +795,15 @@ const PlayerJourneyEntryForm: React.FC<PlayerJourneyEntryFormProps> = ({
               className="mt-1"
             />
             <Label htmlFor="terms" className="text-sm text-slate-700 leading-relaxed">
-              I accept the terms and conditions and privacy policy *
+              I accept the{' '}
+              <a href="/policies/player-terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">
+                Player Terms and Conditions
+              </a>
+              {' '}and{' '}
+              <a href="/policies/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">
+                Privacy Policy
+              </a>
+              {' '}*
             </Label>
           </div>
 

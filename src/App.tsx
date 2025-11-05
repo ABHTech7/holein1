@@ -73,6 +73,7 @@ import TermsOfService from "./pages/policies/TermsOfService";
 import CookiePolicy from "./pages/policies/CookiePolicy";
 import Insurance from "./pages/policies/Insurance";
 import Accessibility from "./pages/policies/Accessibility";
+import PlayerTerms from "./pages/policies/PlayerTerms";
 
 // Legacy pages for compatibility
 import Index from "./pages/Index";
@@ -460,6 +461,7 @@ const App = () => {
           <Route path="/policies/cookies" element={<CookiePolicy />} />
           <Route path="/policies/insurance" element={<Insurance />} />
           <Route path="/policies/accessibility" element={<Accessibility />} />
+          <Route path="/policies/player-terms" element={<PlayerTerms />} />
           
           {/* Development & Documentation */}
           <Route path="/styleguide" element={<Styleguide />} />

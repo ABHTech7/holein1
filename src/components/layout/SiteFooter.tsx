@@ -1,17 +1,29 @@
 import { Link } from "react-router-dom";
 import Container from "./Container";
 import { Trophy, Instagram, Linkedin, Music } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const SiteFooter = () => {
+  const { profile } = useAuth();
   const currentYear = new Date().getFullYear();
 
-  const policyLinks = [
+  // Base policy links (always visible)
+  const basePolicyLinks = [
     { name: "Privacy Policy", href: "/policies/privacy" },
     { name: "Terms of Service", href: "/policies/terms" },
     { name: "Cookie Policy", href: "/policies/cookies" },
     { name: "Insurance", href: "/policies/insurance" },
     { name: "Accessibility", href: "/policies/accessibility" },
   ];
+
+  // Conditionally add Player Terms for PLAYER role users
+  const policyLinks = profile?.role === 'PLAYER' 
+    ? [
+        ...basePolicyLinks.slice(0, 2), // Privacy + Terms
+        { name: "Player Terms", href: "/policies/player-terms" }, // Insert here
+        ...basePolicyLinks.slice(2), // Rest of links
+      ]
+    : basePolicyLinks;
 
   const quickLinks = [
     { name: "Home", href: "/" },
