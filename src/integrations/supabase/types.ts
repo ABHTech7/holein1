@@ -77,7 +77,7 @@ export type Database = {
           entity_id: string | null
           entity_type: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           new_values: Json | null
           old_values: Json | null
           user_agent: string | null
@@ -89,7 +89,7 @@ export type Database = {
           entity_id?: string | null
           entity_type: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           new_values?: Json | null
           old_values?: Json | null
           user_agent?: string | null
@@ -101,7 +101,7 @@ export type Database = {
           entity_id?: string | null
           entity_type?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           new_values?: Json | null
           old_values?: Json | null
           user_agent?: string | null
@@ -1334,10 +1334,7 @@ export type Database = {
           total_count: number
         }[]
       }
-      admin_mark_all_unpaid_entries_paid: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      admin_mark_all_unpaid_entries_paid: { Args: never; Returns: number }
       admin_toggle_user_status: {
         Args: { p_active: boolean; p_reason?: string; p_user_id: string }
         Returns: Json
@@ -1346,10 +1343,7 @@ export type Database = {
         Args: { p_first_name?: string; p_last_name?: string; p_phone?: string }
         Returns: Json
       }
-      backfill_demo_data_flags: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      backfill_demo_data_flags: { Args: never; Returns: Json }
       calculate_attempt_number: {
         Args: { p_competition_id: string; p_email: string }
         Returns: number
@@ -1362,10 +1356,7 @@ export type Database = {
           total_premium: number
         }[]
       }
-      cleanup_demo_data: {
-        Args: { cleanup_all?: boolean }
-        Returns: Json
-      }
+      cleanup_demo_data: { Args: { cleanup_all?: boolean }; Returns: Json }
       convert_partnership_lead_to_club: {
         Args: {
           p_admin_email?: string
@@ -1398,20 +1389,20 @@ export type Database = {
         }
         Returns: Json
       }
-      create_verifications_for_wins: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      flush_production_data: {
-        Args:
-          | {
+      create_verifications_for_wins: { Args: never; Returns: number }
+      flush_production_data:
+        | {
+            Args: { p_confirmation_text?: string; p_keep_super_admin?: boolean }
+            Returns: Json
+          }
+        | {
+            Args: {
               p_confirmation_text?: string
               p_include_demo_data?: boolean
               p_keep_super_admin?: boolean
             }
-          | { p_confirmation_text?: string; p_keep_super_admin?: boolean }
-        Returns: Json
-      }
+            Returns: Json
+          }
       get_admin_players_with_stats: {
         Args: { p_limit?: number; p_offset?: number; p_search?: string }
         Returns: {
@@ -1437,16 +1428,10 @@ export type Database = {
         Args: { end_date: string; is_year_round: boolean; start_date: string }
         Returns: Database["public"]["Enums"]["competition_status"]
       }
-      get_current_user_club_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_current_user_is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      get_current_user_club_id: { Args: never; Returns: string }
+      get_current_user_is_admin: { Args: never; Returns: boolean }
       get_current_user_permissions: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           category: string
           permission_description: string
@@ -1454,7 +1439,7 @@ export type Database = {
         }[]
       }
       get_current_user_profile_safe: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           email: string
@@ -1465,11 +1450,11 @@ export type Database = {
         }[]
       }
       get_current_user_role: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
       get_demo_data_stats: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           demo_clubs: number
           demo_competitions: number
@@ -1501,7 +1486,7 @@ export type Database = {
         }[]
       }
       get_incomplete_players: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           email: string
@@ -1553,7 +1538,7 @@ export type Database = {
         }[]
       }
       get_my_active_entries: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           attempt_number: number
           attempt_window_end: string
@@ -1589,7 +1574,7 @@ export type Database = {
         }[]
       }
       get_my_entry_totals: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           competitions_played: number
           last_played_at: string
@@ -1634,7 +1619,7 @@ export type Database = {
         }[]
       }
       get_revenue_summaries_uk: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           mtd_revenue: number
           today_revenue: number
@@ -1652,7 +1637,7 @@ export type Database = {
         }[]
       }
       get_safe_clubs_data: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           address: string
           email: string
@@ -1686,7 +1671,7 @@ export type Database = {
         }[]
       }
       get_site_settings: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           email_notifications_enabled: boolean
@@ -1717,10 +1702,7 @@ export type Database = {
         Args: { user_uuid: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
-      is_production_environment: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_production_environment: { Args: never; Returns: boolean }
       is_role_change_authorized: {
         Args: {
           new_role: Database["public"]["Enums"]["user_role"]
@@ -1728,14 +1710,8 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_valid_email: {
-        Args: { email_text: string }
-        Returns: boolean
-      }
-      is_valid_phone: {
-        Args: { phone_text: string }
-        Returns: boolean
-      }
+      is_valid_email: { Args: { email_text: string }; Returns: boolean }
+      is_valid_phone: { Args: { phone_text: string }; Returns: boolean }
       log_sensitive_access: {
         Args: {
           access_type: string
@@ -1745,18 +1721,12 @@ export type Database = {
         }
         Returns: boolean
       }
-      migrate_club_banking_data: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      migrate_club_banking_data: { Args: never; Returns: undefined }
       setup_insurer_account: {
         Args: { p_email: string; p_first_name?: string; p_last_name?: string }
         Returns: Json
       }
-      slugify: {
-        Args: { text_input: string }
-        Returns: string
-      }
+      slugify: { Args: { text_input: string }; Returns: string }
       update_club_contract_status: {
         Args: {
           p_club_id: string
@@ -1770,10 +1740,7 @@ export type Database = {
         Args: { p_entry_id: string; p_outcome: string; p_video_url?: string }
         Returns: boolean
       }
-      update_expired_entries: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      update_expired_entries: { Args: never; Returns: number }
       upsert_profile_safe: {
         Args: {
           profile_email: string
